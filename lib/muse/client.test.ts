@@ -19,7 +19,7 @@ describe("readMuseConfig", () => {
     expect(result.data).toEqual({
       apiKey: "k",
       baseUrl: "https://api.meta.ai/v1",
-      model: "muse-spark-1.3",
+      model: "muse-ember-1.0",
       reasoningEffort: "low",
     });
   });

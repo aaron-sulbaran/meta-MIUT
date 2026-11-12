@@ -5,11 +5,15 @@ import { z } from "zod";
 //
 // The wire format in `museAdapter` was confirmed against the dev.meta.ai docs on
 // 2026-11-12: OpenAI-style chat completions at `${baseUrl}/chat/completions`.
-// A live call still needs confirming until `pnpm spike:muse` has been run with a
-// real key. Nothing outside this file should depend on the wire format.
+// The live call was confirmed on 2026-11-12 with `pnpm spike:muse`. Nothing outside
+// this file should depend on the wire format.
+//
+// Ember is the default because the flyer extract measured about 2.4 to 3.3 s on
+// `muse-ember-1.0` at low effort, versus 30 to 64 s on `muse-spark-1.3` and 47 s on
+// `muse-wonder-1.0`, which is past the 20 s app timeout. All three passed the schema.
 
 export const DEFAULT_MUSE_BASE_URL = "https://api.meta.ai/v1";
-export const DEFAULT_MUSE_MODEL = "muse-spark-1.3";
+export const DEFAULT_MUSE_MODEL = "muse-ember-1.0";
 export const MUSE_MODELS = ["muse-spark-1.3", "muse-wonder-1.0", "muse-ember-1.0"] as const;
 
 // `none` is rejected by the API. Server defaults are `high` (Spark) or `max`
