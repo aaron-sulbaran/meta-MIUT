@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* Design tokens. The design lane owns this file. */
+@theme {
+  --color-wash: #f0f2f5;
+  --color-card: #ffffff;
+  --color-primary: #0866ff;
+  --color-primary-soft: #e7f0ff;
+  --color-ink: #050505;
+  --color-muted: #65676b;
+  --color-divider: #ced0d4;
+  --color-free: #31a24c;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html,
+body {
+  background: #dfe3e8;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
