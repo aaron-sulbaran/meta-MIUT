@@ -1,5 +1,4 @@
 import { connection } from "next/server";
-import { AlertListener } from "@/components/alerts/alert-listener";
 import { DemoConsole } from "@/components/alerts/demo-console";
 import { getEventStore } from "@/lib/events/store";
 
@@ -16,8 +15,6 @@ export default async function DemoPage() {
   return (
     <>
       <DemoConsole events={options} backend={store.backend} />
-      {/* Temporary: remove once the root layout mounts AlertListener for every screen. */}
-      <AlertListener />
     </>
   );
 }

@@ -76,7 +76,7 @@ export function AlertListener({ pollIntervalMs = POLL_INTERVAL_MS }: { pollInter
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-2 z-50 mx-auto w-full max-w-[390px] px-2"
+      className="pointer-events-none fixed inset-x-0 top-[max(8px,env(safe-area-inset-top))] z-50 mx-auto w-full max-w-[390px] px-2"
     >
       {current && <AlertBanner key={current.id} alert={current} onOpen={open} onDismiss={dismiss} />}
     </div>

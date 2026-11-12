@@ -269,3 +269,11 @@ export function MuseMark({ className }: IconProps) {
     </svg>
   );
 }
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2} className={className}>
+      <path d="M5.5 5.5l13 13M18.5 5.5l-13 13" />
+    </svg>
+  );
+}
