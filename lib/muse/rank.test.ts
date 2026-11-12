@@ -1,0 +1,79 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { StudentProfile } from "@/lib/events/schema";
+import { loadSeedEvents, loadSeedStudent } from "@/lib/events/seed";
+import { compileCandidates, scheduleClash } from "@/lib/muse/candidates";
+import { buildInterestMemory, getInterestMemory, resetInterestMemory } from "@/lib/muse/memory";
+import { personalizeEvents } from "@/lib/muse/rank";
+
+// Thursday 10:00 in Austin.
+const now = new Date("2026-11-12T16:00:00.000Z");
+const events = loadSeedEvents(now);
+const student = loadSeedStudent();
+const byId = (id: string) => events.find((event) => event.id === id)!;
+
+describe("compileCandidates", () => {
+  afterEach(() => resetInterestMemory());
+
+  it("puts what the student watches and follows ahead of what they skip", () => {
+    const likely = compileCandidates(student, getInterestMemory(undefined, now), events, now);
+    const ids = likely.map((candidate) => candidate.eventId);
+    expect(ids.indexOf("evt-climbing-gregory")).toBeLessThan(3);
+    expect(ids).not.toContain("evt-yoga-tower");
+    // Thursday bouldering runs into Calculus II, so the reason says so.
+    expect(likely.find((candidate) => candidate.eventId === "evt-climbing-gregory")?.reason).toBe(
+      "You watch rock climbing videos to the end and follow Sample Climbing Club, but it overlaps Calculus II.",
+    );
+  });
+
+  it("is personal: a different memory changes the list", () => {
+    const profile: StudentProfile = { ...student, follows: [], interests: [] };
+    const memory = buildInterestMemory(
+      "yogi",
+      [{ kind: "save", at: now.toISOString(), topics: ["yoga"], creator: "sample_wellness" }],
+      now,
+    );
+    const likely = compileCandidates(profile, memory, events, now);
+    expect(likely.map((candidate) => candidate.eventId)).toEqual(["evt-yoga-tower"]);
+  });
+
+  it("skips events that are over", () => {
+    const later = new Date(now.getTime() + 3 * 3_600_000);
+    const likely = compileCandidates(student, getInterestMemory(undefined, now), events, later);
+    expect(likely.map((candidate) => candidate.eventId)).not.toContain("evt-acm-pizza-gdc");
+  });
+});
+
+describe("scheduleClash", () => {
+  it("finds the class an event overlaps in campus time", () => {
+    const calculus = { ...byId("evt-film-union"), start: "2026-11-12T20:30:00.000Z", end: "2026-11-12T21:00:00.000Z" };
+    expect(scheduleClash(calculus, student.schedule)).toBe("Calculus II");
+    expect(scheduleClash(byId("evt-hack-night-eer"), student.schedule)).toBeNull();
+  });
+});
+
+describe("personalizeEvents without a key", () => {
+  beforeEach(() => vi.stubEnv("MUSE_API_KEY", ""));
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetInterestMemory();
+  });
+
+  it("returns three distinct picks for today and every likely event", async () => {
+    const result = await personalizeEvents(student, events, now);
+    expect(result.source).toBe("fixture");
+    const picks = result.data!.picks;
+    expect(picks).toHaveLength(3);
+    expect(new Set(picks.map((pick) => pick.eventId)).size).toBe(3);
+    expect(picks.map((pick) => pick.eventId)).toContain("evt-acm-pizza-gdc");
+    expect(picks.map((pick) => pick.eventId)).not.toContain("evt-climbing-gregory");
+    expect(result.data!.likely.length).toBeGreaterThan(3);
+    expect(result.data!.likely.map((candidate) => candidate.eventId)).toContain("evt-hack-night-eer");
+  });
+
+  it("still gives a new user three picks for today", async () => {
+    const profile: StudentProfile = { ...student, follows: [], interests: [] };
+    const result = await personalizeEvents(profile, events, now, buildInterestMemory("new", [], now));
+    expect(result.data!.picks).toHaveLength(3);
+    expect(result.data!.likely).toEqual([]);
+  });
+});
