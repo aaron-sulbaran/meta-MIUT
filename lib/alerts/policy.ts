@@ -1,9 +1,10 @@
 import type { AlertKind } from "@/lib/alerts/schema";
-import type { CampusEvent, StudentProfile } from "@/lib/events/schema";
+import type { CampusEvent } from "@/lib/events/schema";
 import { distanceMeters } from "@/lib/geo";
 import { compileCandidates } from "@/lib/muse/candidates";
 import type { InterestMemory } from "@/lib/muse/memory";
 import type { LikelyEvent } from "@/lib/muse/types";
+import type { StudentContext } from "@/lib/muse/profile";
 
 // Which alert, if any, a newly published event sends to the student.
 // Free food alerts as "free food nearby", everything else as a plain "new event".
@@ -17,7 +18,7 @@ export const NEARBY_METERS = 1_609; // one mile
 export const NEARBY_LEAD_MINUTES = 60;
 
 export type NearbyViewer = {
-  profile: StudentProfile;
+  profile: StudentContext;
   memory: InterestMemory;
   location: { lat: number; lng: number };
   now: Date;
@@ -38,7 +39,7 @@ export function nearbyAlertFor(event: CampusEvent, viewer: NearbyViewer): Nearby
   const meters = distanceMeters(viewer.location, event.place);
   if (meters > NEARBY_METERS) return null;
 
-  const [candidate] = compileCandidates({ ...viewer.profile, home: viewer.location }, viewer.memory, [event], viewer.now);
+  const [candidate] = compileCandidates({ ...viewer.profile, location: viewer.location }, viewer.memory, [event], viewer.now);
   if (!candidate || candidate.clash) return null;
 
   return { kind: event.free && event.food ? "free_food_nearby" : "new_event", candidate, meters };

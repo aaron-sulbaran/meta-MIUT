@@ -3,10 +3,11 @@ import { composeAlert } from "@/lib/alerts/compose";
 import { getAlertFeed, type AlertFeed } from "@/lib/alerts/feed";
 import { nearbyAlertFor } from "@/lib/alerts/policy";
 import type { Alert } from "@/lib/alerts/schema";
-import type { CampusEvent, StudentProfile } from "@/lib/events/schema";
-import { loadSeedStudent } from "@/lib/events/seed";
+import type { CampusEvent } from "@/lib/events/schema";
+import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { getEventStore, type EventStore, type StoreResult } from "@/lib/events/store";
 import { getInterestMemory } from "@/lib/muse/memory";
+import type { StudentContext } from "@/lib/muse/profile";
 
 // Nearby alerts: the student's device reports where they are, and every event
 // they would likely care about within a mile sends one alert, once per event.
@@ -32,14 +33,14 @@ export function resetNearbyAlerts(): void {
 
 const sentKey = (event: CampusEvent) => `${event.id}@${event.start}`;
 
-export type NearbyCheck = { userId: string; location: Location; now?: Date; profile?: StudentProfile };
+export type NearbyCheck = { userId: string; location: Location; now?: Date; profile?: StudentContext };
 
 export async function checkNearby(
   check: NearbyCheck,
   options: { store?: EventStore; feed?: AlertFeed } = {},
 ): Promise<StoreResult<{ alerts: Alert[] }>> {
   const now = check.now ?? new Date();
-  const profile = check.profile ?? loadSeedStudent();
+  const profile = check.profile ?? loadDemoStudent();
   const memory = getInterestMemory(check.userId, now);
   const events = await (options.store ?? getEventStore()).listEvents();
   const feed = options.feed ?? getAlertFeed();

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Poster } from "@/components/ui/poster";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { loadSeedStudent } from "@/lib/events/seed";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
 import { MoreForYou } from "@/components/events/more-for-you";
+import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { personalizeEvents } from "@/lib/muse/rank";
 
 // Muse's top 3 for today, as a sideways row of compact cards. Why each event
@@ -13,7 +13,7 @@ import { personalizeEvents } from "@/lib/muse/rank";
 // student is likely to care about.
 
 export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Date }) {
-  const ranking = await personalizeEvents(loadSeedStudent(), events, now);
+  const ranking = await personalizeEvents(loadDemoStudent(), events, now);
   const eventsById = new Map(events.map((event) => [event.id, event]));
 
   const pickedIds = new Set(ranking.data?.picks.map((pick) => pick.eventId));
