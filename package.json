@@ -17,6 +17,7 @@
     "spike:muse": "node --conditions=react-server --import ./scripts/register-ts-paths.mjs --disable-warning=ExperimentalWarning scripts/muse-spike.ts"
   },
   "dependencies": {
+    "maplibre-gl": "^5.24.1",
     "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
