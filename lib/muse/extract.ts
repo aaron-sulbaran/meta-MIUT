@@ -44,7 +44,10 @@ export const ExtractOutputSchema = z.object({
 export type ExtractInput = z.infer<typeof ExtractInputSchema>;
 export type ExtractOutput = z.infer<typeof ExtractOutputSchema>;
 
-export const EXTRACT_STRUCTURED_OUTPUT = museStructuredOutput("event_draft", ExtractOutputSchema);
+export const ExtractListOutputSchema = z.object({ events: z.array(ExtractOutputSchema) });
+export type ExtractListOutput = z.infer<typeof ExtractListOutputSchema>;
+
+export const EXTRACT_STRUCTURED_OUTPUT = museStructuredOutput("event_drafts", ExtractListOutputSchema);
 
 // Exported so the spike script sends exactly what the app sends.
 export function buildExtractRequest(input: ExtractInput, now: Date): MuseRequest {
@@ -54,12 +57,19 @@ export function buildExtractRequest(input: ExtractInput, now: Date): MuseRequest
       : undefined;
   return {
     system: [
-      `You read campus event flyers at ${CAMPUS_NAME} and return one JSON object, nothing else.`,
-      "Keys: title, description, start, end (ISO 8601 with offset), placeName, free (boolean),",
+      `You read campus Instagram posts (flyer image plus caption) at ${CAMPUS_NAME} and return one JSON object, nothing else.`,
+      'Shape: {"events": [...]}, one entry per separate event people attend at a set time and place.',
+      "A flyer listing several events, dates, or sessions gives several entries.",
+      "Return an empty list when the post is not such an event, for example a product or care package sale,",
+      "a delivery, merch, a giveaway, an application or deadline reminder, a recap, or a general announcement.",
+      "Each entry has keys: title, description, start, end (ISO 8601 with offset), placeName, free (boolean),",
       'food (boolean), foodNote (optional), access ({"kind":"open"} or {"kind":"rsvp","capacity":n}),',
       "confidence (map of field name to a number from 0 to 1 for title, description, start, end, place, free, food, access),",
       'evidence (map of field name to {"quote": exact words copied from the flyer or caption, "from": "caption", "image", or "inferred"}',
       "for title, start, end, place, free, food, access).",
+      "free is true unless the post names a price, entry fee, ticket, cover, or paid registration for getting in;",
+      "things sold at the event (merch, food for purchase) do not make it not free. When no cost is mentioned,",
+      'set free true with confidence 0.8 and evidence "inferred"; when a cost is mentioned, quote it.',
       'Copy quotes word for word, never paraphrase. Use "inferred" with an empty quote when no text says it. Use low confidence when you are guessing.',
     ].join(" "),
     prompt: `Now is ${now.toISOString()} (campus time zone ${CAMPUS_TIME_ZONE}).\nCaption:\n${input.caption}`,
@@ -99,16 +109,31 @@ export function groundDraft(draft: ExtractOutput, caption: string): ExtractOutpu
 // Must match the reason runMuseJob gives; the extract retry test fails if it drifts.
 const SCHEMA_MISMATCH = "Muse output did not match the schema";
 
-export async function extractEventDraft(input: ExtractInput, now = new Date()): Promise<MuseJobResult<ExtractOutput>> {
+export const NOT_AN_EVENT = "Muse found no event in this post";
+
+// Every event in the post; an empty list means Muse judged it is not an event.
+export async function extractEventDrafts(
+  input: ExtractInput,
+  now = new Date(),
+): Promise<MuseJobResult<ExtractListOutput>> {
   const job = () =>
     runMuseJob({
       request: buildExtractRequest(input, now),
-      outputSchema: ExtractOutputSchema,
-      fixture: () => extractFixture(now),
+      outputSchema: ExtractListOutputSchema,
+      fixture: () => ({ events: [extractFixture(now)] }),
     });
   // Ember sometimes returns a draft that misses the schema; one retry is about 3 s and beats showing the fixture.
   let result = await job();
   if (result.source === "fixture" && result.fallbackReason === SCHEMA_MISMATCH) result = await job();
   if (result.data === null || result.source !== "muse") return result;
-  return { ...result, data: groundDraft(result.data, input.caption) };
+  return { ...result, data: { events: result.data.events.map((draft) => groundDraft(draft, input.caption)) } };
+}
+
+// First event only, for screens that show one draft.
+export async function extractEventDraft(input: ExtractInput, now = new Date()): Promise<MuseJobResult<ExtractOutput>> {
+  const result = await extractEventDrafts(input, now);
+  if (result.data === null) return { data: null, error: result.error, source: result.source, fallbackReason: result.fallbackReason };
+  const first = result.data.events[0];
+  if (first === undefined) return { ...result, data: null, error: NOT_AN_EVENT };
+  return { ...result, data: first };
 }

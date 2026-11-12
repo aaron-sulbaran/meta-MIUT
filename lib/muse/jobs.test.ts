@@ -6,7 +6,9 @@ import {
   EXTRACT_STRUCTURED_OUTPUT,
   UNGROUNDED_CONFIDENCE_CAP,
   buildExtractRequest,
+  NOT_AN_EVENT,
   extractEventDraft,
+  extractEventDrafts,
   groundDraft,
 } from "@/lib/muse/extract";
 import { SAMPLE_FLYER_CAPTION, extractFixture } from "@/lib/muse/fixtures/extract";
@@ -72,12 +74,28 @@ describe("extractEventDraft against a stubbed Muse", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(reply('{"title":"half a draft"}'))
-      .mockResolvedValueOnce(reply(JSON.stringify(extractFixture(now))));
+      .mockResolvedValueOnce(reply(JSON.stringify({ events: [extractFixture(now)] })));
     vi.stubGlobal("fetch", fetchMock);
     const result = await extractEventDraft({ caption: SAMPLE_FLYER_CAPTION }, now);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(result.source).toBe("muse");
     expect(result.data?.evidence.place?.from).toBe("caption");
+  });
+
+  it("returns one draft per event on a multi-event flyer", async () => {
+    const second = { ...extractFixture(now), title: "Pho night, part two" };
+    vi.stubGlobal("fetch", vi.fn(async () => reply(JSON.stringify({ events: [extractFixture(now), second] }))));
+    const result = await extractEventDrafts({ caption: SAMPLE_FLYER_CAPTION }, now);
+    expect(result.source).toBe("muse");
+    expect(result.data?.events.map((event) => event.title)).toEqual(["Free pho night", "Pho night, part two"]);
+  });
+
+  it("reports a post that is not an event instead of making one up", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => reply('{"events":[]}')));
+    const all = await extractEventDrafts({ caption: "Pepero Day care packages, $5, delivered 11/11" }, now);
+    expect(all.data?.events).toEqual([]);
+    const one = await extractEventDraft({ caption: "Pepero Day care packages, $5, delivered 11/11" }, now);
+    expect(one).toMatchObject({ data: null, error: NOT_AN_EVENT, source: "muse" });
   });
 
   it("does not retry a failed call", async () => {
@@ -156,9 +174,9 @@ describe("job output schemas as JSON schema", () => {
   it("extract breaks the strict rules, so every job is sent with strict off", () => {
     expect(strictModeViolations(EXTRACT_STRUCTURED_OUTPUT.schema)).toEqual(
       expect.arrayContaining([
-        "$.foodNote is not required",
-        "$.properties.confidence allows additional properties",
-        "$.properties.evidence allows additional properties",
+        expect.stringMatching(/\.foodNote is not required$/),
+        expect.stringMatching(/\.properties\.confidence allows additional properties$/),
+        expect.stringMatching(/\.properties\.evidence allows additional properties$/),
       ]),
     );
     expect(strictModeViolations(RANK_STRUCTURED_OUTPUT.schema)).toEqual([]);
