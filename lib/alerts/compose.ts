@@ -13,9 +13,9 @@ export type AlertContext = {
   now: Date;
   // The reader's location, for walk minutes. Omitted, the distance is left out.
   viewerLocation?: { lat: number; lng: number };
-  // Set when the reader walked near the event: why it suits them, for example
-  // "You follow Sample Climbing Club".
-  nearby?: { why: string };
+  // Set when the reader walked near the event: the alert says where it is and
+  // which way to walk. Why it suits them stays inside the agent.
+  nearby?: boolean;
 };
 
 const TITLE_MAX_LENGTH = 120;
@@ -103,7 +103,7 @@ export function composeAlert(event: CampusEvent, kind: AlertKind, context: Alert
   if (context.nearby) {
     title = offer && event.food ? `${offer} near you: ${event.title}` : `Near you: ${event.title}`;
     const details = joinParts([event.food ? null : offer, where, walk, timePhrase(event, context.now)]);
-    body = `${capitalize(details)}. ${context.nearby.why}.`;
+    body = capitalize(details);
     return { kind, eventId: event.id, title: clip(title, TITLE_MAX_LENGTH), body: clip(body, BODY_MAX_LENGTH) };
   }
   switch (kind) {
