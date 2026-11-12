@@ -1,12 +1,12 @@
 import "server-only";
 import { composeAlert } from "@/lib/alerts/compose";
 import { getAlertFeed, type AlertFeed } from "@/lib/alerts/feed";
-import { nearbyAlertFor, type NearbyMatch } from "@/lib/alerts/policy";
+import { nearbyAlertFor } from "@/lib/alerts/policy";
 import type { Alert } from "@/lib/alerts/schema";
 import type { CampusEvent, StudentProfile } from "@/lib/events/schema";
 import { loadSeedStudent } from "@/lib/events/seed";
 import { getEventStore, type EventStore, type StoreResult } from "@/lib/events/store";
-import { getInterestMemory, type InterestMemory } from "@/lib/muse/memory";
+import { getInterestMemory } from "@/lib/muse/memory";
 
 // Nearby alerts: the student's device reports where they are, and every event
 // they would likely care about within a mile sends one alert, once per event.
@@ -31,19 +31,6 @@ export function resetNearbyAlerts(): void {
 }
 
 const sentKey = (event: CampusEvent) => `${event.id}@${event.start}`;
-
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
-// One short reason the event suits the student, from the strongest signal.
-export function whyNearby(event: CampusEvent, match: NearbyMatch, memory: InterestMemory): string {
-  const topics = match.candidate.matched.filter((topic) => !topic.startsWith("@"));
-  const remembered = memory.topics.filter((topic) => topics.includes(topic.topic));
-  const specific = remembered.find((topic) => topic.topic !== "free food");
-  if (specific) return capitalize(specific.hook);
-  if (match.candidate.matched.includes(`@${event.organizer.handle}`)) return `You follow ${event.organizer.name}`;
-  if (remembered[0]) return capitalize(remembered[0].hook);
-  return `You're into ${topics[0] ?? "events like this"}`;
-}
 
 export type NearbyCheck = { userId: string; location: Location; now?: Date; profile?: StudentProfile };
 
@@ -71,7 +58,7 @@ export async function checkNearby(
     const draft = composeAlert(event, match.kind, {
       now,
       viewerLocation: check.location,
-      nearby: { why: whyNearby(event, match, memory) },
+      nearby: true,
     });
     const published = await feed.publish(draft);
     if (published.error !== null) return { data: null, error: published.error };

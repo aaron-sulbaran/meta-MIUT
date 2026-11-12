@@ -16,16 +16,16 @@ function setup() {
 describe("checkNearby", () => {
   beforeEach(() => resetNearbyAlerts());
 
-  it("alerts each likely event nearby once, saying where it is and why", async () => {
+  it("alerts each likely event nearby once, saying where it is", async () => {
     const options = setup();
     const first = await checkNearby({ userId: DEMO_USER_ID, location: GDC, now: NOW }, options);
     const ids = first.data?.alerts.map((alert) => alert.eventId);
     expect(ids).toEqual(expect.arrayContaining(["evt-acm-pizza-gdc", "evt-tacos-south-mall"]));
     const pizza = first.data?.alerts.find((alert) => alert.eventId === "evt-acm-pizza-gdc");
     expect(pizza?.title).toMatch(/near you: /);
-    expect(pizza?.body).toMatch(/^Gates Dell Complex \(GDC\) 2\.216, right where you are, on now, \d+ min left\. You /);
+    expect(pizza?.body).toMatch(/^Gates Dell Complex \(GDC\) 2\.216, right where you are, on now, \d+ min left$/);
     const tacos = first.data?.alerts.find((alert) => alert.eventId === "evt-tacos-south-mall");
-    expect(tacos?.body).toMatch(/South Mall, \d+ min walk (south|southwest|west), starts in 25 min\./);
+    expect(tacos?.body).toMatch(/South Mall, \d+ min walk (south|southwest|west), starts in 25 min$/);
 
     const again = await checkNearby({ userId: DEMO_USER_ID, location: GDC, now: NOW }, options);
     expect(again.data?.alerts).toEqual([]);
