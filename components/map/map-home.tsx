@@ -1,13 +1,21 @@
-import { EventsHeatmap, type MapCard } from "@/components/map/events-heatmap";
+import { EventsHeatmap, type MapCard, type MapChip } from "@/components/map/events-heatmap";
 import { loadSeedStudent } from "@/lib/events/seed";
 import type { CampusEvent } from "@/lib/events/schema";
-import { formatDateLine } from "@/lib/events/time";
+import { formatDateLine, isInWindow } from "@/lib/events/time";
 import { eventCategory } from "@/lib/map/category";
 import { heatPoints } from "@/lib/map/heat";
 import { rankEvents } from "@/lib/muse/rank";
 
 // Server half of the map home: asks Muse for this student's picks, turns them
 // into heat, and hands plain data to the client map.
+
+function mapChips(event: CampusEvent, now: Date): MapChip[] {
+  const chips: MapChip[] = [];
+  if (event.free && event.food) chips.push("freeFood");
+  if (isInWindow(event, "now", now)) chips.push("now");
+  if (isInWindow(event, "today", now)) chips.push("today");
+  return chips;
+}
 
 export async function MapHome({ events, now }: { events: CampusEvent[]; now: Date }) {
   const student = loadSeedStudent();
@@ -26,6 +34,8 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
         dateLine: formatDateLine(event, now),
         free: event.free,
         category: eventCategory(event),
+        imagePath: event.source.imagePath ?? null,
+        chips: mapChips(event, now),
         weight: point.weight,
         pickRank: point.pickRank,
         reason: point.reason,
