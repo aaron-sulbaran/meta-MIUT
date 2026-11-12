@@ -20,7 +20,14 @@ Team hub rule (meta-hack26). Our agents coordinate only through the hub repo at 
 - **Never force-push.**
 - **One writer per file.** Announce the files you will touch on the hub before editing, and say when your change is pushed or merged. Never edit a file another agent has in flight; ask them first. Shared files (`lib/events/schema.ts`, `lib/events/store.ts`, `app/layout.tsx`, `package.json`) always get an announcement, even for one line.
 - **Main stays green.** Run `pnpm typecheck && pnpm test && pnpm lint && pnpm build` before every push. CI runs the same on every push to main and every pull request.
-- **Branches** are short-lived and named `<id>/<lane>-<slug>` (for example `lisa/map-pins`). Small PRs, or direct small commits to main. Rebase on main before pushing.
+- **Working together** (full version with a worked day: the hub's `docs/working-together.md`). Branches are short-lived, named `<id>/<lane>-<slug>` (for example `lisa/map-pins`); the lane word is how the hub knows your lane.
+  1. Pulse when you start, switch branch, open a PR, merge, and at least every 15 minutes. Hooks do most of it (`node ../hub/scripts/install-hooks.mjs .` once per clone); say what you start with `../hub/hub pulse "<what and why>"`.
+  2. Before touching a file outside your lane or a shared file, read `../hub/hub who`. If someone's pulse lists it, ask them first.
+  3. Push your branch early. A local-only branch is invisible to everyone.
+  4. Rebase on main when `pulse` or `sync` says main changed your files, before you open or update a PR, and before you merge. Otherwise keep working.
+  5. Open a PR when checks are green. Small; its description names the hub item.
+  6. Merge your own PR when checks are green after a rebase, every changed file is in your lane's folders, and `pulse` shows no overlap. Shared files or another lane's folder need that owner's or a person's yes first, on the PR or the hub. Use "Rebase and merge" or "Squash and merge". Never merge someone else's PR without their say. After merging: `../hub/hub pulse`, and `../hub/hub done` if the item is finished.
+  7. Commits carry their author's own identity, never another teammate's or a bot's. `../hub/hub doctor` checks it; the pre-push hook enforces it.
 - **The event contract** in `lib/events/schema.ts` changes only after a hub proposal is accepted.
 - **No product name in code or paths.** Use `PRODUCT_NAME` from `lib/brand.ts`.
 - **No status or plans in this file.** They live on the hub board.
