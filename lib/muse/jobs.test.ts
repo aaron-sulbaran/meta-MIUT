@@ -2,8 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadSeedEvents, loadSeedStudent } from "@/lib/events/seed";
 import { ASK_STRUCTURED_OUTPUT, askAboutEvents } from "@/lib/muse/ask";
 import { readMuseConfig } from "@/lib/muse/client";
-import { EXTRACT_STRUCTURED_OUTPUT, buildExtractRequest, extractEventDraft } from "@/lib/muse/extract";
-import { SAMPLE_FLYER_CAPTION } from "@/lib/muse/fixtures/extract";
+import {
+  EXTRACT_STRUCTURED_OUTPUT,
+  UNGROUNDED_CONFIDENCE_CAP,
+  buildExtractRequest,
+  extractEventDraft,
+  groundDraft,
+} from "@/lib/muse/extract";
+import { SAMPLE_FLYER_CAPTION, extractFixture } from "@/lib/muse/fixtures/extract";
 import { extractJsonObject } from "@/lib/muse/job";
 import { RANK_STRUCTURED_OUTPUT, rankEvents } from "@/lib/muse/rank";
 
@@ -47,6 +53,35 @@ describe("Muse jobs without a key fall back to fixtures", () => {
   });
 });
 
+describe("groundDraft", () => {
+  it("keeps caption quotes that are in the caption", () => {
+    const draft = extractFixture(now);
+    expect(groundDraft(draft, SAMPLE_FLYER_CAPTION)).toEqual(draft);
+  });
+
+  it("downgrades made-up caption quotes and caps their confidence", () => {
+    const draft = extractFixture(now);
+    draft.evidence.place = { quote: "Gregory Gym", from: "caption" };
+    delete draft.evidence.access;
+    const grounded = groundDraft(draft, SAMPLE_FLYER_CAPTION);
+    expect(grounded.evidence.place).toEqual({ quote: "Gregory Gym", from: "inferred" });
+    expect(grounded.confidence.place).toBe(UNGROUNDED_CONFIDENCE_CAP);
+    expect(grounded.evidence.access).toEqual({ quote: "", from: "inferred" });
+    expect(grounded.confidence.access).toBe(UNGROUNDED_CONFIDENCE_CAP);
+    expect(grounded.confidence.title).toBe(draft.confidence.title);
+  });
+
+  it("trusts image quotes and ignores case and spacing in caption quotes", () => {
+    const draft = extractFixture(now);
+    draft.evidence.place = { quote: "Union Ballroom, 2nd floor", from: "image" };
+    draft.evidence.title = { quote: "FREE  PHO night!", from: "caption" };
+    const grounded = groundDraft(draft, SAMPLE_FLYER_CAPTION);
+    expect(grounded.evidence.place?.from).toBe("image");
+    expect(grounded.evidence.title?.from).toBe("caption");
+    expect(grounded.confidence.place).toBe(draft.confidence.place);
+  });
+});
+
 describe("extractJsonObject", () => {
   it("pulls JSON out of fenced model output", () => {
     expect(extractJsonObject('Sure:\n```json\n{"a":1}\n```')).toEqual({ a: 1 });
@@ -84,7 +119,11 @@ describe("job output schemas as JSON schema", () => {
 
   it("extract breaks the strict rules, so every job is sent with strict off", () => {
     expect(strictModeViolations(EXTRACT_STRUCTURED_OUTPUT.schema)).toEqual(
-      expect.arrayContaining(["$.foodNote is not required", "$.properties.confidence allows additional properties"]),
+      expect.arrayContaining([
+        "$.foodNote is not required",
+        "$.properties.confidence allows additional properties",
+        "$.properties.evidence allows additional properties",
+      ]),
     );
     expect(strictModeViolations(RANK_STRUCTURED_OUTPUT.schema)).toEqual([]);
     expect(strictModeViolations(ASK_STRUCTURED_OUTPUT.schema)).toEqual([]);

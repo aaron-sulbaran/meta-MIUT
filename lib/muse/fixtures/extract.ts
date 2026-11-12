@@ -33,5 +33,14 @@ export function extractFixture(now: Date): ExtractOutput {
     foodNote: "Pho, first 80 bowls",
     access: { kind: "open" },
     confidence: { title: 0.92, description: 0.8, start: 0.74, end: 0.7, place: 0.88, free: 0.95, food: 0.97, access: 0.6 },
+    evidence: {
+      title: { quote: "Free pho night!", from: "caption" },
+      start: { quote: "tomorrow 6 to 8pm", from: "caption" },
+      end: { quote: "tomorrow 6 to 8pm", from: "caption" },
+      place: { quote: "Texas Union Ballroom", from: "caption" },
+      free: { quote: "Free pho night!", from: "caption" },
+      food: { quote: "first 80 bowls", from: "caption" },
+      access: { quote: "Open to everyone", from: "caption" },
+    },
   };
 }
