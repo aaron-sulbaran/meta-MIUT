@@ -1,12 +1,8 @@
 import type { RankOutput } from "@/lib/muse/rank";
+import type { LikelyEvent } from "@/lib/muse/types";
 
-// Recorded stand-in for the rank job, written against the seed events.
-export function rankFixture(): RankOutput {
-  return {
-    picks: [
-      { eventId: "evt-acm-pizza-gdc", reason: "You follow this club and there is free pizza right now." },
-      { eventId: "evt-climbing-gregory", reason: "Matches your interest in rock climbing, and you are free tonight." },
-      { eventId: "evt-tacos-south-mall", reason: "Free tacos a short walk away before your next class." },
-    ],
-  };
+// Stand-in for the rank job while Muse is offline: the top of the scored
+// candidate pool, with its computed reasons. Personal to the student, not live.
+export function rankFixture(pool: LikelyEvent[]): RankOutput {
+  return { picks: pool.slice(0, 3).map((candidate) => ({ eventId: candidate.eventId, reason: candidate.reason })) };
 }
