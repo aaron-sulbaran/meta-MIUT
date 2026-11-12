@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geologica, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { AlertListener } from "@/components/alerts/alert-listener";
+import { NearbyWatcher } from "@/components/muse/nearby-watcher";
 import { TabBar } from "@/components/ui/tab-bar";
 import { PRODUCT_NAME } from "@/lib/brand";
 import "./globals.css";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <main className="flex-1 pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+16px)]">{children}</main>
           <TabBar />
           <AlertListener />
+          <NearbyWatcher />
         </div>
       </body>
     </html>
