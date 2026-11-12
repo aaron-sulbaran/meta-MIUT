@@ -26,4 +26,19 @@ describe("heatPoints", () => {
     const ended = events.filter((event) => Date.parse(event.end) <= later.getTime()).map((event) => event.id);
     expect(points.some((point) => ended.includes(point.eventId))).toBe(false);
   });
+
+  it("with interest scores, likely events glow by score and keep their reason", () => {
+    const [first, second, third] = events;
+    const likely = [
+      { eventId: second!.id, score: 2, reason: "Matches rock climbing you watch" },
+      { eventId: third!.id, score: 1, reason: "Free today" },
+    ];
+    const points = heatPoints(events, [{ eventId: first!.id, reason: "Top pick", walkMinutes: 5 }], home, now, likely);
+    const byId = new Map(points.map((point) => [point.eventId, point]));
+    expect(byId.get(first!.id)).toMatchObject({ pickRank: 1, weight: 1 });
+    expect(byId.get(second!.id)).toMatchObject({ weight: 0.6, reason: "Matches rock climbing you watch" });
+    expect(byId.get(third!.id)!.weight).toBeCloseTo(0.375);
+    const unscored = points.filter((point) => ![first!.id, second!.id, third!.id].includes(point.eventId));
+    expect(unscored.every((point) => point.weight === 0.06 && point.reason === null)).toBe(true);
+  });
 });

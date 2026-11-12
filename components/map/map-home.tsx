@@ -4,10 +4,11 @@ import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine, isInWindow } from "@/lib/events/time";
 import { eventCategory } from "@/lib/map/category";
 import { heatPoints } from "@/lib/map/heat";
-import { rankEvents } from "@/lib/muse/rank";
+import { personalizeEvents } from "@/lib/muse/rank";
 
-// Server half of the map home: asks Muse for this student's picks, turns them
-// into heat, and hands plain data to the client map.
+// Server half of the map home: asks Muse for this student's picks (with their
+// interest memory, see personalizeEvents), turns picks and likely scores into
+// heat, and hands plain data to the client map.
 
 function mapChips(event: CampusEvent, now: Date): MapChip[] {
   const chips: MapChip[] = [];
@@ -19,11 +20,12 @@ function mapChips(event: CampusEvent, now: Date): MapChip[] {
 
 export async function MapHome({ events, now }: { events: CampusEvent[]; now: Date }) {
   const student = loadSeedStudent();
-  const ranking = await rankEvents(student, events, now);
-  const picks = ranking.error === null ? ranking.data : [];
+  const ranking = await personalizeEvents(student, events, now);
+  const picks = ranking.error === null ? ranking.data.picks : [];
+  const likely = ranking.error === null ? ranking.data.likely : undefined;
   const eventsById = new Map(events.map((event) => [event.id, event]));
 
-  const cards: MapCard[] = heatPoints(events, picks, student.home, now).flatMap((point) => {
+  const cards: MapCard[] = heatPoints(events, picks, student.home, now, likely).flatMap((point) => {
     const event = eventsById.get(point.eventId);
     if (!event) return [];
     return [

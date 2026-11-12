@@ -2,9 +2,10 @@ import type { CampusEvent, RankedPick } from "@/lib/events/schema";
 import { distanceMeters } from "@/lib/geo";
 
 // Heat for the map: how strongly each event should glow for this student.
-// Muse's picks lead (first pick hottest). Every other upcoming event still
-// gets a faint glow from simple signals, so the map is never empty when Muse
-// is offline. Pure, so the client and tests share it.
+// Muse's picks lead (first pick hottest). Other events glow by how likely the
+// student is to care, from the interest-memory scores in personalizeEvents
+// (lib/muse/rank.ts). Without those scores a simple fallback (free, food, now,
+// close) keeps the map from going dark. Pure, so the client and tests share it.
 
 export type HeatPoint = {
   eventId: string;
@@ -18,6 +19,9 @@ export type HeatPoint = {
 };
 
 type Point = { lat: number; lng: number };
+
+/** The parts of a LikelyEvent (lib/muse/types.ts) the heat needs. */
+export type LikelyScore = { eventId: string; score: number; reason: string };
 
 const PICK_WEIGHTS = [1, 0.85, 0.72];
 const ONE_MILE_METERS = 1609;
@@ -37,21 +41,43 @@ function baseWeight(event: CampusEvent, origin: Point, now: Date): number {
   return Math.min(weight, 0.6);
 }
 
+// A likely event glows between these, scaled by its score against the best one.
+const LIKELY_MIN = 0.15;
+const LIKELY_MAX = 0.6;
+// Events the interest memory found nothing for.
+const UNLIKELY_WEIGHT = 0.06;
+
 /** Heat points for events that have not ended, picks first, then by weight. */
-export function heatPoints(events: CampusEvent[], picks: RankedPick[], origin: Point, now: Date): HeatPoint[] {
+export function heatPoints(
+  events: CampusEvent[],
+  picks: RankedPick[],
+  origin: Point,
+  now: Date,
+  likely?: LikelyScore[],
+): HeatPoint[] {
   const pickIndex = new Map(picks.map((pick, index) => [pick.eventId, { index, reason: pick.reason }]));
+  const likelyById = new Map((likely ?? []).map((item) => [item.eventId, item]));
+  const topScore = Math.max(0, ...(likely ?? []).map((item) => item.score));
+
+  const otherWeight = (event: CampusEvent): { weight: number; reason: string | null } => {
+    if (!likely) return { weight: baseWeight(event, origin, now), reason: null };
+    const item = likelyById.get(event.id);
+    if (!item || item.score <= 0 || topScore <= 0) return { weight: UNLIKELY_WEIGHT, reason: item?.reason ?? null };
+    return { weight: LIKELY_MIN + (LIKELY_MAX - LIKELY_MIN) * Math.min(1, item.score / topScore), reason: item.reason };
+  };
+
   return events
     .filter((event) => Date.parse(event.end) > now.getTime())
     .map((event) => {
       const pick = pickIndex.get(event.id);
-      const weight = pick ? (PICK_WEIGHTS[pick.index] ?? 0.65) : baseWeight(event, origin, now);
+      const other = pick ? null : otherWeight(event);
       return {
         eventId: event.id,
         lat: event.place.lat,
         lng: event.place.lng,
-        weight,
+        weight: pick ? (PICK_WEIGHTS[pick.index] ?? 0.65) : (other?.weight ?? UNLIKELY_WEIGHT),
         pickRank: pick ? pick.index + 1 : null,
-        reason: pick?.reason ?? null,
+        reason: pick?.reason ?? other?.reason ?? null,
       };
     })
     .sort((a, b) => {
