@@ -2,6 +2,7 @@ import { EventsHeatmap, type MapCard } from "@/components/map/events-heatmap";
 import { loadSeedStudent } from "@/lib/events/seed";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
+import { eventCategory } from "@/lib/map/category";
 import { heatPoints } from "@/lib/map/heat";
 import { rankEvents } from "@/lib/muse/rank";
 
@@ -24,6 +25,7 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
         place: event.place,
         dateLine: formatDateLine(event, now),
         free: event.free,
+        category: eventCategory(event),
         weight: point.weight,
         pickRank: point.pickRank,
         reason: point.reason,
@@ -31,7 +33,7 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
     ];
   });
 
-  return <EventsHeatmap cards={cards} fallbackLocation={student.home} museLive={ranking.source === "muse"} />;
+  return <EventsHeatmap cards={cards} studentSpot={student.home} museLive={ranking.source === "muse"} />;
 }
 
 export function MapHomeSkeleton() {

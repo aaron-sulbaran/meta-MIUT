@@ -84,6 +84,7 @@ lib/store/redis.ts   minimal Upstash Redis REST client (fetch, no SDK)
 lib/muse/            client.ts, job.ts, extract.ts, rank.ts, ask.ts, fixtures/
 lib/geo.ts           distance and walking minutes
 lib/map/heat.ts      heat weights for the map: Muse picks hottest, then free, food, now, close
+lib/map/category.ts  guesses an event's icon (pizza, film, climb...) from its words
 data/seed/           placeholder events and student profile
 ```
 
@@ -126,4 +127,4 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (proposal requir
 - Event images are `Poster` compositions seeded by event id: no photos, no hotlinks.
 - `server-only` is stubbed in tests by `vitest.config.ts`, and in scripts by `node --conditions=react-server`; `scripts/register-ts-paths.mjs` resolves `@/` for plain Node.
 - ESLint reads any function named `use...` as a React hook.
-- The map is MapLibre GL with OpenFreeMap tiles (no key). `maplibre-gl` is imported inside an effect, never at module top, because it needs `window`. MapLibre's CSS sets `.maplibregl-map { position: relative }`, so give the map element a sized parent instead of `absolute inset-0` on the element itself.
+- The map is MapLibre GL with OpenFreeMap "liberty" tiles (no key). The student stands at `profile.home`, never live GPS (demo runs away from campus). Markers are plain DOM: MapLibre sets `transform` on the marker element, so style and scale a child, not the element. `maplibre-gl` is imported inside an effect, never at module top, because it needs `window`. MapLibre's CSS sets `.maplibregl-map { position: relative }`, so give the map element a sized parent instead of `absolute inset-0` on the element itself.
