@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Map as MapLibreMap, GeoJSONSource, Marker } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, initials } from "@/components/map/category-icons";
-import { CloseIcon, MuseMark } from "@/components/ui/icons";
+import { CloseIcon, MapPinIcon, MuseMark } from "@/components/ui/icons";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 
@@ -644,7 +644,7 @@ export function EventsHeatmap({
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[310px] shrink-0 snap-start">
             <article
-              className={`relative flex items-center gap-[10px] rounded-[18px] border-[1.5px] bg-card p-[10px] pr-[30px] shadow-md transition-colors ${
+              className={`relative flex h-[96px] items-center gap-[10px] rounded-[18px] border-[1.5px] bg-card p-[10px] pr-[30px] shadow-md transition-colors ${
                 currentActive === card.eventId ? "border-[#ff7a45]" : "border-transparent"
               }`}
             >
@@ -669,12 +669,16 @@ export function EventsHeatmap({
                     Directions
                   </a>
                 </p>
-                {card.reason && (
-                  <p className="mt-[4px] flex items-start gap-[5px] text-[12px] font-semibold leading-[15px] text-ink">
-                    <MuseMark className="mt-[1px] h-[12px] w-[12px] shrink-0 text-primary" />
-                    <span className="truncate">{card.reason}</span>
-                  </p>
-                )}
+                {/* Every card has the same four lines, so they are all one size: the
+                    last line is Muse's reason, or the place when there is none. */}
+                <p className="mt-[4px] flex items-center gap-[5px] text-[12px] font-semibold leading-[15px] text-ink">
+                  {card.reason ? (
+                    <MuseMark className="h-[12px] w-[12px] shrink-0 text-primary" />
+                  ) : (
+                    <MapPinIcon className="h-[12px] w-[12px] shrink-0 text-muted" />
+                  )}
+                  <span className={`truncate ${card.reason ? "" : "text-muted"}`}>{card.reason ?? card.place.name}</span>
+                </p>
               </div>
               <button
                 type="button"
