@@ -96,12 +96,19 @@ export function groundDraft(draft: ExtractOutput, caption: string): ExtractOutpu
   return { ...draft, evidence, confidence };
 }
 
+// Must match the reason runMuseJob gives; the extract retry test fails if it drifts.
+const SCHEMA_MISMATCH = "Muse output did not match the schema";
+
 export async function extractEventDraft(input: ExtractInput, now = new Date()): Promise<MuseJobResult<ExtractOutput>> {
-  const result = await runMuseJob({
-    request: buildExtractRequest(input, now),
-    outputSchema: ExtractOutputSchema,
-    fixture: () => extractFixture(now),
-  });
+  const job = () =>
+    runMuseJob({
+      request: buildExtractRequest(input, now),
+      outputSchema: ExtractOutputSchema,
+      fixture: () => extractFixture(now),
+    });
+  // Ember sometimes returns a draft that misses the schema; one retry is about 3 s and beats showing the fixture.
+  let result = await job();
+  if (result.source === "fixture" && result.fallbackReason === SCHEMA_MISMATCH) result = await job();
   if (result.data === null || result.source !== "muse") return result;
   return { ...result, data: groundDraft(result.data, input.caption) };
 }

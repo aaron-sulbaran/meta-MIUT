@@ -53,6 +53,42 @@ describe("Muse jobs without a key fall back to fixtures", () => {
   });
 });
 
+describe("extractEventDraft against a stubbed Muse", () => {
+  beforeEach(() => {
+    vi.stubEnv("MUSE_API_KEY", "test-key-not-real");
+    vi.stubEnv("MUSE_BASE_URL", "");
+    vi.stubEnv("MUSE_MODEL", "");
+    vi.stubEnv("MUSE_REASONING_EFFORT", "");
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  const reply = (content: string) =>
+    Response.json({ choices: [{ index: 0, message: { role: "assistant", content }, finish_reason: "stop" }] });
+
+  it("retries once when the first draft misses the schema", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply('{"title":"half a draft"}'))
+      .mockResolvedValueOnce(reply(JSON.stringify(extractFixture(now))));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await extractEventDraft({ caption: SAMPLE_FLYER_CAPTION }, now);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.source).toBe("muse");
+    expect(result.data?.evidence.place?.from).toBe("caption");
+  });
+
+  it("does not retry a failed call", async () => {
+    const fetchMock = vi.fn(async () => new Response("Too many", { status: 429 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await extractEventDraft({ caption: SAMPLE_FLYER_CAPTION }, now);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.source).toBe("fixture");
+  });
+});
+
 describe("groundDraft", () => {
   it("keeps caption quotes that are in the caption", () => {
     const draft = extractFixture(now);
