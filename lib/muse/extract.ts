@@ -6,13 +6,16 @@ import { extractFixture } from "@/lib/muse/fixtures/extract";
 import type { MuseRequest } from "@/lib/muse/client";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 
-// Flyer image plus caption to an event draft with per-field evidence and confidence.
+// Flyer image plus caption, or a spoken line from the organizer, to event drafts with per-field
+// evidence and confidence.
 // Coordinates are not asked of the model; the organizer flow resolves the place.
 
 export const ExtractInputSchema = z.object({
   caption: z.string().min(1).max(4000),
   imageBase64: z.string().optional(),
   imageMediaType: z.enum(["image/png", "image/jpeg", "image/webp"]).optional(),
+  // The caption is a transcript of the organizer talking right now, not a post.
+  spoken: z.boolean().optional(),
 });
 
 export const EVIDENCE_FIELDS = ["title", "start", "end", "place", "free", "food", "access"] as const;
@@ -29,6 +32,10 @@ export const UNGROUNDED_CONFIDENCE_CAP = 0.5;
 
 // Team rule: a post that names no cost is free, so that default is not flagged as a guess.
 export const FREE_BY_DEFAULT_CONFIDENCE = 0.9;
+
+// A spoken line with no time means it is happening now. The end is a guess, so it stays flagged.
+export const SPOKEN_NOW_CONFIDENCE = 0.9;
+export const SPOKEN_DEFAULT_LENGTH_MS = 3_600_000;
 
 export const ExtractOutputSchema = z.object({
   title: z.string().min(1),
@@ -74,8 +81,15 @@ export function buildExtractRequest(input: ExtractInput, now: Date): MuseRequest
       "free food or drinks are evidence for food, not for free, and things sold at the event do not make it not free.",
       'When no cost is mentioned, set free true with evidence "inferred"; when a cost is mentioned, quote it.',
       'Copy quotes word for word, never paraphrase. Use "inferred" with an empty quote when no text says it. Use low confidence when you are guessing.',
+      ...(input.spoken
+        ? [
+            "This time the text is not a post: it is an organizer speaking, transcribed, about something happening now,",
+            'for example leftover food. Their words count as "caption". Give a short plain title.',
+            'When they name no start time it starts now; when they name no end it ends an hour after the start; mark those "inferred".',
+          ]
+        : []),
     ].join(" "),
-    prompt: `Now is ${now.toISOString()} (campus time zone ${CAMPUS_TIME_ZONE}).\nCaption:\n${input.caption}`,
+    prompt: `Now is ${now.toISOString()} (campus time zone ${CAMPUS_TIME_ZONE}).\n${input.spoken ? "Organizer said" : "Caption"}:\n${input.caption}`,
     image,
     structuredOutput: EXTRACT_STRUCTURED_OUTPUT,
   };
@@ -114,6 +128,19 @@ export function groundDraft(draft: ExtractOutput, caption: string): ExtractOutpu
   return { ...draft, evidence, confidence };
 }
 
+// Run after groundDraft, so "inferred" here also covers times Muse claimed but the speaker never said.
+export function applySpokenDefaults(draft: ExtractOutput, now: Date): ExtractOutput {
+  const said = (field: "start" | "end") => draft.evidence[field]?.from === "caption";
+  const start = said("start") ? draft.start : now.toISOString();
+  // "until 5" said at 5:30 reads as already over; keep the event and flag the end instead.
+  const endSaid = said("end") && Date.parse(draft.end) > Date.parse(start);
+  const end = endSaid ? draft.end : new Date(Date.parse(start) + SPOKEN_DEFAULT_LENGTH_MS).toISOString();
+  const confidence = { ...draft.confidence };
+  if (!said("start")) confidence.start = SPOKEN_NOW_CONFIDENCE;
+  if (!endSaid) confidence.end = Math.min(confidence.end ?? UNGROUNDED_CONFIDENCE_CAP, UNGROUNDED_CONFIDENCE_CAP);
+  return { ...draft, start, end, confidence };
+}
+
 // Must match the reason runMuseJob gives; the extract retry test fails if it drifts.
 const SCHEMA_MISMATCH = "Muse output did not match the schema";
 
@@ -134,7 +161,11 @@ export async function extractEventDrafts(
   let result = await job();
   if (result.source === "fixture" && result.fallbackReason === SCHEMA_MISMATCH) result = await job();
   if (result.data === null || result.source !== "muse") return result;
-  return { ...result, data: { events: result.data.events.map((draft) => groundDraft(draft, input.caption)) } };
+  const finish = (draft: ExtractOutput) => {
+    const grounded = groundDraft(draft, input.caption);
+    return input.spoken ? applySpokenDefaults(grounded, now) : grounded;
+  };
+  return { ...result, data: { events: result.data.events.map(finish) } };
 }
 
 // First event only, for screens that show one draft.

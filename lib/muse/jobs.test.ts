@@ -4,6 +4,7 @@ import { ASK_STRUCTURED_OUTPUT, askAboutEvents } from "@/lib/muse/ask";
 import { readMuseConfig } from "@/lib/muse/client";
 import {
   EXTRACT_STRUCTURED_OUTPUT,
+  SPOKEN_NOW_CONFIDENCE,
   UNGROUNDED_CONFIDENCE_CAP,
   buildExtractRequest,
   FREE_BY_DEFAULT_CONFIDENCE,
@@ -97,6 +98,51 @@ describe("extractEventDraft against a stubbed Muse", () => {
     expect(all.data?.events).toEqual([]);
     const one = await extractEventDraft({ caption: "Pepero Day care packages, $5, delivered 11/11" }, now);
     expect(one).toMatchObject({ data: null, error: NOT_AN_EVENT, source: "muse" });
+  });
+
+  it("a spoken line with no time starts now and ends an hour later, flagged", async () => {
+    const said = "I'm at the Union with leftover pizza, come grab some";
+    const draft = {
+      ...extractFixture(now),
+      evidence: {
+        ...extractFixture(now).evidence,
+        title: { quote: "leftover pizza", from: "caption" as const },
+        start: { quote: "", from: "inferred" as const },
+        end: { quote: "", from: "inferred" as const },
+      },
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => reply(JSON.stringify({ events: [draft] }))));
+    const result = await extractEventDraft({ caption: said, spoken: true }, now);
+    expect(result.source).toBe("muse");
+    expect(result.data?.start).toBe(now.toISOString());
+    expect(result.data?.end).toBe("2026-11-12T17:00:00.000Z");
+    expect(result.data?.confidence.start).toBe(SPOKEN_NOW_CONFIDENCE);
+    expect(result.data?.confidence.end).toBeLessThanOrEqual(UNGROUNDED_CONFIDENCE_CAP);
+  });
+
+  it("a spoken line keeps the time the organizer said", async () => {
+    const said = "Free pho night! tomorrow 6 to 8pm at the Texas Union Ballroom";
+    vi.stubGlobal("fetch", vi.fn(async () => reply(JSON.stringify({ events: [extractFixture(now)] }))));
+    const result = await extractEventDraft({ caption: said, spoken: true }, now);
+    expect(result.data?.start).toBe(extractFixture(now).start);
+    expect(result.data?.end).toBe(extractFixture(now).end);
+  });
+
+  it("a spoken end that is already past falls back to an hour from the start, flagged", async () => {
+    const said = "Leftover bubble tea at Baker House, we're here until 5";
+    const draft = {
+      ...extractFixture(now),
+      end: "2026-11-12T09:00:00-06:00",
+      evidence: {
+        ...extractFixture(now).evidence,
+        start: { quote: "", from: "inferred" as const },
+        end: { quote: "until 5", from: "caption" as const },
+      },
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => reply(JSON.stringify({ events: [draft] }))));
+    const result = await extractEventDraft({ caption: said, spoken: true }, now);
+    expect(result.data?.end).toBe("2026-11-12T17:00:00.000Z");
+    expect(result.data?.confidence.end).toBeLessThanOrEqual(UNGROUNDED_CONFIDENCE_CAP);
   });
 
   it("does not retry a failed call", async () => {
@@ -205,5 +251,14 @@ describe("job output schemas as JSON schema", () => {
     );
     expect(request.structuredOutput).toBe(EXTRACT_STRUCTURED_OUTPUT);
     expect(request.image).toEqual({ base64: "QUJD", mediaType: "image/png" });
+  });
+
+  it("a spoken request says it is the organizer talking, a post request does not", () => {
+    const spoken = buildExtractRequest({ caption: "leftover pizza at the Union", spoken: true }, now);
+    expect(spoken.prompt).toContain("Organizer said:");
+    expect(spoken.system).toContain("organizer speaking");
+    const post = buildExtractRequest({ caption: SAMPLE_FLYER_CAPTION }, now);
+    expect(post.prompt).toContain("Caption:");
+    expect(post.system).not.toContain("organizer speaking");
   });
 });
