@@ -1,12 +1,13 @@
 import "server-only";
 import { z } from "zod";
-import type { CampusEvent, RankedPick, StudentProfile } from "@/lib/events/schema";
+import type { CampusEvent, RankedPick } from "@/lib/events/schema";
 import { isInWindow } from "@/lib/events/time";
 import { walkMinutes } from "@/lib/geo";
 import { compileCandidates } from "@/lib/muse/candidates";
 import { rankFixture } from "@/lib/muse/fixtures/rank";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 import { DEMO_USER_ID, getInterestMemory, type InterestMemory } from "@/lib/muse/memory";
+import { origin, type StudentContext } from "@/lib/muse/profile";
 import type { LikelyEvent } from "@/lib/muse/types";
 
 // Student profile, interest memory, and events to the top 3 picks for today,
@@ -28,7 +29,7 @@ const POOL_SIZE = 12;
 
 // Today's likely events without a class clash first, then the clashing ones,
 // then anything else still on today so a new student still gets three picks.
-function picksPool(likely: LikelyEvent[], events: CampusEvent[], profile: StudentProfile, now: Date): LikelyEvent[] {
+function picksPool(likely: LikelyEvent[], events: CampusEvent[], profile: StudentContext, now: Date): LikelyEvent[] {
   const today = likely.filter((candidate) => candidate.today);
   const pool = [...today.filter((candidate) => !candidate.clash), ...today.filter((candidate) => candidate.clash)];
   const taken = new Set(pool.map((candidate) => candidate.eventId));
@@ -36,7 +37,7 @@ function picksPool(likely: LikelyEvent[], events: CampusEvent[], profile: Studen
     .filter((event) => event.status === "published" && !taken.has(event.id) && isInWindow(event, "today", now))
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
     .map((event): LikelyEvent => {
-      const walk = walkMinutes(profile.home, event.place);
+      const walk = walkMinutes(origin(profile), event.place);
       return {
         eventId: event.id,
         score: 0,
@@ -51,7 +52,7 @@ function picksPool(likely: LikelyEvent[], events: CampusEvent[], profile: Studen
 }
 
 export async function personalizeEvents(
-  profile: StudentProfile,
+  profile: StudentContext,
   events: CampusEvent[],
   now = new Date(),
   memory: InterestMemory = getInterestMemory(DEMO_USER_ID, now),
@@ -89,7 +90,7 @@ export async function personalizeEvents(
   const result = await runMuseJob({
     request: {
       system:
-        'Pick the 3 best events for this student today. Return JSON only: {"picks":[{"eventId":"...","reason":"one short sentence"}]}. Use only ids from the candidates. The interest memory comes from how they use Instagram: videos they watch to the end, likes, comments, saves. Weigh it most, then clubs they follow, free, short walks, and no clash with their classes. Each reason names the behavior or follow it comes from, in plain words.',
+        'Pick the 3 best events for this student today. Return JSON only: {"picks":[{"eventId":"...","reason":"one short sentence"}]}. Use only ids from the candidates. The interest memory comes from how they use Instagram (videos they watch to the end, likes, comments, saves) and the events they marked interested, RSVPed to, went to, or dismissed. Weigh it most, events they went to above all. Then use what the student told us: age, class year, major, languages, communities they listed, diet, and the clubs they follow; then free, short walks from where they are now, and no clash with their classes. Never guess or use race, ethnicity, religion, or other protected traits. Each reason names the behavior or follow it comes from, in plain words.',
       prompt: `Now: ${now.toISOString()}\nStudent: ${JSON.stringify(profile)}\nInterest memory: ${JSON.stringify(interestMemory)}\nCandidates: ${JSON.stringify(candidates)}`,
       structuredOutput: RANK_STRUCTURED_OUTPUT,
     },
@@ -105,13 +106,13 @@ export async function personalizeEvents(
   if (result.error !== null) return result;
   const picks = result.data.picks.flatMap((pick) => {
     const event = eventsById.get(pick.eventId);
-    return event ? [{ eventId: pick.eventId, reason: pick.reason, walkMinutes: walkMinutes(profile.home, event.place) }] : [];
+    return event ? [{ eventId: pick.eventId, reason: pick.reason, walkMinutes: walkMinutes(origin(profile), event.place) }] : [];
   });
   return { ...result, data: { picks, likely } };
 }
 
 export async function rankEvents(
-  profile: StudentProfile,
+  profile: StudentContext,
   events: CampusEvent[],
   now = new Date(),
   memory?: InterestMemory,

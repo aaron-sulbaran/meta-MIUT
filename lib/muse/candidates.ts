@@ -1,12 +1,14 @@
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
-import type { CampusEvent, ScheduleBlock, StudentProfile } from "@/lib/events/schema";
+import type { CampusEvent, ScheduleBlock } from "@/lib/events/schema";
 import { isInWindow } from "@/lib/events/time";
 import { walkMinutes } from "@/lib/geo";
 import type { InterestMemory } from "@/lib/muse/memory";
+import { minimumAge, origin, studyTopics, type StudentContext } from "@/lib/muse/profile";
 import type { LikelyEvent } from "@/lib/muse/types";
 
 // Every event this week the student is likely to care about, scored from
-// their interest memory, stated interests, follows, distance, and schedule.
+// their interest memory, stated interests, major and year, the communities and
+// languages they listed, follows, diet, distance, age limits, and schedule.
 // Rank sends the best of these to Muse; the UI shows the rest.
 
 export const MAX_WALK_MINUTES = 20; // about one mile
@@ -27,8 +29,12 @@ export const TOPIC_KEYWORDS: Record<string, string[]> = {
   "free food": [],
 };
 
+export function eventText(event: CampusEvent): string {
+  return `${event.title} ${event.description} ${event.foodNote ?? ""} ${event.organizer.name}`.toLowerCase();
+}
+
 export function eventTopics(event: CampusEvent): string[] {
-  const text = `${event.title} ${event.description} ${event.foodNote ?? ""} ${event.organizer.name}`.toLowerCase();
+  const text = eventText(event);
   const topics = Object.entries(TOPIC_KEYWORDS)
     .filter(([, keywords]) => keywords.some((keyword) => text.includes(keyword)))
     .map(([topic]) => topic);
@@ -98,7 +104,7 @@ function reasonFor(
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
 export function compileCandidates(
-  profile: StudentProfile,
+  profile: StudentContext,
   memory: InterestMemory,
   events: CampusEvent[],
   now: Date,
@@ -107,10 +113,19 @@ export function compileCandidates(
   const creators = new Map(memory.creators.map((creator) => [creator.handle, creator.score]));
   const stated = new Set(profile.interests.map((interest) => interest.toLowerCase()));
   const follows = new Set(profile.follows);
+  const fromStudies = new Set(studyTopics(profile));
+  // Self-declared only: a community or language counts when the event names it.
+  const affinities = [...(profile.communities ?? []), ...(profile.languages ?? [])].map((item) => item.toLowerCase());
+  const diets = (profile.dietary ?? []).map((item) => item.toLowerCase());
+  const from = origin(profile);
 
   return events
     .filter((event) => event.status === "published" && isInWindow(event, "week", now))
     .flatMap((event) => {
+      const text = eventText(event);
+      const ageLimit = minimumAge(text);
+      if (ageLimit !== null && profile.age !== undefined && profile.age < ageLimit) return [];
+
       const matched: string[] = [];
       let interest = 0;
       // Free food is a fact about the event; prefer a more specific topic for the reason.
@@ -119,7 +134,7 @@ export function compileCandidates(
       let foodHook: string | null = null;
       for (const topic of eventTopics(event)) {
         const memo = remembered.get(topic);
-        const score = (memo?.score ?? 0) + (stated.has(topic) ? 0.5 : 0);
+        const score = (memo?.score ?? 0) + (stated.has(topic) ? 0.5 : 0) + (fromStudies.has(topic) ? 0.3 : 0);
         if (score <= 0) continue;
         matched.push(topic);
         interest += score;
@@ -129,12 +144,24 @@ export function compileCandidates(
           hook = memo.hook;
         }
       }
+      for (const affinity of affinities) {
+        if (!text.includes(affinity)) continue;
+        matched.push(affinity);
+        interest += 0.8;
+      }
+      if (event.food) {
+        for (const diet of diets) {
+          if (!(event.foodNote ?? "").toLowerCase().includes(diet)) continue;
+          matched.push(diet);
+          interest += 0.2;
+        }
+      }
       const followsClub = follows.has(event.organizer.handle);
       const creatorAffinity = creators.get(event.organizer.handle) ?? 0;
       const personal = Math.min(interest, 1.5) + (followsClub ? 0.8 : 0) + creatorAffinity * 0.5;
       if (personal <= 0) return [];
 
-      const walk = walkMinutes(profile.home, event.place);
+      const walk = walkMinutes(from, event.place);
       const clash = scheduleClash(event, profile.schedule);
       const today = isInWindow(event, "today", now);
       const nearby = walk <= MAX_WALK_MINUTES ? 0.3 * (1 - walk / MAX_WALK_MINUTES) : -0.5;
