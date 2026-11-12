@@ -3,37 +3,80 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { CalendarIcon, MapPinIcon, MegaphoneIcon, SparkIcon } from "@/components/ui/icons";
+import {
+  BellIcon,
+  FriendsIcon,
+  HomeFilledIcon,
+  MarketplaceIcon,
+  VideoIcon,
+} from "@/components/ui/icons";
 
-type Tab = { href: string; label: string; Icon: ComponentType<{ className?: string }>; matches: (path: string) => boolean };
+// The floating pill tab bar from the Facebook iOS app. Home is the only live
+// destination in this demo (Events lives under Home, as in the app). The other
+// five are drawn so the chrome reads true, but they are inert: not links, not
+// focusable, no pressed state.
 
-const TABS: Tab[] = [
-  { href: "/", label: "Events", Icon: CalendarIcon, matches: (path) => path === "/" || path.startsWith("/events") },
-  { href: "/map", label: "Map", Icon: MapPinIcon, matches: (path) => path.startsWith("/map") },
-  { href: "/ask", label: "Ask Muse", Icon: SparkIcon, matches: (path) => path.startsWith("/ask") },
-  { href: "/organizer", label: "Organizer", Icon: MegaphoneIcon, matches: (path) => path.startsWith("/organizer") },
+type InertTab = { label: string; Icon: ComponentType<{ className?: string }>; dot?: boolean; count?: number };
+
+const INERT_TABS: InertTab[] = [
+  { label: "Video", Icon: VideoIcon, dot: true },
+  { label: "Friends", Icon: FriendsIcon },
+  { label: "Marketplace", Icon: MarketplaceIcon, dot: true },
+  { label: "Notifications", Icon: BellIcon, dot: true },
 ];
+
+// The reference screen copies the app's badge count; everywhere else the
+// badge is a plain dot, because this demo computes no notification count.
+const REFERENCE_TABS: InertTab[] = INERT_TABS.map((tab) =>
+  tab.label === "Notifications" ? { ...tab, dot: false, count: 7 } : tab,
+);
 
 export function TabBar() {
   const pathname = usePathname();
+  const tabs = pathname.startsWith("/reference") ? REFERENCE_TABS : INERT_TABS;
   return (
-    <nav className="sticky bottom-0 z-10 grid grid-cols-4 border-t border-divider bg-card">
-      {TABS.map(({ href, label, Icon, matches }) => {
-        const active = matches(pathname);
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={`flex flex-col items-center gap-0.5 border-t-2 py-2 text-[11px] font-medium ${
-              active ? "border-primary text-primary" : "border-transparent text-muted"
-            }`}
-          >
-            <Icon className="h-6 w-6" />
-            {label}
-          </Link>
-        );
-      })}
+    <nav
+      aria-label="Facebook"
+      className="pointer-events-none fixed inset-x-0 z-30 mx-auto w-full max-w-[390px] px-[12px]"
+      style={{ bottom: "var(--tabbar-gap)" }}
+    >
+      <div className="pointer-events-auto grid h-[var(--tabbar-height)] grid-cols-6 items-center rounded-full border border-tabbar-border bg-card px-[5px]">
+        <Link
+          href="/home"
+          aria-label="Home"
+          className="flex h-[38.6px] items-center justify-center rounded-full bg-primary-soft text-primary"
+        >
+          <HomeFilledIcon className="h-[23px] w-[23px]" />
+        </Link>
+        {tabs.map(({ label, Icon, dot, count }) => (
+          <span key={label} aria-hidden className="relative flex h-[39px] items-center justify-center text-ink">
+            <span className="relative">
+              <Icon className="h-[23.5px] w-[23.5px]" />
+              {dot && <span className="absolute left-[calc(50%+9.7px-3.85px)] top-[calc(50%-9.5px-3.85px)] h-[7.7px] w-[7.7px] rounded-full bg-badge" />}
+              {count !== undefined && (
+                <span className="absolute left-[calc(50%+9.5px-10.25px)] top-[calc(50%-9.6px-10.25px)] flex h-[20.5px] min-w-[20.5px] items-center justify-center rounded-full border-[1.5px] border-card bg-badge px-[4px] font-display text-[12.5px] font-bold leading-none text-white tabular-nums">
+                  {count}
+                </span>
+              )}
+            </span>
+          </span>
+        ))}
+        <span aria-hidden className="flex h-[39px] items-center justify-center">
+          <ProfileAvatar size={25} ring />
+        </span>
+      </div>
     </nav>
+  );
+}
+
+// No photos of people: the profile slot is an initial on a color field.
+export function ProfileAvatar({ size = 27, initial = "A", ring = false }: { size?: number; initial?: string; ring?: boolean }) {
+  return (
+    <span
+      className={`flex items-center justify-center rounded-full bg-[#1c2b33] font-display font-bold text-white ${ring ? "ring-[1.5px] ring-ink ring-offset-[1.5px] ring-offset-card" : ""}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.44) }}
+    >
+      {initial}
+    </span>
   );
 }

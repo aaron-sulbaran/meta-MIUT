@@ -1,21 +1,107 @@
 @import "tailwindcss";
 
-/* Design tokens. The design lane owns this file. */
+/*
+  Design tokens. The design lane owns this file.
+  Measured from screenshots of the Facebook iOS app (Events, Home, Marketplace),
+  normalized to a 390 px wide phone. Older names (wash, card, primary, muted,
+  divider, ink, free) are kept because other lanes use them.
+*/
 @theme {
-  --color-wash: #f0f2f5;
+  /* Surfaces. Facebook pages are white now; wash is the desktop backdrop and input fill. */
+  --color-page: #ffffff;
   --color-card: #ffffff;
-  --color-primary: #0866ff;
-  --color-primary-soft: #e7f0ff;
+  --color-wash: #f0f2f5;
+  --color-field: #f2f4f5;
+
+  /* Text */
   --color-ink: #050505;
   --color-muted: #65676b;
-  --color-divider: #ced0d4;
+  --color-subtle: #a2a5a7;
+  --color-on-primary: #ffffff;
+
+  /* Blue: brand and icons, link text, and the tint behind active chips and tabs */
+  --color-primary: #0866ff;
+  --color-link: #0065d1;
+  --color-primary-soft: #ddedfe;
+  --color-tint-row: #e6f2fe;
+
+  /* Lines and fills */
+  --color-divider: #d4d6d8;
+  --color-hairline: #e4e5e8;
+  --color-separator: #a1a4a6;
+  --color-button: #e3e4e8;
+  --color-tabbar-border: #e3e3e4;
+
+  /* Status */
   --color-free: #31a24c;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --color-badge: #dd2236;
+  --color-scrim: rgb(28 29 33 / 0.6);
+
+  /* Radii */
+  --radius-card: 10px;
+  --radius-button: 6px;
+
+  /*
+    Type. Display is Geologica 700, the closest Google face to Meta's
+    Optimistic, for every bold label and heading. Running text and grey
+    metadata use the system face, which is SF Pro on Apple devices, as in the
+    app; Inter stands in elsewhere.
+  */
+  --font-display: var(--font-geologica), "DM Sans", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), system-ui, sans-serif;
+
+  --text-root-title: 26px;
+  --text-root-title--line-height: 32px;
+  --text-title: 16px;
+  --text-title--line-height: 20px;
+  --text-label: 14px;
+  --text-label--line-height: 17.5px;
+  --text-body: 14px;
+  --text-body--line-height: 17px;
+  --text-meta: 11.5px;
+  --text-meta--line-height: 15px;
+  --text-venue: 12.5px;
+  --text-venue--line-height: 16px;
 }
 
-html,
+:root {
+  --tabbar-height: 50px;
+  --tabbar-gap: max(20px, env(safe-area-inset-bottom));
+}
+
+html {
+  background: var(--color-wash);
+}
+
 body {
-  background: #dfe3e8;
+  background: var(--color-wash);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+  Display weight. Optimistic reads heavier than Geologica 700 at the same
+  size, so bold display text sits at 790 on the variable axis.
+*/
+.font-display.font-bold {
+  font-weight: 790;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Horizontal rails scroll without a visible scrollbar, like the app. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

@@ -1,81 +1,271 @@
+import type { SVGProps } from "react";
+
+// Line icons drawn after the Facebook iOS app's set: 24 px grid, round caps,
+// 1.9 stroke. Filled variants mark the active tab. All are decorative
+// (aria-hidden); the control around an icon carries the label.
+
 type IconProps = { className?: string };
 
-const base = {
+const line: SVGProps<SVGSVGElement> = {
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
+  strokeWidth: 1.9,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
   "aria-hidden": true,
+  focusable: false,
 };
 
-export function CalendarIcon({ className }: IconProps) {
+const solid: SVGProps<SVGSVGElement> = {
+  viewBox: "0 0 24 24",
+  fill: "currentColor",
+  "aria-hidden": true,
+  focusable: false,
+};
+
+export function ChevronLeftIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className}>
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M3 10h18M8 3v4M16 3v4" />
+    <svg {...line} strokeWidth={2.6} className={className}>
+      <path d="M16 1.5 6 12l10 10.5" />
     </svg>
   );
 }
 
-export function MapPinIcon({ className }: IconProps) {
+export function ChevronRightIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className}>
-      <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />
-      <circle cx="12" cy="10" r="2.5" />
+    <svg {...line} className={className}>
+      <path d="m9 5 7 7-7 7" />
     </svg>
   );
 }
 
-export function SparkIcon({ className }: IconProps) {
+export function PlusSquareIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className}>
-      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
-      <path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" />
-    </svg>
-  );
-}
-
-export function MegaphoneIcon({ className }: IconProps) {
-  return (
-    <svg {...base} className={className}>
-      <path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1z" />
-      <path d="M17 9a4 4 0 0 1 0 6" />
+    <svg {...line} strokeWidth={2.1} className={className}>
+      <rect x="1.05" y="1.05" width="21.9" height="21.9" rx="5.6" />
+      <path d="M12 5.8v12.4M5.8 12h12.4" />
     </svg>
   );
 }
 
 export function SearchIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className}>
-      <circle cx="11" cy="11" r="6" />
-      <path d="M20 20l-4.5-4.5" />
+    <svg {...line} strokeWidth={2.1} className={className}>
+      <circle cx="10.6" cy="10.6" r="9.5" />
+      <path d="m17.6 17.6 5 5" />
     </svg>
   );
 }
 
-export function BellIcon({ className }: IconProps) {
+export function MoreCircleIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className}>
-      <path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" />
-      <path d="M10 20a2 2 0 0 0 4 0" />
+    <svg {...line} strokeWidth={2} className={className}>
+      <circle cx="12" cy="12" r="11" />
+      <g fill="currentColor" stroke="none">
+        <circle cx="6.2" cy="12" r="1.55" />
+        <circle cx="12" cy="12" r="1.55" />
+        <circle cx="17.8" cy="12" r="1.55" />
+      </g>
+    </svg>
+  );
+}
+
+export function MoreDotsIcon({ className }: IconProps) {
+  return (
+    <svg {...solid} className={className}>
+      <circle cx="8.6" cy="12" r="1.15" />
+      <circle cx="12" cy="12" r="1.15" />
+      <circle cx="15.4" cy="12" r="1.15" />
+    </svg>
+  );
+}
+
+export function MenuIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2} className={className}>
+      <path d="M3 5.5h18M3 12h18M3 18.5h18" />
+    </svg>
+  );
+}
+
+export function ChatBoltIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden focusable={false} className={className}>
+      <mask id="chat-bolt-cutout">
+        <rect width="24" height="24" fill="#fff" />
+        <path d="m6.3 14.6 3.9-4.2 2.6 2 4.9-3.9-3.9 4.2-2.6-2z" fill="#000" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
+      </mask>
+      <path
+        mask="url(#chat-bolt-cutout)"
+        fill="currentColor"
+        d="M12 1.8C6.2 1.8 1.8 6 1.8 11.5c0 2.9 1.2 5.4 3.2 7.1v3.6l3.3-1.9c1.1.3 2.4.5 3.7.5 5.8 0 10.2-4.2 10.2-9.3S17.8 1.8 12 1.8z"
+      />
+    </svg>
+  );
+}
+
+export function PhotoIcon({ className }: IconProps) {
+  return (
+    <svg {...solid} className={className}>
+      <path fillRule="evenodd" d="M7.5 1.5h9a3.5 3.5 0 0 1 3.5 3.5v14a3.5 3.5 0 0 1-3.5 3.5h-9A3.5 3.5 0 0 1 4 19V5a3.5 3.5 0 0 1 3.5-3.5zm-1 3v15h11v-15z" />
+      <circle cx="9.3" cy="7.8" r="1.8" />
+      <path d="M6.5 14.5c1-1.2 2-1.6 3-1.1l1.2.7c.8-1.6 2.1-3 3.5-3 1.4 0 2.6 1 3.3 1.8v6.6h-11z" />
+    </svg>
+  );
+}
+
+export function MapPinIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={1.5} className={className}>
+      <path d="M12 21.6c-3-3-7.35-7.8-7.35-12a7.35 7.35 0 0 1 14.7 0c0 4.2-4.35 9-7.35 12Z" />
+      <circle cx="12" cy="9.3" r="2.4" />
     </svg>
   );
 }
 
 export function StarIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className}>
-      <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8L3.5 9.7l5.9-.9z" />
+    <svg {...line} strokeWidth={2.4} className={className}>
+      <path d="M12 2.8 14.82 8.92 21.51 9.71 16.57 14.28 17.88 20.89 12 17.6 6.12 20.89 7.43 14.28 2.49 9.71 9.18 8.92Z" />
     </svg>
   );
 }
 
-export function ChevronLeftIcon({ className }: IconProps) {
+export function StarFilledIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className}>
-      <path d="M15 5l-7 7 7 7" />
+    <svg {...line} strokeWidth={2.4} fill="currentColor" className={className}>
+      <path d="M12 2.8 14.82 8.92 21.51 9.71 16.57 14.28 17.88 20.89 12 17.6 6.12 20.89 7.43 14.28 2.49 9.71 9.18 8.92Z" />
+    </svg>
+  );
+}
+
+export function ShareIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2.1} className={className}>
+      <path d="M12.4 8.85V3.6L22 12l-9.6 8.4v-4.8c-4.4-.2-7.2 1.4-8.8 3.8 0-6 3.6-10.2 8.8-10.55Z" />
+    </svg>
+  );
+}
+
+export function ClockIcon({ className }: IconProps) {
+  return (
+    <svg {...line} className={className}>
+      <circle cx="12" cy="12" r="9.25" />
+      <path d="M12 6.75V12l3.5 2" />
+    </svg>
+  );
+}
+
+export function TicketIcon({ className }: IconProps) {
+  return (
+    <svg {...line} className={className}>
+      <path d="M3.25 7.5a2 2 0 0 1 2-2h13.5a2 2 0 0 1 2 2v2a2.5 2.5 0 0 0 0 5v2a2 2 0 0 1-2 2H5.25a2 2 0 0 1-2-2v-2a2.5 2.5 0 0 0 0-5Z" />
+      <path d="M14.5 5.5v13" strokeDasharray="2 2.4" />
+    </svg>
+  );
+}
+
+export function FoodIcon({ className }: IconProps) {
+  return (
+    <svg {...line} className={className}>
+      <path d="M6.5 2.75v7.5M4 2.75v4.5a2.5 2.5 0 0 0 5 0v-4.5M6.5 10.25v11" />
+      <path d="M17.5 21.25V2.75c-2.5 1.2-3.75 4-3.75 7.75v3.25h3.75" />
+    </svg>
+  );
+}
+
+export function PeopleIcon({ className }: IconProps) {
+  return (
+    <svg {...line} className={className}>
+      <circle cx="9" cy="7.75" r="3.75" />
+      <path d="M2.25 20.25c0-3.6 3-6 6.75-6s6.75 2.4 6.75 6Z" />
+      <path d="M16 4.25a3.5 3.5 0 0 1 0 7M18 14.4c2.3.6 3.75 2.6 3.75 5.1v.75" />
+    </svg>
+  );
+}
+
+export function InstagramPostIcon({ className }: IconProps) {
+  return (
+    <svg {...line} className={className}>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+    </svg>
+  );
+}
+
+// Tab bar set
+
+export function HomeIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2} className={className}>
+      <path d="M3.5 10.6c0-.7.3-1.3.9-1.7l6.4-5.1a2 2 0 0 1 2.4 0l6.4 5.1c.6.4.9 1 .9 1.7V19a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
+      <path d="M9.7 21v-4.3a2.3 2.3 0 0 1 4.6 0V21" />
+    </svg>
+  );
+}
+
+export function HomeFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...solid} className={className}>
+      <path fillRule="evenodd" d="M2.5 10.6c0-1 .5-1.9 1.3-2.5l6.4-5.1a3 3 0 0 1 3.6 0l6.4 5.1c.8.6 1.3 1.5 1.3 2.5V19a3 3 0 0 1-3 3h-13a3 3 0 0 1-3-3zM10 15.5v6.5h4v-6.5a.8.8 0 0 0-.8-.8h-2.4a.8.8 0 0 0-.8.8z" />
+    </svg>
+  );
+}
+
+export function VideoIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2} className={className}>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <path d="M3 8.3h18M7.4 3.2l2.2 5M12.4 3.2l2.2 5" />
+      <path d="M10 11.6v5.2l4.4-2.6z" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function FriendsIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2} className={className}>
+      <circle cx="8" cy="10.3" r="2.7" />
+      <rect x="2.5" y="16" width="11" height="5" rx="2.5" />
+      <circle cx="16" cy="5.6" r="2.6" />
+      <path d="M13.6 12.2h3.2a3.1 3.1 0 0 1 0 6.2h-1.6" />
+    </svg>
+  );
+}
+
+export function MarketplaceIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2} className={className}>
+      <path d="M3.5 8.5c0-2.5 1.7-4.5 4.5-4.5h8c2.8 0 4.5 2 4.5 4.5" />
+      <path d="M3.5 8.5c0 1.7.9 2.6 2.1 2.6s2.1-.9 2.1-2.4c0 1.5.9 2.4 2.1 2.4s2.2-.9 2.2-2.4c0 1.5 1 2.4 2.2 2.4s2.1-.9 2.1-2.4c0 1.5.9 2.4 2.1 2.4s2.1-.9 2.1-2.6" />
+      <path d="M5 11.2V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7.8" />
+      <path d="M10 21v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4" />
+    </svg>
+  );
+}
+
+export function BellIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2} className={className}>
+      <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.8 2.1H4.2z" />
+      <path d="M9.8 18.8a2.2 2.2 0 0 0 4.4 0" />
+    </svg>
+  );
+}
+
+// The Muse mark: a single unbroken loop, not a sparkle.
+export function MuseMark({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden focusable={false} className={className}>
+      <path
+        d="M12 12c-2.2-3.4-5.9-4.4-7.5-2.3-1.5 2 .2 5.1 3.3 4.6 3.2-.5 5.2-5.3 8.3-6 2.6-.6 4.7 1.4 4.2 3.9-.5 2.6-3.6 3.8-6.2 2.2C12.6 13.6 12 12 12 12Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.1}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
