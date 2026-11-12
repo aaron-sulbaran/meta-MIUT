@@ -6,6 +6,7 @@ export function createFakeRedis() {
   const strings = new Map<string, string>();
   const hashes = new Map<string, Map<string, string>>();
   const sortedSets = new Map<string, { score: number; member: string }[]>();
+  const sets = new Map<string, Set<string>>();
   const log: RedisCommand[] = [];
   let failures = 0;
 
@@ -14,6 +15,15 @@ export function createFakeRedis() {
     if (!value) {
       value = new Map();
       hashes.set(key, value);
+    }
+    return value;
+  }
+
+  function plainSet(key: string) {
+    let value = sets.get(key);
+    if (!value) {
+      value = new Set();
+      sets.set(key, value);
     }
     return value;
   }
@@ -53,7 +63,7 @@ export function createFakeRedis() {
       case "DEL": {
         let removed = 0;
         for (const key of text) {
-          if (strings.delete(key) || hashes.delete(key) || sortedSets.delete(key)) removed += 1;
+          if (strings.delete(key) || hashes.delete(key) || sortedSets.delete(key) || sets.delete(key)) removed += 1;
         }
         return { data: removed, error: null };
       }
@@ -94,6 +104,24 @@ export function createFakeRedis() {
           .map((entry) => entry.member);
         return { data: members, error: null };
       }
+      case "SADD": {
+        const target = plainSet(at(0));
+        const before = target.size;
+        for (const member of text.slice(1)) target.add(member);
+        return { data: target.size - before, error: null };
+      }
+      case "SREM": {
+        const target = plainSet(at(0));
+        let removed = 0;
+        for (const member of text.slice(1)) if (target.delete(member)) removed += 1;
+        return { data: removed, error: null };
+      }
+      case "SCARD":
+        return { data: sets.get(at(0))?.size ?? 0, error: null };
+      case "SISMEMBER":
+        return { data: sets.get(at(0))?.has(at(1)) ? 1 : 0, error: null };
+      case "SMEMBERS":
+        return { data: [...(sets.get(at(0)) ?? [])], error: null };
       default:
         return { data: null, error: `Redis error: fake does not support ${name}` };
     }
@@ -119,6 +147,7 @@ export function createFakeRedis() {
     log,
     strings,
     hashes,
+    sets,
     failNext(count = 1) {
       failures = count;
     },
