@@ -18,9 +18,12 @@ Checks: `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm build`.
 
 Server side only, never committed. See `.env.example`.
 
-- `MUSE_API_KEY`
-- `MUSE_BASE_URL`
-- `MUSE_MODEL`
+- `MUSE_API_KEY` (the only required one)
+- `MUSE_BASE_URL` (default `https://api.meta.ai/v1`)
+- `MUSE_MODEL` (default `muse-spark-1.3`)
+- `MUSE_REASONING_EFFORT` (default `low`)
+
+The request format follows the dev.meta.ai docs. To check it against the live API with a real flyer, put a key in `.env.local` and run `pnpm spike:muse path/to/flyer.jpg "optional caption"`. It tries all three models and prints status, latency, token usage, and whether the draft passed validation. Add `--models` or `--effort low` to narrow or compare.
 
 The UI labels every Muse answer as "Answered by Muse" or "Recorded fixture", so the demo is honest about which one ran.
 

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadSeedEvents, loadSeedStudent } from "@/lib/events/seed";
-import { askAboutEvents } from "@/lib/muse/ask";
+import { ASK_STRUCTURED_OUTPUT, askAboutEvents } from "@/lib/muse/ask";
 import { readMuseConfig } from "@/lib/muse/client";
-import { extractEventDraft } from "@/lib/muse/extract";
+import { EXTRACT_STRUCTURED_OUTPUT, buildExtractRequest, extractEventDraft } from "@/lib/muse/extract";
 import { SAMPLE_FLYER_CAPTION } from "@/lib/muse/fixtures/extract";
 import { extractJsonObject } from "@/lib/muse/job";
-import { rankEvents } from "@/lib/muse/rank";
+import { RANK_STRUCTURED_OUTPUT, rankEvents } from "@/lib/muse/rank";
 
 const now = new Date("2026-11-12T16:00:00.000Z");
 const events = loadSeedEvents(now);
@@ -15,6 +15,7 @@ describe("Muse jobs without a key fall back to fixtures", () => {
     vi.stubEnv("MUSE_API_KEY", "");
     vi.stubEnv("MUSE_BASE_URL", "");
     vi.stubEnv("MUSE_MODEL", "");
+    vi.stubEnv("MUSE_REASONING_EFFORT", "");
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -50,5 +51,51 @@ describe("extractJsonObject", () => {
   it("pulls JSON out of fenced model output", () => {
     expect(extractJsonObject('Sure:\n```json\n{"a":1}\n```')).toEqual({ a: 1 });
     expect(extractJsonObject("no json here")).toBeNull();
+  });
+});
+
+// The documented rules strict mode adds on top of a constrained schema.
+function strictModeViolations(schema: unknown, path = "$"): string[] {
+  if (Array.isArray(schema)) return schema.flatMap((item, index) => strictModeViolations(item, `${path}[${index}]`));
+  if (typeof schema !== "object" || schema === null) return [];
+  const node = schema as Record<string, unknown>;
+  const violations: string[] = [];
+  if ("allOf" in node || "oneOf" in node) violations.push(`${path} uses allOf or oneOf`);
+  if (node.type === "object") {
+    if (node.additionalProperties !== false) violations.push(`${path} allows additional properties`);
+    const keys = Object.keys((node.properties as Record<string, unknown> | undefined) ?? {});
+    const required = new Set((node.required as string[] | undefined) ?? []);
+    for (const key of keys) if (!required.has(key)) violations.push(`${path}.${key} is not required`);
+  }
+  for (const [key, value] of Object.entries(node)) violations.push(...strictModeViolations(value, `${path}.${key}`));
+  return violations;
+}
+
+describe("job output schemas as JSON schema", () => {
+  const outputs = [EXTRACT_STRUCTURED_OUTPUT, RANK_STRUCTURED_OUTPUT, ASK_STRUCTURED_OUTPUT];
+
+  it("each job produces a named object schema without $schema", () => {
+    for (const output of outputs) {
+      expect(output.name).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(output.schema.type).toBe("object");
+      expect(output.schema).not.toHaveProperty("$schema");
+    }
+  });
+
+  it("extract breaks the strict rules, so every job is sent with strict off", () => {
+    expect(strictModeViolations(EXTRACT_STRUCTURED_OUTPUT.schema)).toEqual(
+      expect.arrayContaining(["$.foodNote is not required", "$.properties.confidence allows additional properties"]),
+    );
+    expect(strictModeViolations(RANK_STRUCTURED_OUTPUT.schema)).toEqual([]);
+    expect(strictModeViolations(ASK_STRUCTURED_OUTPUT.schema)).toEqual([]);
+  });
+
+  it("the extract request carries the schema and the image", () => {
+    const request = buildExtractRequest(
+      { caption: SAMPLE_FLYER_CAPTION, imageBase64: "QUJD", imageMediaType: "image/png" },
+      now,
+    );
+    expect(request.structuredOutput).toBe(EXTRACT_STRUCTURED_OUTPUT);
+    expect(request.image).toEqual({ base64: "QUJD", mediaType: "image/png" });
   });
 });

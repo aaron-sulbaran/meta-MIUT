@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { callMuse, type MuseRequest } from "@/lib/muse/client";
+import { callMuse, type MuseRequest, type MuseStructuredOutput } from "@/lib/muse/client";
 import type { AnswerSource } from "@/lib/muse/types";
 
 export type { AnswerSource };
@@ -19,6 +19,16 @@ export function extractJsonObject(text: string): unknown {
   } catch {
     return null;
   }
+}
+
+// A job's zod output schema as the JSON schema the API constrains output to.
+// `$schema` is dropped; the API wants the bare schema object. The result is
+// sent with strict off, because the extract schema has optional keys and a
+// partial record, which strict mode forbids (see jobs.test.ts).
+export function museStructuredOutput(name: string, outputSchema: z.ZodType): MuseStructuredOutput {
+  const schema: Record<string, unknown> = { ...z.toJSONSchema(outputSchema) };
+  delete schema.$schema;
+  return { name, schema };
 }
 
 type JobSpec<Output> = {

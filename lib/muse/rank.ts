@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { CampusEvent, RankedPick, StudentProfile } from "@/lib/events/schema";
 import { walkMinutes } from "@/lib/geo";
 import { rankFixture } from "@/lib/muse/fixtures/rank";
-import { runMuseJob, type MuseJobResult } from "@/lib/muse/job";
+import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 
 // Student profile plus events to the top 3 picks. Walking time is computed
 // here, never taken from the model.
@@ -13,6 +13,8 @@ export const RankOutputSchema = z.object({
 });
 
 export type RankOutput = z.infer<typeof RankOutputSchema>;
+
+export const RANK_STRUCTURED_OUTPUT = museStructuredOutput("event_picks", RankOutputSchema);
 
 export async function rankEvents(
   profile: StudentProfile,
@@ -40,6 +42,7 @@ export async function rankEvents(
       system:
         'Pick the 3 best events for this student today. Return JSON only: {"picks":[{"eventId":"...","reason":"one short sentence"}]}. Favor free events, short walks, interests, clubs they follow, and times that do not clash with their schedule.',
       prompt: `Now: ${now.toISOString()}\nStudent: ${JSON.stringify(profile)}\nEvents: ${JSON.stringify(candidates)}`,
+      structuredOutput: RANK_STRUCTURED_OUTPUT,
     },
     outputSchema: RankOutputSchema,
     fixture: rankFixture,

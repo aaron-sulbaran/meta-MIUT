@@ -13,7 +13,8 @@
     "start": "next start",
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "spike:muse": "node --conditions=react-server --import ./scripts/register-ts-paths.mjs --disable-warning=ExperimentalWarning scripts/muse-spike.ts"
   },
   "dependencies": {
     "next": "16.4.6",

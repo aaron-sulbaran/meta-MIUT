@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
 import { askFixture } from "@/lib/muse/fixtures/ask";
-import { runMuseJob, type MuseJobResult } from "@/lib/muse/job";
+import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 
 // A sentence plus events to matching event ids and a one-line answer.
 
@@ -15,6 +15,8 @@ export const AskOutputSchema = z.object({
 
 export type AskInput = z.infer<typeof AskInputSchema>;
 export type AskOutput = z.infer<typeof AskOutputSchema>;
+
+export const ASK_STRUCTURED_OUTPUT = museStructuredOutput("event_answer", AskOutputSchema);
 
 export async function askAboutEvents(
   input: AskInput,
@@ -36,6 +38,7 @@ export async function askAboutEvents(
       system:
         'Answer a student looking for campus events. Return JSON only: {"answer":"one short sentence","eventIds":["..."]}. Only use ids from the list. Empty list if nothing fits.',
       prompt: `Now: ${now.toISOString()}\nQuestion: ${input.question}\nEvents: ${JSON.stringify(summaries)}`,
+      structuredOutput: ASK_STRUCTURED_OUTPUT,
     },
     outputSchema: AskOutputSchema,
     fixture: askFixture,
