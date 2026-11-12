@@ -1,7 +1,7 @@
 import type { AlertDraft, AlertKind } from "@/lib/alerts/schema";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { CampusEvent } from "@/lib/events/schema";
-import { walkMinutes } from "@/lib/geo";
+import { distanceMeters, walkMinutes } from "@/lib/geo";
 
 // The one place that writes what a notification says. Everything comes from
 // the event plus who is reading it: what is free, how far a walk, how much
@@ -13,6 +13,9 @@ export type AlertContext = {
   now: Date;
   // The reader's location, for walk minutes. Omitted, the distance is left out.
   viewerLocation?: { lat: number; lng: number };
+  // Set when the reader walked near the event: why it suits them, for example
+  // "You follow Sample Climbing Club".
+  nearby?: { why: string };
 };
 
 const TITLE_MAX_LENGTH = 120;
@@ -46,9 +49,23 @@ function offerPhrase(event: CampusEvent): string | null {
   return null;
 }
 
+const COMPASS = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"] as const;
+const SAME_SPOT_METERS = 60;
+
+// Which way to walk from the reader to the event, to the nearest of 8 points.
+export function compassDirection(from: { lat: number; lng: number }, to: { lat: number; lng: number }): string {
+  const north = to.lat - from.lat;
+  const east = (to.lng - from.lng) * Math.cos((from.lat * Math.PI) / 180);
+  const degrees = ((Math.atan2(east, north) * 180) / Math.PI + 360) % 360;
+  return COMPASS[Math.round(degrees / 45) % 8]!;
+}
+
 function walkPhrase(event: CampusEvent, context: AlertContext): string | null {
   if (!context.viewerLocation) return null;
-  return `${walkMinutes(context.viewerLocation, event.place)} min walk`;
+  const minutes = walkMinutes(context.viewerLocation, event.place);
+  if (!context.nearby) return `${minutes} min walk`;
+  if (distanceMeters(context.viewerLocation, event.place) < SAME_SPOT_METERS) return "right where you are";
+  return `${minutes} min walk ${compassDirection(context.viewerLocation, event.place)}`;
 }
 
 function minutesBetween(fromMs: number, toMs: number): number {
@@ -83,6 +100,12 @@ export function composeAlert(event: CampusEvent, kind: AlertKind, context: Alert
 
   let title: string;
   let body: string;
+  if (context.nearby) {
+    title = offer && event.food ? `${offer} near you: ${event.title}` : `Near you: ${event.title}`;
+    const details = joinParts([event.food ? null : offer, where, walk, timePhrase(event, context.now)]);
+    body = `${capitalize(details)}. ${context.nearby.why}.`;
+    return { kind, eventId: event.id, title: clip(title, TITLE_MAX_LENGTH), body: clip(body, BODY_MAX_LENGTH) };
+  }
   switch (kind) {
     case "free_food_nearby":
       title = offer ? `${offer} at ${event.title}` : event.title;
