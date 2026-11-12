@@ -4,19 +4,20 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import Link from "next/link";
 import type { Map as MapLibreMap, GeoJSONSource, Marker } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CATEGORY_LABELS, CATEGORY_STICKERS, CATEGORY_TINTS, STICKER_FILTER } from "@/components/map/category-icons";
+import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, initials } from "@/components/map/category-icons";
 import { CloseIcon, MuseMark } from "@/components/ui/icons";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 
 // Full-screen heatmap for the Events tab. Hotspots are where Muse's picks for
-// this student are (lib/map/heat.ts). Each event sits on the map as a sticker
-// for what it is (lib/map/category.ts), or as a round photo when the event has
-// the organizer's flyer, with its name in a small pill underneath. For the
+// this student are (lib/map/heat.ts). Each event sits on the map as a round
+// bubble with the organizer's flyer (initials on a tint when there is none) and
+// a small icon badge for what it is (lib/map/category.ts); the selected event
+// shows its name in a small pill underneath. For the
 // demo the student stands at a fixed campus spot (their profile's home), never
 // live GPS, so the map looks right wherever we present from.
 // Chips along the top filter the map and cards. A swipeable strip of cards
-// sits at the bottom: swiping flies the map to that event, tapping a sticker
+// sits at the bottom: swiping flies the map to that event, tapping a bubble
 // scrolls the strip to its card. X hides an event ("Not for me") and cools its
 // hotspot. Directions opens walking directions in the phone's maps app.
 // Tiles: OpenFreeMap "liberty" (OpenStreetMap data, no key), softened on load.
@@ -25,7 +26,7 @@ const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 // Starting view before the map frames the student and their picks.
 const STUDENT_ZOOM = 14.6;
 // Below this zoom only the selected event shows its name pill, so close
-// stickers do not pile up their labels.
+// bubbles do not pile up their labels.
 const LABEL_ZOOM = 16.2;
 const DISMISSED_KEY = "map:dismissed";
 
@@ -85,10 +86,6 @@ function shortName(title: string): string {
   return title.length > 18 ? `${title.slice(0, 17).trimEnd()}...` : title;
 }
 
-function cssUrl(path: string): string {
-  return `url("${path.replace(/["\\\n]/g, "")}")`;
-}
-
 function readDismissed(): string[] {
   try {
     const raw = window.localStorage.getItem(DISMISSED_KEY);
@@ -108,7 +105,7 @@ function writeDismissed(ids: string[]) {
 }
 
 // Soften the base map toward the references: quiet buildings, no shop and
-// transit icons, no 3D, so the stickers and heat carry the color.
+// transit icons, no 3D, so the bubbles and heat carry the color.
 const BASE = {
   land: "#f2f2f2",
   building: "#e8e8e8",
@@ -125,7 +122,7 @@ const HIDDEN_FILLS = new Set(["road_area_pattern", "landcover_sand", "landcover_
 
 // Restyle the base map after the reference: flat light grey land, white
 // roads, soft blue water, a hint of green, quiet grey labels, nothing else.
-// The stickers and heat carry all the color.
+// The bubbles and heat carry all the color.
 function softenBaseMap(map: MapLibreMap) {
   const set = (id: string, property: string, value: string | number) => {
     try {
@@ -183,6 +180,20 @@ function frameStudent(map: MapLibreMap, studentSpot: Point, cards: MapCard[], an
   );
 }
 
+// The bubble's fallback when there is no flyer or it fails to load: the
+// event's initials on a soft tint for its kind of event.
+function fillWithInitials(target: HTMLElement, card: MapCard, size: number) {
+  const tint = CATEGORY_TINTS[card.category];
+  target.replaceChildren();
+  target.textContent = initials(card.title);
+  Object.assign(target.style, {
+    background: tint.fill,
+    color: tint.ink,
+    font: `600 ${Math.round(size * 0.34)}px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif`,
+    letterSpacing: "0.02em",
+  });
+}
+
 // MapLibre positions a marker by setting transform on the element it is given,
 // so everything styled sits inside a plain wrapper and only the inner part scales.
 function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDivElement {
@@ -198,7 +209,7 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: "2px",
+    gap: "4px",
     background: "none",
     border: "0",
     padding: "0",
@@ -207,41 +218,73 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
     transition: "transform 160ms ease",
   });
 
-  const art = document.createElement("span");
+  // The bubble: flyer photo in a white ring. Muse's picks get a thin warm
+  // outer ring so they read as recommended without shouting.
+  const bubble = document.createElement("span");
+  Object.assign(bubble.style, { position: "relative", display: "block", width: `${size}px`, height: `${size}px` });
+  const photo = document.createElement("span");
+  Object.assign(photo.style, {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    height: "100%",
+    borderRadius: "9999px",
+    overflow: "hidden",
+    border: `${pick ? 3 : 2.5}px solid #ffffff`,
+    boxShadow: pick ? "0 0 0 2px #e8603c, 0 2px 6px rgba(0,0,0,0.25)" : "0 1px 5px rgba(0,0,0,0.25)",
+    boxSizing: "border-box",
+    background: "#e8e8e8",
+  });
   if (card.imagePath) {
-    // The organizer's flyer as a round photo, like a profile bubble.
-    Object.assign(art.style, {
-      width: `${size}px`,
-      height: `${size}px`,
-      borderRadius: "9999px",
-      backgroundImage: cssUrl(card.imagePath),
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      border: `${pick ? 3 : 2.5}px solid #fff`,
-      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-    });
+    const image = document.createElement("img");
+    image.alt = "";
+    image.decoding = "async";
+    image.referrerPolicy = "no-referrer";
+    image.src = card.imagePath;
+    Object.assign(image.style, { width: "100%", height: "100%", objectFit: "cover", display: "block" });
+    image.addEventListener("error", () => fillWithInitials(photo, card, size), { once: true });
+    photo.appendChild(image);
   } else {
-    art.innerHTML = CATEGORY_STICKERS[card.category];
-    Object.assign(art.style, { width: `${size}px`, height: `${size}px`, filter: STICKER_FILTER });
+    fillWithInitials(photo, card, size);
   }
-  button.appendChild(art);
+  bubble.appendChild(photo);
+
+  // A small line icon badge says what kind of event it is.
+  const badgeSize = pick ? 19 : 17;
+  const badge = document.createElement("span");
+  badge.innerHTML = CATEGORY_ICONS[card.category];
+  Object.assign(badge.style, {
+    position: "absolute",
+    right: "-4px",
+    bottom: "-3px",
+    width: `${badgeSize}px`,
+    height: `${badgeSize}px`,
+    padding: "3px",
+    boxSizing: "border-box",
+    borderRadius: "9999px",
+    background: "#ffffff",
+    color: "#444441",
+    boxShadow: "0 0 0 0.5px #d3d1c7, 0 1px 2px rgba(0,0,0,0.15)",
+  });
+  bubble.appendChild(badge);
+  button.appendChild(bubble);
 
   const label = document.createElement("span");
   label.className = "event-marker-label";
   label.textContent = shortName(card.title);
   Object.assign(label.style, {
-    maxWidth: "128px",
+    maxWidth: "140px",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
     borderRadius: "9999px",
     background: "#ffffff",
-    padding: pick ? "3px 9px" : "2px 8px",
-    font: `${pick ? 700 : 600} ${pick ? 12 : 11}px/1.3 -apple-system, BlinkMacSystemFont, system-ui, sans-serif`,
-    color: "#050505",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
+    padding: "3px 9px",
+    font: "600 11.5px/1.3 -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+    color: "#2c2c2a",
+    boxShadow: "0 0 0 0.5px #d3d1c7, 0 1px 3px rgba(0,0,0,0.12)",
   });
-  if (pick) label.style.border = "1.5px solid #ff7a45";
   button.appendChild(label);
 
   button.addEventListener("click", (event) => {
@@ -266,27 +309,37 @@ function setLabelsForZoom(markers: Map<string, { element: HTMLElement }>, zoom: 
   }
 }
 
-function StickerTile({ card }: { card: MapCard }) {
-  if (card.imagePath) {
-    return (
-      <div
-        className="h-[64px] w-[64px] shrink-0 rounded-[14px] bg-cover bg-center"
-        style={{ backgroundImage: cssUrl(card.imagePath) }}
-        aria-hidden
-      />
-    );
-  }
+// The card's picture: the same flyer (or initials) and icon badge as the
+// bubble on the map, as a rounded square.
+function FlyerTile({ card }: { card: MapCard }) {
+  const [failed, setFailed] = useState(false);
+  const tint = CATEGORY_TINTS[card.category];
+  const showPhoto = card.imagePath !== null && !failed;
   return (
-    <div
-      className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[14px]"
-      style={{ backgroundColor: CATEGORY_TINTS[card.category] }}
-      aria-hidden
-    >
+    <div className="relative h-[64px] w-[64px] shrink-0" aria-hidden>
+      {showPhoto ? (
+        // Flyers arrive as remote poster links or small stored images, so a
+        // plain img (not next/image) keeps both working without config.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={card.imagePath ?? undefined}
+          alt=""
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+          className="h-full w-full rounded-[14px] object-cover"
+        />
+      ) : (
+        <div
+          className="flex h-full w-full items-center justify-center rounded-[14px] text-[20px] font-semibold tracking-[0.02em]"
+          style={{ backgroundColor: tint.fill, color: tint.ink }}
+        >
+          {initials(card.title)}
+        </div>
+      )}
       <span
-        className="block h-[42px] w-[42px]"
-        style={{ filter: STICKER_FILTER }}
+        className="absolute -bottom-[4px] -right-[4px] block h-[22px] w-[22px] rounded-full bg-white p-[4px] text-[#444441] shadow-[0_0_0_0.5px_#d3d1c7,0_1px_2px_rgba(0,0,0,0.15)]"
         // Our own static SVG from category-icons.ts, never event text.
-        dangerouslySetInnerHTML={{ __html: CATEGORY_STICKERS[card.category] }}
+        dangerouslySetInnerHTML={{ __html: CATEGORY_ICONS[card.category] }}
       />
     </div>
   );
@@ -423,7 +476,7 @@ export function EventsHeatmap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Heat and stickers follow the visible cards.
+  // Heat and bubbles follow the visible cards.
   useEffect(() => {
     const map = mapRef.current;
     const MarkerClass = markerClassRef.current;
@@ -451,7 +504,7 @@ export function EventsHeatmap({
     setLabelsForZoom(markers, map.getZoom());
   }, [mapReady, visibleCards]);
 
-  // The active event's sticker grows a little.
+  // The active event's bubble grows a little.
   useEffect(() => {
     for (const [id, { element }] of markersRef.current) setMarkerActive(element, id === currentActive);
     if (mapRef.current) setLabelsForZoom(markersRef.current, mapRef.current.getZoom());
@@ -495,7 +548,7 @@ export function EventsHeatmap({
     return () => observer.disconnect();
   }, [visibleCards]);
 
-  // Fly to the active event once the student swipes or taps a sticker; the map
+  // Fly to the active event once the student swipes or taps a bubble; the map
   // opens on the student, not on the first card.
   useEffect(() => {
     if (!activeId || !interacted.current) return;
@@ -595,7 +648,7 @@ export function EventsHeatmap({
                 currentActive === card.eventId ? "border-[#ff7a45]" : "border-transparent"
               }`}
             >
-              <StickerTile card={card} />
+              <FlyerTile card={card} />
               <div className="min-w-0 flex-1">
                 <h3 className="truncate font-display text-label font-bold">
                   <Link href={`/events/${card.eventId}`} className="after:absolute after:inset-0">
