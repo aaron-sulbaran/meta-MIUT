@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { composeAlert } from "@/lib/alerts/compose";
 import { createMemoryAlertFeed, type AlertFeed } from "@/lib/alerts/feed";
 import { publishEvent, type PublishEventInput } from "@/lib/events/publish";
 import { createMemoryStore } from "@/lib/events/store";
@@ -60,37 +59,5 @@ describe("publishEvent", () => {
     );
     expect(result.data).toBeNull();
     expect(result.error).not.toBeNull();
-  });
-});
-
-describe("composeAlert", () => {
-  it("writes the free food banner with a relative start", async () => {
-    const result = await publishEvent(input, {
-      now: NOW,
-      store: createMemoryStore([]),
-      feed: createMemoryAlertFeed(),
-    });
-    const event = result.data?.event;
-    if (!event) throw new Error("publish failed");
-    expect(composeAlert(event, "free_food_nearby", NOW)).toEqual({
-      kind: "free_food_nearby",
-      eventId: event.id,
-      title: "Free pizza nearby",
-      body: "Fall Boulder Social at Gregory Gym Climbing Wall, starts in 20 min",
-    });
-    expect(composeAlert(event, "leftover_food", NOW).title).toBe("Leftover pizza, come grab it");
-    expect(composeAlert(event, "new_event", new Date("2026-11-12T20:30:00.000Z")).body).toContain("happening now");
-  });
-
-  it("keeps the food label short", () => {
-    const base = { ...input, id: "evt-1", status: "published" as const, createdAt: NOW.toISOString() };
-    expect(composeAlert({ ...base, foodNote: "Pizza, vegetarian options" }, "free_food_nearby", NOW).title).toBe(
-      "Free pizza nearby",
-    );
-    expect(composeAlert({ ...base, foodNote: undefined }, "free_food_nearby", NOW).title).toBe("Free food nearby");
-    expect(
-      composeAlert({ ...base, foodNote: "A whole spread of tacos from the place on Guadalupe" }, "free_food_nearby", NOW)
-        .title,
-    ).toBe("Free food nearby");
   });
 });

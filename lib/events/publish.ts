@@ -12,6 +12,7 @@ import {
   SourceSchema,
   type CampusEvent,
 } from "@/lib/events/schema";
+import { loadSeedStudent } from "@/lib/events/seed";
 import { getEventStore, type EventStore, type StoreResult } from "@/lib/events/store";
 
 // What the organizer flow sends when the organizer taps Publish: the confirmed
@@ -59,9 +60,11 @@ function newEventId(title: string, now: Date): string {
 // the student. The event is saved even if the alert fails.
 export async function publishEvent(
   input: PublishEventInput,
-  options: { now?: Date; store?: EventStore; feed?: AlertFeed } = {},
+  options: { now?: Date; store?: EventStore; feed?: AlertFeed; viewerLocation?: { lat: number; lng: number } } = {},
 ): Promise<StoreResult<PublishOutcome>> {
   const now = options.now ?? new Date();
+  // One demo student, so the alert's walk minutes are measured from them.
+  const viewerLocation = options.viewerLocation ?? loadSeedStudent().home;
   const store = options.store ?? getEventStore();
   const feed = options.feed ?? getAlertFeed();
 
@@ -76,7 +79,7 @@ export async function publishEvent(
   const kind = alertKindForPublishedEvent(saved.data);
   if (kind === null) return { data: { event: saved.data, alert: null, alertError: null }, error: null };
 
-  const sent = await feed.publish(composeAlert(saved.data, kind, now));
+  const sent = await feed.publish(composeAlert(saved.data, kind, { now, viewerLocation }));
   return {
     data: { event: saved.data, alert: sent.data, alertError: sent.error },
     error: null,

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { composeAlert } from "@/lib/alerts/compose";
 import { getAlertFeed } from "@/lib/alerts/feed";
 import { ALERT_KINDS } from "@/lib/alerts/schema";
+import { loadSeedStudent } from "@/lib/events/seed";
 import { getEventStore } from "@/lib/events/store";
 import { readJsonBody } from "@/lib/http";
 
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
   if (body.error !== null) return Response.json({ data: null, error: body.error }, { status: 400 });
   const event = await getEventStore().getEvent(body.data.eventId);
   if (!event) return Response.json({ data: null, error: "No event with that id" }, { status: 404 });
-  const sent = await getAlertFeed().publish(composeAlert(event, body.data.kind, new Date()));
+  const draft = composeAlert(event, body.data.kind, { now: new Date(), viewerLocation: loadSeedStudent().home });
+  const sent = await getAlertFeed().publish(draft);
   return Response.json(sent, { status: sent.error === null ? 201 : 502 });
 }
