@@ -37,7 +37,13 @@ pnpm lint
 pnpm build
 ```
 
-Env vars (server side, `.env.local`, never committed): `MUSE_API_KEY`, `MUSE_BASE_URL`, `MUSE_MODEL`. Without them every Muse job answers from its fixture.
+Env vars (server side, `.env.local`, never committed): `MUSE_API_KEY` (required), `MUSE_BASE_URL`, `MUSE_MODEL`, `MUSE_REASONING_EFFORT` (defaults in `.env.example`). Without a key every Muse job answers from its fixture.
+
+```sh
+pnpm spike:muse <flyer.jpg> ["caption"] [--models muse-spark-1.3,muse-wonder-1.0] [--effort low]
+```
+
+Runs one real image through the live API with the app's extract request, one line per model (status, latency, tokens, JSON clean or repaired, schema pass). Needs a key in `.env.local`; Node 22.18 or newer.
 
 ## Map
 
@@ -72,7 +78,10 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (proposal requir
 
 ## Muse layer
 
-- `callMuse` in `lib/muse/client.ts` is the only network call. The wire format lives in `museAdapter` there and is an **unconfirmed guess** until checked against dev.meta.ai docs. Fix it there; nothing else knows the format.
+- `callMuse` in `lib/muse/client.ts` is the only network call. The wire format lives in `museAdapter` there: OpenAI-style `POST {base}/chat/completions`, `developer` role, image as an `image_url` data URL part, explicit `reasoning_effort`, `response_format` json_schema. Confirmed against the dev.meta.ai docs; confirm a live call with `pnpm spike:muse`. Nothing else knows the format.
+- The API rejects `stop`, `n` above 1, `frequency_penalty`, `presence_penalty`, `logit_bias`, `verbosity`, `modalities`, and `max_output_tokens` (use `max_completion_tokens`). Leave `temperature` unset.
+- Each job sends its zod output schema via `z.toJSONSchema` with `strict: false`; strict would need every key required and no open records, which extract breaks. `extractJsonObject` still parses leniently on the way back.
+- `callMuse` results carry `meta` (model, HTTP status, latency ms, token usage). Timeout is `MUSE_TIMEOUT_MS` (20 s) on the app path.
 - Each job (`extract`, `rank`, `ask`) has zod-validated output and a fixture in `lib/muse/fixtures/`. `runMuseJob` returns `{ data, error, source: "muse" | "fixture", fallbackReason }`. Missing key, failed call, or bad output all fall back to the fixture.
 - `rank` computes walking minutes itself; the model only picks ids and reasons. Ids the model invents are rejected.
 - Client components import response types from `lib/muse/types.ts`, never from the job files (they are `server-only`).
@@ -84,5 +93,5 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (proposal requir
 - Seed times are relative (`startsInMinutes`) and resolved when the in-memory store first loads. The store lives per server process: it resets on restart and is not shared across serverless instances. Swap `createMemoryStore` for a database behind the same `EventStore` interface.
 - Times display in the campus time zone (`CAMPUS_TIME_ZONE`), not the viewer's.
 - Tailwind v4: tokens are in `@theme` in `app/globals.css` (`bg-wash`, `bg-card`, `text-primary`, `text-muted`, `border-divider`).
-- `server-only` is stubbed in tests by `vitest.config.ts`.
+- `server-only` is stubbed in tests by `vitest.config.ts`, and in scripts by `node --conditions=react-server`; `scripts/register-ts-paths.mjs` resolves `@/` for plain Node.
 - ESLint reads any function named `use...` as a React hook.
