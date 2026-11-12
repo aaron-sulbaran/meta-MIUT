@@ -3,10 +3,11 @@
 ```text
 Team hub rule (meta-hack26). Our agents coordinate only through the hub repo at ../hub (github.com/aaron-sulbaran/meta-hack26-hub). Its AGENTS.md is the contract. In every session, in any repo:
 1. Start with `../hub/hub sync`, then `../hub/hub status`. Sync again about every 15 minutes.
-2. Claim or add the item before building. Post a `hub note` at each real step. Ask, do not guess.
-3. Major decision: `hub propose`, tell your person, keep working elsewhere. Silence is never a yes. Never accept, reject, or pass anything.
-4. When kb/project-repo.md has a URL, clone it beside the hub. Claude Code only: `node ../hub/scripts/install-hooks.mjs <that clone>`.
-5. Finish with `hub done`, then `hub end`.
+2. Claim or add the item before building. Before editing, announce the files and branch: `hub note "Starting: <change>" --ref <t-id> --files <a,b> --branch <branch>`. Check `hub feed` first; never edit a file another agent has in flight without asking them.
+3. Work locally on your branch. Post a `hub note` at each real step and when you push or merge (commit, files), so others rebase. Ask, do not guess.
+4. Major decision: `hub propose`, tell your person, keep working elsewhere. Silence is never a yes. Never accept, reject, or pass anything.
+5. When kb/project-repo.md has a URL, clone it beside the hub. Claude Code only: `node ../hub/scripts/install-hooks.mjs <that clone>`.
+6. Finish with `hub done`, then `hub end`.
 ```
 
 `../hub` means the hub cloned beside this repo. Cloud agents whose machine is rebuilt each session clone the hub first, per the hub's `docs/standing-instruction.md`.
@@ -17,7 +18,8 @@ Team hub rule (meta-hack26). Our agents coordinate only through the hub repo at 
 - **Public repo.** No secrets, keys, tokens, emails, or phone numbers in code, docs, commits, or fixtures. Name an env var, never its value. Nothing private from the hub gets copied here.
 - **Autonomy.** The hub's `AGENTS.md` decides what you do alone and what needs a person. Major decisions (design direction, architecture, new services or heavy dependencies, scope) go through `hub propose`.
 - **Never force-push.**
-- **Main stays green.** Run `pnpm typecheck && pnpm test && pnpm build` before every push.
+- **One writer per file.** Announce the files you will touch on the hub before editing, and say when your change is pushed or merged. Never edit a file another agent has in flight; ask them first. Shared files (`lib/events/schema.ts`, `lib/events/store.ts`, `app/layout.tsx`, `package.json`) always get an announcement, even for one line.
+- **Main stays green.** Run `pnpm typecheck && pnpm test && pnpm lint && pnpm build` before every push. CI runs the same on every push to main and every pull request.
 - **Branches** are short-lived and named `<id>/<lane>-<slug>` (for example `lisa/map-pins`). Small PRs, or direct small commits to main. Rebase on main before pushing.
 - **The event contract** in `lib/events/schema.ts` changes only after a hub proposal is accepted.
 - **No product name in code or paths.** Use `PRODUCT_NAME` from `lib/brand.ts`.
@@ -37,13 +39,15 @@ pnpm lint
 pnpm build
 ```
 
+Node 22.18 or newer (`.nvmrc` pins 24; `.npmrc` sets `engine-strict`, so `pnpm install` refuses an older Node instead of every page 500ing under Tailwind v4).
+
 Env vars (server side, `.env.local`, never committed): `MUSE_API_KEY` (required), `MUSE_BASE_URL`, `MUSE_MODEL`, `MUSE_REASONING_EFFORT` (defaults in `.env.example`). Without a key every Muse job answers from its fixture. Shared store: `KV_REST_API_URL` and `KV_REST_API_TOKEN` (Redis from the Vercel Marketplace); without them the store is in memory per process. `DEMO_RESET_TOKEN` guards the reset on the deployed `/demo` console.
 
 ```sh
 pnpm spike:muse <flyer.jpg> ["caption"] [--models muse-spark-1.3,muse-wonder-1.0] [--effort low]
 ```
 
-Runs one real image through the live API with the app's extract request, one line per model (status, latency, tokens, JSON clean or repaired, schema pass). Needs a key in `.env.local`; Node 22.18 or newer.
+Runs one real image through the live API with the app's extract request, one line per model (status, latency, tokens, JSON clean or repaired, schema pass). Needs a key in `.env.local`.
 
 ## Map
 
