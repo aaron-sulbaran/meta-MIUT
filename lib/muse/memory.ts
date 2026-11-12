@@ -1,22 +1,28 @@
 import { z } from "zod";
 import { seedSignals } from "@/lib/muse/fixtures/signals";
 
-// Interest memory: what a student's Instagram activity says they care about.
-// Signals are raw interactions (how long they watched, likes, comments, saves,
-// shares). buildInterestMemory folds them into topic and creator scores from
+// Interest memory: what a student's Instagram activity and the events they act
+// on say they care about. Signals are raw interactions (how long they watched,
+// likes, comments, saves, shares) and event actions (marked interested, RSVP,
+// attended, dismissed with Not for me). It keeps learning as signals arrive. buildInterestMemory folds them into topic and creator scores from
 // 0 to 1 that rank uses. Demo data only; nothing reads the Instagram API.
 
-export const SIGNAL_KINDS = ["watch", "like", "comment", "save", "share"] as const;
+export const SIGNAL_KINDS = ["watch", "like", "comment", "save", "share", "interested", "rsvp", "attended", "dismissed"] as const;
+export const EVENT_SIGNAL_KINDS = ["interested", "rsvp", "attended", "dismissed"] as const;
+export type EventSignalKind = (typeof EVENT_SIGNAL_KINDS)[number];
 
-export const InstagramSignalSchema = z.object({
+export const InstagramSignalSchema = z
+  .object({
   kind: z.enum(SIGNAL_KINDS),
   at: z.iso.datetime({ offset: true }),
-  topics: z.array(z.string().trim().toLowerCase().min(1)).min(1).max(5),
+  topics: z.array(z.string().trim().toLowerCase().min(1)).max(5),
   creator: z.string().min(1).optional(),
+  eventId: z.string().min(1).optional(),
   watchSeconds: z.number().nonnegative().optional(),
   videoSeconds: z.number().positive().optional(),
   text: z.string().max(500).optional(),
-});
+})
+  .refine((signal) => signal.topics.length > 0 || signal.creator !== undefined, "a signal needs a topic or a creator");
 
 export type InstagramSignal = z.infer<typeof InstagramSignalSchema>;
 
@@ -63,6 +69,15 @@ export function signalWeight(signal: InstagramSignal): number {
       return 2.5;
     case "share":
       return 2;
+    // What a student does about a real event says more than a post they liked.
+    case "interested":
+      return 1.5;
+    case "rsvp":
+      return 2.5;
+    case "attended":
+      return 3;
+    case "dismissed":
+      return -1.5;
   }
 }
 
@@ -71,7 +86,17 @@ function recencyFactor(signal: InstagramSignal, now: Date): number {
   return 0.5 ** (ageDays / HALF_LIFE_DAYS);
 }
 
-type Tally = { raw: number; fullWatches: number; likes: number; comments: number; saves: number; shares: number };
+type Tally = {
+  raw: number;
+  fullWatches: number;
+  likes: number;
+  comments: number;
+  saves: number;
+  shares: number;
+  interested: number;
+  rsvps: number;
+  attended: number;
+};
 
 function isFullWatch(signal: InstagramSignal): boolean {
   if (signal.kind !== "watch" || signal.watchSeconds === undefined || signal.videoSeconds === undefined) return false;
@@ -84,6 +109,9 @@ function plural(count: number, word: string): string {
 
 function describe(topic: string, tally: Tally): { evidence: string; hook: string } {
   const parts: string[] = [];
+  if (tally.attended > 0) parts.push(`went to ${plural(tally.attended, "event")}`);
+  if (tally.rsvps > 0) parts.push(`RSVPed to ${plural(tally.rsvps, "event")}`);
+  if (tally.interested > 0) parts.push(`marked ${plural(tally.interested, "event")} interested`);
   if (tally.fullWatches > 0) parts.push(`watched ${plural(tally.fullWatches, "video")} to the end`);
   if (tally.comments > 0) parts.push(`commented on ${plural(tally.comments, "post")}`);
   if (tally.saves > 0) parts.push(`saved ${plural(tally.saves, "post")}`);
@@ -91,7 +119,11 @@ function describe(topic: string, tally: Tally): { evidence: string; hook: string
   if (tally.likes > 0) parts.push(`liked ${plural(tally.likes, "post")}`);
   const evidence = parts.length > 0 ? `${topic}: ${parts.join(", ")}` : `${topic}: some engagement`;
   const hook =
-    tally.comments > 0
+    tally.attended > 0
+      ? `you go to ${topic} events`
+      : tally.rsvps > 0
+        ? `you RSVP to ${topic} events`
+        : tally.comments > 0
       ? `you comment on ${topic} posts`
       : tally.fullWatches > 0
         ? `you watch ${topic} videos to the end`
@@ -112,13 +144,26 @@ export function buildInterestMemory(userId: string, signals: InstagramSignal[], 
   for (const signal of signals) {
     const weight = signalWeight(signal) * recencyFactor(signal, now);
     for (const topic of signal.topics) {
-      const tally = topics.get(topic) ?? { raw: 0, fullWatches: 0, likes: 0, comments: 0, saves: 0, shares: 0 };
+      const tally = topics.get(topic) ?? {
+        raw: 0,
+        fullWatches: 0,
+        likes: 0,
+        comments: 0,
+        saves: 0,
+        shares: 0,
+        interested: 0,
+        rsvps: 0,
+        attended: 0,
+      };
       tally.raw += weight;
       if (isFullWatch(signal)) tally.fullWatches += 1;
       if (signal.kind === "like") tally.likes += 1;
       if (signal.kind === "comment") tally.comments += 1;
       if (signal.kind === "save") tally.saves += 1;
       if (signal.kind === "share") tally.shares += 1;
+      if (signal.kind === "interested") tally.interested += 1;
+      if (signal.kind === "rsvp") tally.rsvps += 1;
+      if (signal.kind === "attended") tally.attended += 1;
       topics.set(topic, tally);
     }
     if (signal.creator) creators.set(signal.creator, (creators.get(signal.creator) ?? 0) + weight);
