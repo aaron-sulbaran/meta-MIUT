@@ -78,7 +78,7 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (proposal requir
 
 ## Muse layer
 
-- `callMuse` in `lib/muse/client.ts` is the only network call. The wire format lives in `museAdapter` there: OpenAI-style `POST {base}/chat/completions`, `developer` role, image as an `image_url` data URL part, explicit `reasoning_effort`, `response_format` json_schema. Confirmed against the dev.meta.ai docs; confirm a live call with `pnpm spike:muse`. Nothing else knows the format.
+- `callMuse` in `lib/muse/client.ts` is the only network call. The wire format lives in `museAdapter` there: OpenAI-style `POST {base}/chat/completions`, `developer` role, image as an `image_url` data URL part, explicit `reasoning_effort`, `response_format` json_schema. Confirmed against the dev.meta.ai docs and a live call (2026-11-12, `pnpm spike:muse`). Default model is `muse-ember-1.0` (about 3 s on the flyer extract; Spark and Wonder took 30 to 64 s, past the 20 s timeout). Nothing else knows the format.
 - The API rejects `stop`, `n` above 1, `frequency_penalty`, `presence_penalty`, `logit_bias`, `verbosity`, `modalities`, and `max_output_tokens` (use `max_completion_tokens`). Leave `temperature` unset.
 - Each job sends its zod output schema via `z.toJSONSchema` with `strict: false`; strict would need every key required and no open records, which extract breaks. `extractJsonObject` still parses leniently on the way back.
 - `callMuse` results carry `meta` (model, HTTP status, latency ms, token usage). Timeout is `MUSE_TIMEOUT_MS` (20 s) on the app path.
