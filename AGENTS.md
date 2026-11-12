@@ -48,7 +48,9 @@ Runs one real image through the live API with the app's extract request, one lin
 ## Map
 
 ```
-app/(events)/        Events tab: / and /events/[id]
+app/(events)/        Events tab: / (chips, Muse top 3, list) and /events/[id]
+app/home/            Home feed shell, events lead the feed
+app/reference/       /reference/events: Facebook Events today, the fidelity benchmark (sample data)
 app/map/             map screen
 app/organizer/       organizer flow (Instagram post to draft to confirm)
 app/ask/             ask Muse screen
@@ -58,7 +60,9 @@ app/api/alerts/      GET ?since=<cursor> new alerts, POST send an alert for an e
 app/api/demo/reset/  POST reseed events and clear alerts (token in production)
 app/demo/            operator console: publish a sample event, fire an alert, reset
 components/alerts/   AlertListener (mount once in the root layout), banner, demo console
-components/ui/       shared frame: top bar, tab bar, icons, Card
+components/ui/       Facebook shell: tab-bar (TabBar, ProfileAvatar), header (HomeHeader, SectionHeader,
+                     SubPageHeader, HeaderAction), chips, button, section-heading, event-card
+                     (FbEventCard), event-actions, poster, card, icons
 components/<lane>/   lane components
 lib/brand.ts         PRODUCT_NAME, campus name and time zone
 lib/events/          schema.ts (the contract), seed.ts, store.ts, publish.ts, time.ts
@@ -103,6 +107,8 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (proposal requir
 - Redis reads that fail fall back to the in-memory seed and log to the server console; writes return the error.
 - Alerts reach screens by polling `GET /api/alerts` every 2.5 s. The first poll only learns the cursor, so a freshly opened screen does not replay old alerts. A new alert also calls `router.refresh()`, so the feed already has the event when the student taps through.
 - Times display in the campus time zone (`CAMPUS_TIME_ZONE`), not the viewer's.
-- Tailwind v4: tokens are in `@theme` in `app/globals.css` (`bg-wash`, `bg-card`, `text-primary`, `text-muted`, `border-divider`).
+- Tailwind v4: tokens are in `@theme` in `app/globals.css`. Pages are white (`bg-page`); `bg-wash` is the desktop backdrop and input fill. Text `text-ink`, `text-muted`, `text-link` (blue text), icons and brand `text-primary`, tint `bg-primary-soft`, card outline `border-hairline`, grey buttons `bg-button`. Type: `font-display` (Geologica, every bold label and heading; bold renders at 790) and the default system face for running text; sizes `text-title` 16, `text-label` 14, `text-body` 14, `text-venue` 12.5, `text-meta` 11.5, `text-root-title` 26. Measured from Facebook iOS screenshots at 390 px.
+- Each screen draws its own header from `components/ui/header.tsx`; the root layout holds only the 390 px frame, the floating `TabBar`, and `AlertListener`. Main has bottom padding for the tab bar. Tab bar Home goes to `/home`; the other five tabs are drawn but inert (not links, not focusable).
+- Event images are `Poster` compositions seeded by event id: no photos, no hotlinks.
 - `server-only` is stubbed in tests by `vitest.config.ts`, and in scripts by `node --conditions=react-server`; `scripts/register-ts-paths.mjs` resolves `@/` for plain Node.
 - ESLint reads any function named `use...` as a React hook.
