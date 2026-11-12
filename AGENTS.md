@@ -37,7 +37,7 @@ pnpm lint
 pnpm build
 ```
 
-Env vars (server side, `.env.local`, never committed): `MUSE_API_KEY` (required), `MUSE_BASE_URL`, `MUSE_MODEL`, `MUSE_REASONING_EFFORT` (defaults in `.env.example`). Without a key every Muse job answers from its fixture.
+Env vars (server side, `.env.local`, never committed): `MUSE_API_KEY` (required), `MUSE_BASE_URL`, `MUSE_MODEL`, `MUSE_REASONING_EFFORT` (defaults in `.env.example`). Without a key every Muse job answers from its fixture. Shared store: `KV_REST_API_URL` and `KV_REST_API_TOKEN` (Redis from the Vercel Marketplace); without them the store is in memory per process. `DEMO_RESET_TOKEN` guards the reset on the deployed `/demo` console.
 
 ```sh
 pnpm spike:muse <flyer.jpg> ["caption"] [--models muse-spark-1.3,muse-wonder-1.0] [--effort low]
@@ -53,10 +53,17 @@ app/map/             map screen
 app/organizer/       organizer flow (Instagram post to draft to confirm)
 app/ask/             ask Muse screen
 app/api/muse/        route handlers: extract, rank, ask (POST, JSON)
+app/api/events/      GET all events, POST publish a confirmed draft (stores it, sends the alert)
+app/api/alerts/      GET ?since=<cursor> new alerts, POST send an alert for an event
+app/api/demo/reset/  POST reseed events and clear alerts (token in production)
+app/demo/            operator console: publish a sample event, fire an alert, reset
+components/alerts/   AlertListener (mount once in the root layout), banner, demo console
 components/ui/       shared frame: top bar, tab bar, icons, Card
 components/<lane>/   lane components
 lib/brand.ts         PRODUCT_NAME, campus name and time zone
-lib/events/          schema.ts (the contract), seed.ts, store.ts, time.ts
+lib/events/          schema.ts (the contract), seed.ts, store.ts, publish.ts, time.ts
+lib/alerts/          schema.ts (client safe), feed.ts, compose.ts (banner copy), policy.ts (who gets alerted)
+lib/store/redis.ts   minimal Upstash Redis REST client (fetch, no SDK)
 lib/muse/            client.ts, job.ts, extract.ts, rank.ts, ask.ts, fixtures/
 lib/geo.ts           distance and walking minutes
 data/seed/           placeholder events and student profile
@@ -73,6 +80,7 @@ Stay in your folders. Touching another lane's folder means a hub note to its own
 | Map | `app/map/`, `components/map/`, `lib/geo.ts` |
 | Organizer and notification | `app/organizer/`, `components/organizer/` |
 | Design, seed, pitch | `data/seed/`, `app/globals.css`, `components/ui/`, `app/layout.tsx` |
+| Integration | `lib/store/`, `lib/alerts/` (except `policy.ts`, owned by the alert targeting item), `lib/events/publish.ts`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/` |
 
 Shared, change with care and a hub note: `lib/events/schema.ts` (proposal required), `lib/events/store.ts`, `lib/brand.ts`, `package.json`.
 
@@ -90,7 +98,10 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (proposal requir
 
 - Next.js 16. Read `node_modules/next/dist/docs/` before using an API you are unsure of. `params` is a Promise. `next build` does not lint.
 - Pages that show times call `await connection()` so they render per request, not at build.
-- Seed times are relative (`startsInMinutes`) and resolved when the in-memory store first loads. The store lives per server process: it resets on restart and is not shared across serverless instances. Swap `createMemoryStore` for a database behind the same `EventStore` interface.
+- Seed times are relative (`startsInMinutes`). The memory store resolves them at first load; the Redis store seeds on first read, re-seeds when its 12 hour seed marker expires, and on a `/demo` reset. Redis keys are namespaced by `VERCEL_ENV`, so preview deploys never touch production data.
+- Without Redis the store and alert feed live per server process (kept on `globalThis`, because Next dev compiles route handlers and pages as separate module graphs). On Vercel that means a published event can miss another screen: set the Redis env vars there.
+- Redis reads that fail fall back to the in-memory seed and log to the server console; writes return the error.
+- Alerts reach screens by polling `GET /api/alerts` every 2.5 s. The first poll only learns the cursor, so a freshly opened screen does not replay old alerts. A new alert also calls `router.refresh()`, so the feed already has the event when the student taps through.
 - Times display in the campus time zone (`CAMPUS_TIME_ZONE`), not the viewer's.
 - Tailwind v4: tokens are in `@theme` in `app/globals.css` (`bg-wash`, `bg-card`, `text-primary`, `text-muted`, `border-divider`).
 - `server-only` is stubbed in tests by `vitest.config.ts`, and in scripts by `node --conditions=react-server`; `scripts/register-ts-paths.mjs` resolves `@/` for plain Node.
