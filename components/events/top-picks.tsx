@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { MuseMark } from "@/components/ui/icons";
 import { Poster } from "@/components/ui/poster";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { loadSeedStudent } from "@/lib/events/seed";
@@ -9,8 +8,8 @@ import { MoreForYou } from "@/components/events/more-for-you";
 import { personalizeEvents } from "@/lib/muse/rank";
 
 // Muse's top 3 for today, as a sideways row of compact cards. Why each event
-// was picked stays inside the agent and is not shown. A quiet line under the heading says whether Muse answered
-// live or the recorded picks are showing. Under it, every other event the
+// was picked stays inside the agent and is not shown. Who picked them
+// (Muse or the local fallback) is not shown either. Under it, every other event the
 // student is likely to care about.
 
 export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Date }) {
@@ -24,10 +23,6 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
     <>
       <section aria-labelledby="top-picks-heading" className="pt-[22px]">
         <SectionHeading id="top-picks-heading" title="Top 3 for you today" />
-        <p className="mt-[2px] flex items-center gap-[5px] px-3 text-meta font-semibold text-muted">
-          <MuseMark className="h-[13px] w-[13px] text-primary" />
-          {ranking.source === "muse" ? "Picked by Muse for you" : "Recorded picks while Muse is offline"}
-        </p>
         {ranking.error !== null ? (
           <p className="mt-2 px-3 text-body text-muted">Muse could not pick right now. Everything free today is below.</p>
         ) : (
@@ -65,10 +60,6 @@ export function TopPicksSkeleton() {
   return (
     <section className="pt-[22px]">
       <SectionHeading title="Top 3 for you today" />
-      <p className="mt-[2px] flex items-center gap-[5px] px-3 text-meta font-semibold text-muted">
-        <MuseMark className="h-[13px] w-[13px] text-primary" />
-        Muse is picking
-      </p>
       <div className="mt-[10px] flex gap-[7.6px] overflow-hidden px-3">
         {[0, 1].map((index) => (
           <div key={index} className="h-[214px] w-[236px] shrink-0 rounded-card border border-hairline bg-wash" />
