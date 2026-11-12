@@ -23,7 +23,7 @@ function samplePublishBody(now: Date) {
     description: "All levels welcome, no experience needed. Gear provided.",
     start: start.toISOString(),
     end: end.toISOString(),
-    place: { name: "Gregory Gym Climbing Wall", lat: 30.2843, lng: -97.7365 },
+    place: { name: "Zesiger Center climbing wall", lat: 42.3586, lng: -71.096 },
     free: true,
     food: true,
     foodNote: "pizza",
