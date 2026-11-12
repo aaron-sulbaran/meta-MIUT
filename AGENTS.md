@@ -71,7 +71,7 @@ components/ui/       Facebook shell: tab-bar (TabBar, ProfileAvatar), header (Ho
 components/<lane>/   lane components
 lib/brand.ts         PRODUCT_NAME, campus name and time zone
 lib/events/          schema.ts (the contract), seed.ts, store.ts, publish.ts, time.ts
-lib/alerts/          schema.ts (client safe), feed.ts, compose.ts (banner copy), policy.ts (who gets alerted)
+lib/alerts/          schema.ts (client safe), feed.ts, compose.ts (alert text from the event), policy.ts (who gets alerted)
 lib/attendance/      Interested and RSVP: schema.ts and client.ts (client safe), viewer.ts (random id per browser), store.ts
 lib/store/redis.ts   minimal Upstash Redis REST client (fetch, no SDK)
 lib/muse/            client.ts, job.ts, extract.ts, rank.ts, ask.ts, fixtures/
@@ -90,7 +90,7 @@ Stay in your folders. Touching another lane's folder means a hub note to its own
 | Map | `app/map/`, `components/map/`, `lib/geo.ts` |
 | Organizer and notification | `app/organizer/`, `components/organizer/` |
 | Design, seed, pitch | `data/seed/`, `app/globals.css`, `components/ui/`, `app/layout.tsx` |
-| Integration | `lib/store/`, `lib/alerts/` (except `policy.ts`, owned by the alert targeting item), `lib/events/publish.ts`, `lib/attendance/`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/` |
+| Integration | `lib/store/`, `lib/alerts/` (except `policy.ts` and `compose.ts`, who gets alerted and what it says, owned by the alert item), `lib/events/publish.ts`, `lib/attendance/`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/` |
 
 Shared, change with care and a hub note: `lib/events/schema.ts` (proposal required), `lib/events/store.ts`, `lib/brand.ts`, `package.json`.
 
