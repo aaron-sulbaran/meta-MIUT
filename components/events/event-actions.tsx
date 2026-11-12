@@ -1,39 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/button";
+import { InterestedButton, ShareButton } from "@/components/ui/event-actions";
+import { TicketIcon } from "@/components/ui/icons";
 import type { CampusEvent } from "@/lib/events/schema";
-import { StarIcon } from "@/components/ui/icons";
 
-// Local state only for now. The events lane wires this to the store.
+// The event page's action row: Interested, RSVP when the event takes RSVPs,
+// and share. Local state only for now; the events lane wires it to the store.
 export function EventActions({ event }: { event: CampusEvent }) {
-  const [interested, setInterested] = useState(false);
   const [rsvped, setRsvped] = useState(false);
 
   return (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        aria-pressed={interested}
-        onClick={() => setInterested((value) => !value)}
-        className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-[15px] font-semibold ${
-          interested ? "bg-primary text-white" : "bg-wash text-ink"
-        }`}
-      >
-        <StarIcon className="h-5 w-5" />
-        Interested
-      </button>
+    <div className="flex gap-[7.6px]">
       {event.access.kind === "rsvp" && (
         <button
           type="button"
           aria-pressed={rsvped}
           onClick={() => setRsvped((value) => !value)}
-          className={`flex-1 rounded-md py-2 text-[15px] font-semibold ${
-            rsvped ? "bg-free text-white" : "bg-primary text-white"
-          }`}
+          className={buttonClass(rsvped ? "soft" : "primary", "flex-1")}
         >
+          <TicketIcon className="h-[17px] w-[17px] shrink-0" />
           {rsvped ? "You're going" : "RSVP"}
         </button>
       )}
+      <InterestedButton className="flex-1" />
+      <ShareButton path={`/events/${event.id}`} title={event.title} />
     </div>
   );
 }

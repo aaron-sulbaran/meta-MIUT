@@ -1,0 +1,94 @@
+import Link from "next/link";
+import { connection } from "next/server";
+import { eventFacts, posterKicker } from "@/components/events/event-card";
+import { FeedSeparator } from "@/components/ui/card";
+import { FbEventCard } from "@/components/ui/event-card";
+import { HeaderAction, HomeHeader } from "@/components/ui/header";
+import { ChatBoltIcon, PhotoIcon, PlusSquareIcon, SearchIcon } from "@/components/ui/icons";
+import { Poster } from "@/components/ui/poster";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { ProfileAvatar } from "@/components/ui/tab-bar";
+import { filterEvents, formatDateLine } from "@/lib/events/time";
+import { getEventStore } from "@/lib/events/store";
+
+// The Home feed shell. Events lead the feed where stories sit today.
+
+export default async function HomePage() {
+  await connection();
+  const now = new Date();
+  const events = await getEventStore().listEvents();
+  const today = filterEvents(events, { window: "today", freeOnly: false, now });
+  const shared = today.find((event) => event.source.kind === "instagram" && event.source.caption);
+
+  return (
+    <>
+      <HomeHeader
+        wordmark="facebook"
+        actions={
+          <>
+            <HeaderAction label="Create an event" Icon={PlusSquareIcon} href="/organizer" />
+            <HeaderAction label="Ask Muse" Icon={SearchIcon} href="/ask" />
+            <HeaderAction label="Messages" Icon={ChatBoltIcon} />
+          </>
+        }
+      />
+
+      <div className="flex items-center gap-[9px] px-[11.4px] pb-[14px] pt-[10px]">
+        <ProfileAvatar size={39} />
+        <span className="flex-1 text-body font-semibold">What&apos;s on your mind?</span>
+        <PhotoIcon className="mr-[11px] h-[20px] w-[20px] text-muted" />
+      </div>
+
+      <section aria-labelledby="home-events-heading" className="pb-[16px]">
+        <SectionHeading id="home-events-heading" title="Events for you" seeAllHref="/" />
+        <ul className="no-scrollbar mt-[10px] flex snap-x snap-mandatory gap-[7.6px] overflow-x-auto scroll-px-3 px-3">
+          {today.map((event) => (
+            <li key={event.id} className="w-[168px] shrink-0 snap-start">
+              <Link
+                href={`/events/${event.id}`}
+                className="flex h-full flex-col overflow-hidden rounded-card border border-hairline bg-card"
+              >
+                <Poster seed={event.id} title={event.title} size="small" />
+                <div className="px-[9px] pb-[10px] pt-[8px]">
+                  <p className="truncate text-meta font-semibold text-muted">{formatDateLine(event, now)}</p>
+                  <h3 className="mt-[2px] line-clamp-2 font-display text-label font-bold">{event.title}</h3>
+                  <p className="mt-[2px] truncate text-meta font-semibold text-muted">{eventFacts(event)}</p>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <FeedSeparator />
+
+      {shared && shared.source.caption && (
+        <article className="pt-[11px]">
+          <div className="flex items-center gap-[9px] px-[11.4px]">
+            <span
+              aria-hidden
+              className="flex h-[39px] w-[39px] shrink-0 items-center justify-center rounded-[9px] bg-[#1c2b33] font-display text-[17px] font-bold text-white"
+            >
+              {shared.organizer.name.replace(/^Sample /, "").charAt(0)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-display text-label font-bold">{shared.organizer.name}</p>
+              <p className="text-meta font-semibold text-muted">Shared an event</p>
+            </div>
+          </div>
+          <p className="px-[11.4px] pt-[10px] text-body font-medium">{shared.source.caption}</p>
+          <div className="px-3 pt-[10px]">
+            <FbEventCard
+              href={`/events/${shared.id}`}
+              image={<Poster seed={shared.id} title={shared.title} kicker={posterKicker(shared)} />}
+              dateLine={formatDateLine(shared, now)}
+              title={shared.title}
+              venue={shared.place.name}
+              meta={eventFacts(shared)}
+            />
+          </div>
+        </article>
+      )}
+    </>
+  );
+}
