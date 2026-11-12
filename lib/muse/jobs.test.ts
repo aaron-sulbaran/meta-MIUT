@@ -6,6 +6,7 @@ import {
   EXTRACT_STRUCTURED_OUTPUT,
   UNGROUNDED_CONFIDENCE_CAP,
   buildExtractRequest,
+  FREE_BY_DEFAULT_CONFIDENCE,
   NOT_AN_EVENT,
   extractEventDraft,
   extractEventDrafts,
@@ -108,6 +109,20 @@ describe("extractEventDraft against a stubbed Muse", () => {
 });
 
 describe("groundDraft", () => {
+  it("treats free with no cost mentioned as the confident default, not a guess", () => {
+    const draft = { ...extractFixture(now), free: true, confidence: { ...extractFixture(now).confidence, free: 0.3 } };
+    draft.evidence = { ...draft.evidence, free: { quote: "", from: "inferred" } };
+    const grounded = groundDraft(draft, SAMPLE_FLYER_CAPTION);
+    expect(grounded.confidence.free).toBe(FREE_BY_DEFAULT_CONFIDENCE);
+    expect(grounded.evidence.free).toEqual({ quote: "", from: "inferred" });
+  });
+
+  it("still caps a not-free answer with no cost quoted", () => {
+    const draft = { ...extractFixture(now), free: false };
+    draft.evidence = { ...draft.evidence, free: { quote: "", from: "inferred" } };
+    expect(groundDraft(draft, SAMPLE_FLYER_CAPTION).confidence.free).toBe(UNGROUNDED_CONFIDENCE_CAP);
+  });
+
   it("keeps caption quotes that are in the caption", () => {
     const draft = extractFixture(now);
     expect(groundDraft(draft, SAMPLE_FLYER_CAPTION)).toEqual(draft);

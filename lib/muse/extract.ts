@@ -27,6 +27,9 @@ export const EvidenceSchema = z.object({
 // Confidence is capped here when a field has no evidence or its caption quote is not in the caption.
 export const UNGROUNDED_CONFIDENCE_CAP = 0.5;
 
+// Team rule: a post that names no cost is free, so that default is not flagged as a guess.
+export const FREE_BY_DEFAULT_CONFIDENCE = 0.9;
+
 export const ExtractOutputSchema = z.object({
   title: z.string().min(1),
   description: z.string(),
@@ -67,9 +70,9 @@ export function buildExtractRequest(input: ExtractInput, now: Date): MuseRequest
       "confidence (map of field name to a number from 0 to 1 for title, description, start, end, place, free, food, access),",
       'evidence (map of field name to {"quote": exact words copied from the flyer or caption, "from": "caption", "image", or "inferred"}',
       "for title, start, end, place, free, food, access).",
-      "free is true unless the post names a price, entry fee, ticket, cover, or paid registration for getting in;",
-      "things sold at the event (merch, food for purchase) do not make it not free. When no cost is mentioned,",
-      'set free true with confidence 0.8 and evidence "inferred"; when a cost is mentioned, quote it.',
+      "free means free to get in. It is true unless the post names a price, entry fee, ticket, cover, or paid registration;",
+      "free food or drinks are evidence for food, not for free, and things sold at the event do not make it not free.",
+      'When no cost is mentioned, set free true with evidence "inferred"; when a cost is mentioned, quote it.',
       'Copy quotes word for word, never paraphrase. Use "inferred" with an empty quote when no text says it. Use low confidence when you are guessing.',
     ].join(" "),
     prompt: `Now is ${now.toISOString()} (campus time zone ${CAMPUS_TIME_ZONE}).\nCaption:\n${input.caption}`,
@@ -101,6 +104,11 @@ export function groundDraft(draft: ExtractOutput, caption: string): ExtractOutpu
       given !== undefined && quote.length > 0 && (given.from === "image" || haystack.includes(quote));
     evidence[field] = grounded ? given : { quote: given?.quote ?? "", from: "inferred" };
     const score = confidence[field];
+    if (field === "free" && draft.free && given?.from !== "caption" && given?.from !== "image") {
+      evidence.free = { quote: "", from: "inferred" };
+      confidence.free = FREE_BY_DEFAULT_CONFIDENCE;
+      continue;
+    }
     if (!grounded && score !== undefined) confidence[field] = Math.min(score, UNGROUNDED_CONFIDENCE_CAP);
   }
   return { ...draft, evidence, confidence };
