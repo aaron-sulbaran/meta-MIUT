@@ -109,24 +109,61 @@ function writeDismissed(ids: string[]) {
 
 // Soften the base map toward the references: quiet buildings, no shop and
 // transit icons, no 3D, so the stickers and heat carry the color.
+const BASE = {
+  land: "#f2f2f2",
+  building: "#e8e8e8",
+  road: "#ffffff",
+  roadEdge: "#e4e4e4",
+  water: "#d6e6f2",
+  waterLine: "#c4dbec",
+  green: "#e2eedf",
+  label: "#9b9b9b",
+  waterLabel: "#8aa9c2",
+};
+
+const HIDDEN_FILLS = new Set(["road_area_pattern", "landcover_sand", "landcover_ice", "landcover_wetland", "landuse_pitch", "landuse_track", "aeroway_fill"]);
+
+// Restyle the base map after the reference: flat light grey land, white
+// roads, soft blue water, a hint of green, quiet grey labels, nothing else.
+// The stickers and heat carry all the color.
 function softenBaseMap(map: MapLibreMap) {
+  const set = (id: string, property: string, value: string | number) => {
+    try {
+      map.setPaintProperty(id, property, value);
+    } catch {
+      // A property the layer does not have; skip it.
+    }
+  };
   for (const layer of map.getStyle().layers ?? []) {
     const id = layer.id;
-    if (layer.type === "symbol" && (id.startsWith("poi") || id.includes("transit") || id.includes("airport") || id.includes("shield"))) {
-      map.setLayoutProperty(id, "visibility", "none");
+    const hide = () => map.setLayoutProperty(id, "visibility", "none");
+    if (layer.type === "fill-extrusion" || layer.type === "raster") hide();
+    else if (layer.type === "background") set(id, "background-color", BASE.land);
+    else if (layer.type === "fill") {
+      if (HIDDEN_FILLS.has(id)) hide();
+      else if (id === "water") set(id, "fill-color", BASE.water);
+      else if (id === "building") {
+        set(id, "fill-color", BASE.building);
+        set(id, "fill-outline-color", BASE.building);
+      } else if (id === "park" || id.startsWith("landcover")) {
+        set(id, "fill-color", BASE.green);
+        set(id, "fill-opacity", 1);
+      } else set(id, "fill-color", BASE.land);
+    } else if (layer.type === "line") {
+      if (id.includes("rail") || id.includes("hatching") || id.includes("aeroway") || id.includes("boundary") || id === "park_outline") hide();
+      else if (id.startsWith("waterway")) set(id, "line-color", BASE.waterLine);
+      else if (id.includes("casing")) set(id, "line-color", BASE.roadEdge);
+      else if (/road|bridge|tunnel|highway/.test(id)) set(id, "line-color", BASE.road);
+    } else if (layer.type === "symbol") {
+      if (id.startsWith("poi") || id.includes("shield") || id.includes("airport") || id.includes("arrow") || id.startsWith("label_country")) hide();
+      else {
+        const water = id.startsWith("water");
+        set(id, "text-color", water ? BASE.waterLabel : BASE.label);
+        set(id, "text-halo-color", water ? BASE.water : BASE.land);
+        set(id, "text-halo-width", 1.2);
+      }
     }
-    if (layer.type === "fill-extrusion") map.setLayoutProperty(id, "visibility", "none");
   }
-  const paint = (id: string, property: string, value: string) => {
-    if (map.getLayer(id)) map.setPaintProperty(id, property, value);
-  };
-  paint("background", "background-color", "#f4f4f1");
-  paint("building", "fill-color", "#e9e8e4");
-  paint("building", "fill-outline-color", "#dedcd7");
-  paint("water", "fill-color", "#a9d3f2");
-  paint("park", "fill-color", "#d3ecc9");
-  paint("landcover_grass", "fill-color", "#d3ecc9");
-  paint("landcover_wood", "fill-color", "#c4e3b6");
 }
 
 // Keep the student in the middle and zoom out just far enough to show Muse's
