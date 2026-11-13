@@ -101,14 +101,15 @@ function formatClock(date: Date): string {
 }
 
 /**
- * The grey date line on a Facebook event card: "Happening now", "Today at 4:30 PM",
+ * The grey date line on a Facebook event card: "Now until 11 AM", "Today at 4:30 PM",
  * "Tomorrow at 9 AM", or "Fri, Nov 14 at 6 PM", in the campus time zone.
  */
 export function formatDateLine(event: CampusEvent, now: Date): string {
   const start = new Date(event.start);
   const end = new Date(event.end);
   if (start.getTime() <= now.getTime() && end.getTime() > now.getTime()) {
-    return `Happening now, until ${formatShortClock(end)}`;
+    // Short so it fits on a card without being cut off (Lisa).
+    return `Now until ${formatShortClock(end)}`;
   }
   const tomorrow = new Date(now.getTime() + 24 * 60 * MINUTE);
   const day =

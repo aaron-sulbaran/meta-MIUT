@@ -27,10 +27,8 @@ describe("formatDateLine", () => {
   if (!base) throw new Error("seed has no events");
   const at = (startIso: string, endIso: string): CampusEvent => ({ ...base, start: startIso, end: endIso });
 
-  it("says Happening now for a live event", () => {
-    expect(formatDateLine(at("2026-11-12T15:30:00.000Z", "2026-11-12T17:00:00.000Z"), now)).toBe(
-      "Happening now, until 11 AM",
-    );
+  it("says Now until for a live event", () => {
+    expect(formatDateLine(at("2026-11-12T15:30:00.000Z", "2026-11-12T17:00:00.000Z"), now)).toBe("Now until 11 AM");
   });
 
   it("drops :00 and names today and tomorrow in campus time", () => {
