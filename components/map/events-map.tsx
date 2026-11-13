@@ -205,7 +205,8 @@ function fillWithInitials(target: HTMLElement, card: MapCard, size: number) {
 // so everything styled sits inside a plain wrapper and only the inner part scales.
 function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDivElement {
   const pick = card.pickRank !== null;
-  const size = pick ? 46 : 36;
+  // Every bubble is one size; only the selected one grows (setMarkerActive).
+  const size = 38;
   const wrapper = document.createElement("div");
   wrapper.dataset.pick = pick ? "1" : "0";
 
@@ -225,10 +226,17 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
     transition: "transform 160ms ease",
   });
 
-  // The bubble: the organizer's logo in a white ring. Muse's picks get a thin warm
-  // outer ring so they read as recommended without shouting.
+  // The bubble: the organizer's logo in a white ring. It grows from its bottom
+  // edge when selected, so it stays anchored on the event's spot.
   const bubble = document.createElement("span");
-  Object.assign(bubble.style, { position: "relative", display: "block", width: `${size}px`, height: `${size}px` });
+  Object.assign(bubble.style, {
+    position: "relative",
+    display: "block",
+    width: `${size}px`,
+    height: `${size}px`,
+    transformOrigin: "50% 100%",
+    transition: "transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2)",
+  });
   const photo = document.createElement("span");
   Object.assign(photo.style, {
     display: "flex",
@@ -238,8 +246,9 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
     height: "100%",
     borderRadius: "9999px",
     overflow: "hidden",
-    border: `${pick ? 3 : 2.5}px solid #ffffff`,
-    boxShadow: pick ? "0 0 0 2px #e8603c, 0 2px 6px rgba(0,0,0,0.25)" : "0 1px 5px rgba(0,0,0,0.25)",
+    border: "2.5px solid #ffffff",
+    boxShadow: "0 1px 5px rgba(0,0,0,0.25)",
+    transition: "box-shadow 200ms ease",
     boxSizing: "border-box",
     background: "#ffffff",
   });
@@ -259,7 +268,7 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
   bubble.appendChild(photo);
 
   // A small line icon badge says what kind of event it is.
-  const badgeSize = pick ? 19 : 17;
+  const badgeSize = 17;
   const badge = document.createElement("span");
   badge.innerHTML = CATEGORY_ICONS[card.category];
   Object.assign(badge.style, {
@@ -303,10 +312,14 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
   return wrapper;
 }
 
+// The selected event's bubble grows to well over one and a half times its
+// size and lifts with a deeper shadow; its name pill stays readable below.
 function setMarkerActive(wrapper: HTMLElement, active: boolean) {
-  const button = wrapper.firstElementChild as HTMLElement | null;
-  if (button) button.style.transform = active ? "scale(1.18)" : "scale(1)";
-  wrapper.style.zIndex = active ? "3" : wrapper.dataset.pick === "1" ? "2" : "1";
+  const bubble = wrapper.querySelector<HTMLElement>("button > span");
+  const photo = bubble?.firstElementChild as HTMLElement | null;
+  if (bubble) bubble.style.transform = active ? "scale(1.7)" : "scale(1)";
+  if (photo) photo.style.boxShadow = active ? "0 6px 16px rgba(0,0,0,0.32)" : "0 1px 5px rgba(0,0,0,0.25)";
+  wrapper.style.zIndex = active ? "3" : "1";
   wrapper.dataset.active = active ? "1" : "0";
 }
 
@@ -666,9 +679,7 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
             <article
-              className={`relative flex h-[128px] items-center gap-[12px] rounded-[18px] border-[1.5px] bg-card p-[12px] pr-[30px] shadow-md transition-colors ${
-                currentActive === card.eventId ? "border-[#ff7a45]" : "border-transparent"
-              }`}
+              className="relative flex h-[128px] items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
             >
               <LogoTile card={card} />
               <div className="min-w-0 flex-1">
