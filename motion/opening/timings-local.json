@@ -1,0 +1,173 @@
+{
+  "measuredAt": "2026-11-13T10:13:40.022Z",
+  "base": "http://localhost:4621",
+  "runs": 5,
+  "demoClock": "2026-11-13T20:05:00.000Z",
+  "results": {
+    "flyer": {
+      "samples": [
+        {
+          "ms": 1996,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 2461,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 10099,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 1884,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 2105,
+          "status": 200,
+          "source": "muse"
+        }
+      ],
+      "liveRuns": 5,
+      "minMs": 1884,
+      "medianMs": 2105,
+      "maxMs": 10099
+    },
+    "walkHome": {
+      "samples": [
+        {
+          "ms": 3904,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 5202,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 4269,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 4328,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 10775,
+          "status": 200,
+          "source": "muse"
+        }
+      ],
+      "liveRuns": 5,
+      "minMs": 3904,
+      "medianMs": 4328,
+      "maxMs": 10775
+    },
+    "transcribe": {
+      "samples": [
+        {
+          "ms": 2712,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 2877,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 2648,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 2624,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 2590,
+          "status": 200,
+          "source": "muse"
+        }
+      ],
+      "liveRuns": 5,
+      "minMs": 2590,
+      "medianMs": 2648,
+      "maxMs": 2877
+    },
+    "replan": {
+      "samples": [
+        {
+          "ms": 2623,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 1346,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 1946,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 1450,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 1773,
+          "status": 200,
+          "source": "muse"
+        }
+      ],
+      "liveRuns": 5,
+      "minMs": 1346,
+      "medianMs": 1773,
+      "maxMs": 2623
+    },
+    "curate": {
+      "samples": [
+        {
+          "ms": 3872,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 4521,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 2575,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 3497,
+          "status": 200,
+          "source": "muse"
+        },
+        {
+          "ms": 2195,
+          "status": 200,
+          "source": "muse"
+        }
+      ],
+      "liveRuns": 5,
+      "minMs": 2195,
+      "medianMs": 3497,
+      "maxMs": 4521
+    }
+  }
+}

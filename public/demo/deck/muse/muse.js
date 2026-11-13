@@ -51,7 +51,8 @@
     {
       id: "models",
       title: "Powered by Meta's Muse models",
-      notes: "That's where Muse AI comes in. [On screen: Muse Ember for reasoning, writing and reading flyers; Muse Voice Transcribe for voice input.]",
+      lead: "screen",
+      notes: "Let it land. Then: 'That's where Meta's Muse models come in.'",
       build(seg, ctx) {
         ctx.show(seg, "m6");
         /* A soft Meta-blue sweep crosses the frame and leaves the mark behind it. */
@@ -75,7 +76,8 @@
     {
       id: "discovery",
       title: "Personalized AI discovery",
-      notes: "And for students, Muse AI helps surface the events that match their interests, location, and schedule.",
+      lead: "speaker",
+      notes: "For students, Muse surfaces events that fit their interests, place, and schedule.",
       build(seg, ctx) {
         ctx.show(seg, "m6");
         ctx.ft(seg, "#mm-title", { opacity: 1, y: 0 }, { opacity: 0, y: -36, duration: 0.45, ease: "power2.in" }, 0);
@@ -113,7 +115,8 @@
     {
       id: "less-work",
       title: "Less work for organizers. Less searching for students.",
-      notes: "Less work for organizers. Less searching for students.",
+      lead: "screen",
+      notes: "Quiet. Let them read.",
       build(seg, ctx) {
         /* Fade the interface to black rather than cut, then the two lines. */
         ctx.ft(seg, "#m6", { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.6, ease: "power2.in" }, 0);
@@ -125,7 +128,8 @@
     {
       id: "cast",
       title: "Meet the four people in the skit",
-      notes: "But what does this actually look like in real life? [Rewrite for four: Jing, the organizer; Jolyn, a Facebook Events power user; Lisa, new to Facebook; Trish, new to Facebook Events.]",
+      lead: "speaker",
+      notes: "Let's see it live: Jing, Jolyn, Lisa, and Trish.",
       build(seg, ctx) {
         ctx.show(seg, "m7");
         /* A hard cut to the cast, like every other text change. */

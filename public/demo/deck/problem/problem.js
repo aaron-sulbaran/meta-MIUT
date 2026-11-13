@@ -145,7 +145,8 @@
     {
       id: "hook-caret",
       title: "Black, a caret waiting",
-      notes: "We started with a simple question.",
+      lead: "speaker",
+      notes: "We asked 50 Gen Z students one question.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
         seg.set("#s1-caret", { x: S1.caret.centerX, y: S1.caret.y1 }, 0);
@@ -158,7 +159,8 @@
     {
       id: "hook-question",
       title: "We asked 50 Gen Z students",
-      notes: "We asked 50 Gen Z students: what would actually get you back on Facebook?",
+      lead: "screen",
+      notes: "Quiet. Let the question type out.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
         ctx.ft(seg, "#s1-eyebrow", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 1.2, ease: "power2.out" }, 0);
@@ -172,7 +174,8 @@
     {
       id: "hook-replies",
       title: "The first replies",
-      notes: "And, well... the responses were pretty brutal.",
+      lead: "screen",
+      notes: "Quiet. Let them read the replies.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
         ctx.ft(seg, "#s1-caret", { opacity: 1 }, { opacity: 0, duration: 0.2 }, 0);
@@ -194,7 +197,8 @@
     {
       id: "hook-love",
       title: "If the love of my life was only on Facebook",
-      notes: "[Pause. Let the messages pop up one by one.]",
+      lead: "screen",
+      notes: "Quiet. Let the laugh land.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
         ["#s1-r1", "#s1-r2", "#s1-r3"].forEach((sel) => {
@@ -215,7 +219,8 @@
     {
       id: "hook-avalanche",
       title: "The replies pile up",
-      notes: "[Let them accelerate until they fill the screen. Next click: hard cut to black, silence.]",
+      lead: "screen",
+      notes: "Quiet while it fills. Click for the cut to black.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
         /* The real replies come back up and stay on top until the cut. */
@@ -282,6 +287,13 @@
     ["#s2-a", "#s2-b"].forEach((sel) => splitWords($(sel)));
     S2.pairOffset = ($("#s2-b").offsetHeight + 34) / 2;
     LISTINGS.forEach((l) => gsap.set(l.sel, { x: l.x, y: l.y, rotation: l.r }));
+    const word = $("#s2-word");
+    const total = 225 + LOCK.gap + word.offsetWidth;
+    LOCK.markX = (1920 - total) / 2;
+    LOCK.wordX = LOCK.markX + 225 + LOCK.gap;
+    LOCK.wordY = 540 - word.offsetHeight / 2 + 4;
+    gsap.set("#s2-mark", { x: 960 - 112.5, y: LOCK.markY });
+    gsap.set("#s2-word", { x: LOCK.wordX, y: LOCK.wordY });
   }
 
   /* Words rise into place; the stagger eases so it reads as one gesture, not a metronome. */
@@ -296,15 +308,16 @@
     });
   }
 
-  const BAND_TILE = "inset(49.4% 0% 49.4% 0% round 0px)";
-  const BAND_DOT = "inset(49.4% 50% 49.4% 50% round 0px)";
-  const BAND_FULL = "inset(0% 0% 0% 0% round 0px)";
-  const BAND_LINE = "inset(50% 0% 50% 0% round 0px)";
+  /* The Marketplace lockup: the real mark at its own 225 px, the word beside it. Set in prepareScene2. */
+  const LOCK = { markX: 0, wordX: 0, markY: 540 - 112.5, wordY: 0, gap: 48 };
+  const WORD_HIDDEN = "inset(0% 100% 0% 0%)";
+  const WORD_SHOWN = "inset(0% 0% 0% 0%)";
 
   const SCENE2 = [
     {
       id: "exception",
       title: "Hard cut: But there was one exception",
+      lead: "speaker",
       notes: "But there was one exception.",
       build(seg, ctx) {
         ctx.show(seg, "s2");
@@ -315,7 +328,8 @@
     {
       id: "marketplace",
       title: "Marketplace",
-      notes: "Facebook Marketplace. And that's when it clicked.",
+      lead: "screen",
+      notes: "Let it land. Then: 'Facebook Marketplace. We go there to get things done.'",
       build(seg, ctx) {
         ctx.show(seg, "s2");
         ctx.ft(seg, "#s2-line", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power1.in" }, 0);
@@ -326,15 +340,16 @@
           ctx.ft(seg, l.sel, { x: l.x + l.dx, y: l.y + 110, rotation: l.r * 2.4, scale: 0.84 }, { x: l.x, y: l.y, rotation: l.r, scale: 1, duration: 1.05, ease: "power3.out" }, d);
         });
         ctx.sfx(seg, "whoosh", { dur: 0.7, level: 0.12 }, 0.08);
-        /* A line draws across the middle, then opens into the band. */
-        ctx.ft(seg, "#s2-band", { clipPath: BAND_DOT }, { clipPath: BAND_TILE, duration: 0.42, ease: "expo.out" }, 0.9);
-        ctx.ft(seg, "#s2-band", { clipPath: BAND_TILE }, { clipPath: BAND_FULL, duration: 0.55, ease: "expo.inOut" }, 1.22);
-        ctx.ft(seg, "#s2-word", { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1.12, duration: 0.42, ease: "power3.out" }, 1.4);
-        seg.to("#s2-word", { scale: 1, duration: 0.4, ease: "power2.inOut" }, 1.82);
-        ctx.sfx(seg, "impact", { level: 0.9 }, 1.48);
-        ctx.ft(seg, "#cam", { scale: 1.025 }, { scale: 1, duration: 0.6, ease: "power2.out" }, 1.5);
+        /* The real mark lands in the center at its own size (never above it), then slides
+           left as the word wipes in beside it. */
+        ctx.ft(seg, "#s2-mark", { opacity: 0, x: 960 - 112.5, y: LOCK.markY, scale: 0.2 }, { opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" }, 0.95);
+        ctx.ft(seg, "#s2-mark", { x: 960 - 112.5 }, { x: LOCK.markX, duration: 0.75, ease: "power3.inOut" }, 1.55);
+        ctx.ft(seg, "#s2-word", { opacity: 1, x: LOCK.wordX - 40, y: LOCK.wordY, clipPath: WORD_HIDDEN }, { x: LOCK.wordX, clipPath: WORD_SHOWN, duration: 0.75, ease: "power3.inOut" }, 1.62);
+        ctx.sfx(seg, "impact", { level: 0.9 }, 1.05);
+        ctx.ft(seg, "#cam", { scale: 1.02 }, { scale: 1, duration: 0.6, ease: "power2.out" }, 1.05);
+        /* The cards give the lockup room: they dim and drift outward on impact. */
         LISTINGS.forEach((l) => {
-          ctx.ft(seg, l.sel, { opacity: 1 }, { opacity: 0.42, duration: 0.6, ease: "power2.out" }, 1.45);
+          ctx.ft(seg, l.sel, { opacity: 1, x: l.x, y: l.y }, { opacity: 0.24, x: l.x + l.dx * 0.6, y: l.y + (l.y > 400 ? 70 : -70), duration: 0.9, ease: "power3.out" }, 1.0);
         });
       },
       idle(api) {
@@ -344,13 +359,14 @@
     {
       id: "app-to-scroll",
       title: "It's not just an app to scroll",
-      notes: "As Gen Z ourselves, we don't go on Facebook to mindlessly scroll like we do on Instagram or TikTok. We go on Facebook to get something done. It's not just an app to scroll.",
+      lead: "screen",
+      notes: "Quiet. Let them read.",
       build(seg, ctx) {
         ctx.show(seg, "s2");
-        ctx.ft(seg, "#s2-band", { clipPath: BAND_FULL }, { clipPath: BAND_LINE, duration: 0.5, ease: "power3.in" }, 0);
-        ctx.ft(seg, "#s2-word", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.94, duration: 0.4, ease: "power2.in" }, 0);
+        ctx.ft(seg, "#s2-mark", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.9, duration: 0.4, ease: "power2.in" }, 0);
+        ctx.ft(seg, "#s2-word", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.96, duration: 0.4, ease: "power2.in" }, 0);
         LISTINGS.forEach((l) => {
-          ctx.ft(seg, l.sel, { opacity: 0.42, x: l.x, y: l.y }, { opacity: 0, x: l.x + l.dx * 1.4, y: l.y + (l.y > 400 ? 140 : -140), duration: 0.55, ease: "power2.in" }, 0.02);
+          ctx.ft(seg, l.sel, { opacity: 0.24, x: l.x + l.dx * 0.6, y: l.y + (l.y > 400 ? 70 : -70) }, { opacity: 0, x: l.x + l.dx * 1.6, y: l.y + (l.y > 400 ? 170 : -170), duration: 0.55, ease: "power2.in" }, 0.02);
         });
         seg.set("#s2-a", { y: S2.pairOffset }, 0);
         riseWords(seg, ctx, "#s2-a", 0.55);
@@ -359,7 +375,8 @@
     {
       id: "app-to-do",
       title: "It's an app to DO",
-      notes: "It's an app to DO. And that got us thinking: what else could Facebook help us do?",
+      lead: "screen",
+      notes: "Let it land. Then: 'So what else could Facebook help us do?'",
       build(seg, ctx) {
         ctx.show(seg, "s2");
         ctx.ft(seg, "#s2-a", { y: S2.pairOffset, opacity: 1, color: "#ffffff" }, { y: 0, opacity: 0.6, color: "#a2a7b3", duration: 0.75, ease: "power3.inOut" }, 0);
@@ -503,7 +520,8 @@
     {
       id: "flyers",
       title: "Campus is full of free food and events",
-      notes: "Every day, student organizations and departments are hosting events, giving away free food, and creating experiences we'd actually want to attend.",
+      lead: "speaker",
+      notes: "Every day, clubs host events and give away free food. But it's scattered.",
       build(seg, ctx) {
         ctx.show(seg, "s3");
         const enter = (f, at, from, dur, ease) => {
@@ -535,7 +553,8 @@
     {
       id: "overload",
       title: "Scattered across emails, posts, and group chats",
-      notes: "But all of this information is scattered across hundreds of emails, Instagram posts, and group chats.",
+      lead: "screen",
+      notes: "Quiet. Let it pile up.",
       build(seg, ctx) {
         ctx.show(seg, "s3");
         let lastSound = -1;
@@ -572,6 +591,7 @@
     {
       id: "buried",
       title: "Freeze on the buried flyer",
+      lead: "speaker",
       notes: "And by the time we hear about something...",
       build(seg, ctx) {
         ctx.show(seg, "s3");
@@ -587,7 +607,8 @@
     {
       id: "event-ended",
       title: "EVENT ENDED",
-      notes: "...it's already over.",
+      lead: "screen",
+      notes: "'...it's already over.' Then quiet.",
       build(seg, ctx) {
         ctx.show(seg, "s3");
         ctx.ft(seg, "#s3-stamp", { opacity: 0, scale: 2.3, rotation: -16 }, { opacity: 1, scale: 1, rotation: -16, duration: 0.2, ease: "power4.in" }, 0.08);
@@ -605,7 +626,8 @@
     {
       id: "cant-find-them",
       title: "The opportunities exist. We just can't find them.",
-      notes: "The opportunities exist. We just can't find them.",
+      lead: "screen",
+      notes: "Quiet. Then: 'Marketplace made Facebook useful for finding things.'",
       build(seg, ctx) {
         ctx.show(seg, "s4");
         ctx.hush(seg, 0.01);
@@ -726,7 +748,8 @@
     {
       id: "next-deal",
       title: "What if finding your next experience was as easy as finding your next deal?",
-      notes: "Marketplace made Facebook useful for finding things. So we asked ourselves: what if finding your next experience was as easy as finding your next deal?",
+      lead: "screen",
+      notes: "Quiet. Let them read the question.",
       build(seg, ctx) {
         ctx.show(seg, "s5");
         ctx.hush(seg, 0.01);
@@ -746,7 +769,8 @@
     {
       id: "muse-organizes",
       title: "Muse turns posts into events",
-      notes: "Introducing [product name]: a reimagined Facebook Events experience, powered by Muse AI. We turn the campus events already being shared into personalized, nearby opportunities.",
+      lead: "screen",
+      notes: "Let it play. Then: 'Muse turns campus posts into personal, nearby plans.'",
       build(seg, ctx) {
         ctx.show(seg, "s5");
         ["#s5-q1", "#s5-q2"].forEach((sel, i) => ctx.ft(seg, sel, { opacity: 1, y: 0 }, { opacity: 0, y: -30, duration: 0.45, ease: "power2.in" }, i * 0.05));
@@ -814,14 +838,14 @@
     {
       id: "events-reimagined",
       title: "Events, reimagined.",
-      notes: "No more searching through hundreds of posts. No more missing out.",
+      lead: "speaker",
+      notes: "Introducing [name]: Facebook Events, reimagined. No more missing out.",
       build(seg, ctx) {
         ctx.show(seg, "s5");
         ctx.ft(seg, "#s5-feed", { opacity: 1, scale: 1 }, { opacity: 0, scale: 1.5, duration: 0.6, ease: "power3.in" }, 0);
         ctx.ft(seg, "#s5-map", { opacity: 1, scale: 1 }, { opacity: 0, scale: 1.5, duration: 0.6, ease: "power3.in" }, 0);
         ctx.ft(seg, "#s5-fb", { opacity: 0, scale: 0.4, rotation: -20 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.7, ease: "back.out(1.7)" }, 0.62);
         ctx.ft(seg, "#s5-title", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.9, ease: "power3.out" }, 0.78);
-        ctx.ft(seg, "#s5-tag", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, 1.35);
         ctx.sfx(seg, "swell", { dur: 2.6, level: 0.08 }, 0.6);
       },
     },

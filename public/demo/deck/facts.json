@@ -33,8 +33,8 @@
     },
     {
       "step": "marketplace",
-      "text": "MARKETPLACE",
-      "source": "Facebook Marketplace, named in Jolyn's scripts. No official Marketplace mark is in the repo, so the word is set in type; no icon is drawn."
+      "text": "Marketplace, with the Facebook Marketplace mark",
+      "source": "Facebook Marketplace, named in Jolyn's scripts. The mark is the real Marketplace storefront mark Aaron supplied (marketplace-icon-225.png), unmodified and never shown above its own 225 px; the word is set in type beside it."
     },
     {
       "step": "marketplace",
@@ -88,8 +88,8 @@
     },
     {
       "step": "events-reimagined",
-      "text": "Events, reimagined. / Discover more. Search less. Show up.",
-      "source": "Jolyn's motion script, Scene 5. Facebook logo is the official asset (public/brand/facebook-f.svg), unmodified."
+      "text": "Events, reimagined.",
+      "source": "Jolyn's motion script, Scene 5. Her tagline (Discover more. Search less. Show up.) is off screen while Aaron speaks over this step. Facebook logo is the official asset (public/brand/facebook-f.svg), unmodified."
     }
   ],
   "muse": [

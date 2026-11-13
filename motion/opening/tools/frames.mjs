@@ -31,7 +31,7 @@ const marks = await page.evaluate(() => window.__deck.marks);
 const ids = await page.evaluate(() => window.__deck.steps.map((s) => s.id));
 if (opt('--steps-json')) {
   const { writeFileSync } = await import('node:fs');
-  const list = await page.evaluate(() => window.__deck.steps.map(({ id, title, notes }) => ({ id, title, notes: notes || '' })));
+  const list = await page.evaluate(() => window.__deck.steps.map(({ id, title, lead, notes }) => ({ id, title, lead: lead || 'speaker', notes: notes || '' })));
   writeFileSync(opt('--steps-json'), JSON.stringify(list, null, 2) + '\n');
   console.log(`wrote ${list.length} steps to ${opt('--steps-json')}`);
 }
