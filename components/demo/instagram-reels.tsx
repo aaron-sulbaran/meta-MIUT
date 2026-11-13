@@ -248,7 +248,9 @@ export function InstagramReels({ startReel, startSheet }: { startReel: number; s
       <ReelsTabBar />
       <StagedMark />
 
+      {/* The sheet is Instagram's light sheet: black text, not the reel's white. */}
       {sheet && (
+        <div className="text-black">
         <CrossAppSheet
           titleId="reels-events-title"
           title="Check this out on Facebook Events?"
@@ -272,6 +274,7 @@ export function InstagramReels({ startReel, startSheet }: { startReel: number; s
           decline="Not now"
           onDecline={() => setSheet(false)}
         />
+        </div>
       )}
     </div>
   );
@@ -493,10 +496,10 @@ function BoardGameScene() {
         <Die pips={[[16, 16], [48, 16], [16, 48], [48, 48], [16, 32], [48, 32]]} style={{ animation: "reel-tumble2 3.2s cubic-bezier(0.3,0.7,0.4,1) infinite" }} />
       </g>
       {/* On-video text, the way a club's reel would caption itself. */}
-      <g fontFamily="system-ui,-apple-system,sans-serif" fontWeight="800" fontSize="25" textAnchor="middle">
+      <g fontFamily="system-ui,-apple-system,sans-serif" fontWeight="800" fontSize="23" textAnchor="middle">
         <rect x="88" y="168" width="214" height="40" rx="8" fill="#ffffff" />
         <text x="195" y="196" fill="#0d3b28">board game night</text>
-        <rect x="62" y="214" width="266" height="40" rx="8" fill="#f2c94c" />
+        <rect x="40" y="214" width="310" height="40" rx="8" fill="#f2c94c" />
         <text x="195" y="242" fill="#1b1b1b">tonight + free dumplings</text>
       </g>
     </Scene>
