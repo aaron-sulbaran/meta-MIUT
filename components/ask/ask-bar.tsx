@@ -26,6 +26,7 @@ type CrawlReply = { data: { stops: { eventId: string }[]; pitch: string } | null
 
 // The conversation on screen survives opening an event and coming back.
 const THREAD_KEY = "ask-muse-thread";
+const HANDS_FREE_KEY = "ask-muse-hands-free";
 
 const FILTER_LABELS = { forYou: "For you", free: "Free", today: "Today", week: "This week" } as const;
 
@@ -73,6 +74,31 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const byVoiceRef = useRef(false);
   const restoredRef = useRef(false);
+  const [handsFree, setHandsFree] = useState(false);
+  const handsFreeRef = useRef(false);
+  const [paused, setPaused] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    try {
+      const on = window.localStorage.getItem(HANDS_FREE_KEY) === "on";
+      handsFreeRef.current = on;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setHandsFree(on);
+    } catch {}
+    return () => {
+      mountedRef.current = false;
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
+  }, []);
+  function toggleHandsFree() {
+    const on = !handsFreeRef.current;
+    handsFreeRef.current = on;
+    setHandsFree(on);
+    try {
+      window.localStorage.setItem(HANDS_FREE_KEY, on ? "on" : "off");
+    } catch {}
+  }
   useEffect(() => {
     if (restoredRef.current) return;
     restoredRef.current = true;
@@ -177,8 +203,9 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
       if (!reply) return;
 
       const spoken = [reply.answer, reply.followUp].filter(Boolean).join(" ");
-      const listenAgain = reply.followUp !== null && byVoiceRef.current;
-      speak(spoken, listenAgain ? () => startListeningRef.current() : undefined);
+      const leaving = reply.actions.some((action) => action.type === "open" || action.type === "create_event");
+      const listenAgain = byVoiceRef.current && !leaving && (handsFreeRef.current || reply.followUp !== null);
+      speak(spoken, listenAgain ? () => mountedRef.current && byVoiceRef.current && startListeningRef.current() : undefined);
 
       for (const action of reply.actions) {
         const outcome = await perform(action, reply, text);
@@ -225,11 +252,22 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
     [ask],
   );
 
-  const voice = useVoiceRecorder(onClip);
+  const onNoSpeech = useCallback(() => setPaused(true), []);
+  const voice = useVoiceRecorder(onClip, onNoSpeech);
   const startListening = voice.start;
-  useEffect(() => {
-    startListeningRef.current = () => void startListening();
+  const listen = useCallback(() => {
+    setPaused(false);
+    void startListening({ autoStop: handsFreeRef.current });
   }, [startListening]);
+  useEffect(() => {
+    startListeningRef.current = listen;
+  }, [listen]);
+
+  function tapMic() {
+    if (voice.recording) return voice.stop();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    listen();
+  }
   const busy = phase !== "idle";
 
   function submit(formEvent: FormEvent) {
@@ -239,11 +277,19 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
   }
 
   function close() {
+    byVoiceRef.current = false;
+    voice.cancel();
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setThread([]);
   }
 
-  const status = voice.recording ? "Listening… tap the mic when you're done" : phase === "transcribing" ? "Hearing you…" : phase === "asking" ? "Muse is on it…" : null;
+  const status = voice.recording
+    ? handsFree
+      ? "Listening… pause when you're done, or tap the mic"
+      : "Listening… tap the mic when you're done"
+    : paused
+      ? "Stopped listening. Tap the mic to talk again."
+      : phase === "transcribing" ? "Hearing you…" : phase === "asking" ? "Muse is on it…" : null;
 
   return (
     <section aria-label="Ask Muse" className="px-3 pt-[10px]">
@@ -264,7 +310,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
         {voice.supported && (
           <button
             type="button"
-            onClick={() => (voice.recording ? voice.stop() : void voice.start())}
+            onClick={tapMic}
             disabled={busy}
             aria-label={voice.recording ? "Stop and ask" : "Ask by voice"}
             aria-pressed={voice.recording}
@@ -274,6 +320,13 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
           </button>
         )}
       </form>
+
+      {voice.supported && (
+        <label className="mt-[6px] flex items-center gap-2 px-1 text-meta text-muted">
+          <input type="checkbox" role="switch" checked={handsFree} onChange={toggleHandsFree} className="accent-primary" />
+          Hands-free: Muse answers when you pause, then listens for your reply
+        </label>
+      )}
 
       <div aria-live="polite">
         {status && <p className="mt-[6px] px-1 text-meta text-muted">{status}</p>}
