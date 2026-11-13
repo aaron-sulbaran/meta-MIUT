@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/social/whos-going";
+import Link from "next/link";
+import { getFacebookHref } from "@/components/ui/header";
 import { ProfileAvatar } from "@/components/ui/tab-bar";
 import { COMMENT_MAX_LENGTH, type EventComment, type EventComments } from "@/lib/social/comment-types";
 
@@ -162,6 +164,11 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
   );
 }
 
+// A tapped name opens the Get Facebook page for that person's profile.
+function profileHref(name?: string) {
+  return name ? `${getFacebookHref("person")}&name=${encodeURIComponent(name)}` : getFacebookHref("profile");
+}
+
 function CommentRow({
   comment,
   now,
@@ -182,9 +189,17 @@ function CommentRow({
       )}
       <div className="min-w-0">
         <div className="rounded-[16px] bg-wash px-[12px] py-[8px]">
-          <p className="text-meta font-semibold text-ink">{comment.mine ? "You" : comment.name}</p>
+          <Link href={profileHref(comment.mine ? undefined : comment.name)} className="block text-meta font-semibold text-ink">
+            {comment.mine ? "You" : comment.name}
+          </Link>
           <p className="text-body">
-            {comment.mention && <span className="font-semibold text-link">{comment.mention} </span>}
+            {comment.mention && (
+              <>
+                <Link href={profileHref(comment.mention)} className="font-semibold text-link">
+                  {comment.mention}
+                </Link>{" "}
+              </>
+            )}
             {comment.text}
           </p>
         </div>

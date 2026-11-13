@@ -10,6 +10,8 @@ import { Suspense, useEffect, type ReactNode } from "react";
 const KEY = "nav-trail";
 const SCROLL = "nav-scroll:";
 const RESTORE = "nav-restore";
+// The last page visited other than a Get Facebook page, for its back arrow.
+const LAST = "nav-last";
 
 function mainPage(pathname: string, search: URLSearchParams): string | null {
   if (pathname === "/home") return "/home";
@@ -33,11 +35,16 @@ function TrailRecorder() {
   const search = useSearchParams();
 
   useEffect(() => {
-    const page = mainPage(pathname, search);
-    if (!page) return;
-    const trail = readTrail().filter((item) => section(item) !== section(page));
+    if (pathname.startsWith("/get-facebook")) return;
+    const main = mainPage(pathname, search);
+    const query = search.toString();
+    const page = main ?? (query ? `${pathname}?${query}` : pathname);
     try {
-      sessionStorage.setItem(KEY, JSON.stringify([...trail, page].slice(-2)));
+      sessionStorage.setItem(LAST, page);
+      if (main) {
+        const trail = readTrail().filter((item) => section(item) !== section(main));
+        sessionStorage.setItem(KEY, JSON.stringify([...trail, main].slice(-2)));
+      }
     } catch {}
 
     // Back to this page puts you where you were scrolled, even once the list has loaded.
@@ -79,6 +86,30 @@ export function NavTrail() {
     <Suspense fallback={null}>
       <TrailRecorder />
     </Suspense>
+  );
+}
+
+/** Goes to the last page visited, where you were scrolled; with none (a direct open), follows href. */
+export function PreviousPageLink({ href, label, className, children }: { href: string; label: string; className?: string; children: ReactNode }) {
+  const router = useRouter();
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      className={className}
+      onClick={(event) => {
+        let target: string | null = null;
+        try {
+          target = sessionStorage.getItem(LAST);
+          if (target) sessionStorage.setItem(RESTORE, target);
+        } catch {}
+        if (!target) return;
+        event.preventDefault();
+        router.push(target, { scroll: false });
+      }}
+    >
+      {children}
+    </Link>
   );
 }
 

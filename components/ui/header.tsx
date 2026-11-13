@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
-import { BackLink } from "@/components/ui/back-link";
+import { BackLink, PreviousPageLink } from "@/components/ui/back-link";
 import { ChevronLeftIcon, MenuIcon } from "@/components/ui/icons";
 
 // Three header patterns from the Facebook iOS app. Each takes an actions slot
@@ -51,24 +51,24 @@ export function SubPageHeader({
   backHref,
   backLabel = "Back",
   actions,
-  fixedBack = false,
+  previousBack = false,
 }: {
   title: string;
   backHref: string;
   backLabel?: string;
   actions?: ReactNode;
-  /** Always go to backHref instead of the previous page. */
-  fixedBack?: boolean;
+  /** Go back to the exact page you came from (backHref on a direct open), not the section. */
+  previousBack?: boolean;
 }) {
   const backClass = "flex h-11 w-11 items-center justify-start pl-[4px] text-ink";
   const chevron = <ChevronLeftIcon className="h-[18px] w-[18px]" />;
   return (
     <header className={bar}>
       <div className="relative flex h-[52px] items-center pl-[10px] pr-[2px]">
-        {fixedBack ? (
-          <Link href={backHref} aria-label={backLabel} className={backClass}>
+        {previousBack ? (
+          <PreviousPageLink href={backHref} label={backLabel} className={backClass}>
             {chevron}
-          </Link>
+          </PreviousPageLink>
         ) : (
           <BackLink href={backHref} label={backLabel} className={backClass}>
             {chevron}
