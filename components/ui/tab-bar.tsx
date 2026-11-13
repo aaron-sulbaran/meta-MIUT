@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isStagedScreen } from "@/lib/demo/staged";
 import type { ComponentType } from "react";
 import {
   BellIcon,
@@ -34,6 +35,8 @@ const REFERENCE_TABS: InertTab[] = INERT_TABS.map((tab) =>
 export function TabBar() {
   const pathname = usePathname();
   const tabs = pathname.startsWith("/reference") ? REFERENCE_TABS : INERT_TABS;
+  // Staged screens imitate another app (Instagram); Facebook's tab bar stays off them.
+  if (isStagedScreen(pathname)) return null;
   return (
     <nav
       aria-label="Facebook"

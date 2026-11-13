@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertBanner } from "@/components/alerts/alert-banner";
 import type { Alert, AlertRouteResponse } from "@/lib/alerts/schema";
+import { isStagedScreen } from "@/lib/demo/staged";
 import { personaFromCookieString, viewerIdFor } from "@/lib/social/persona";
 
 const POLL_INTERVAL_MS = 2_500;
@@ -18,6 +19,12 @@ const BANNER_VISIBLE_MS = 8_000;
 // and an alert with `href` opens that path (the map with a walk planned).
 export function AlertListener({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: number }) {
   const router = useRouter();
+  const pathname = usePathname();
+  // Alerts that land while a staged screen is up are dropped, not saved for later.
+  const stagedRef = useRef(false);
+  useEffect(() => {
+    stagedRef.current = isStagedScreen(pathname);
+  }, [pathname]);
   const cursorRef = useRef<number | null>(null);
   const [queue, setQueue] = useState<Alert[]>([]);
 
@@ -38,7 +45,7 @@ export function AlertListener({ pollIntervalMs = POLL_INTERVAL_MS }: { pollInter
             cursorRef.current = page.cursor;
             const me = viewerIdFor(personaFromCookieString(document.cookie));
             const mine = page.alerts.filter((alert) => alert.to === undefined || alert.to === me);
-            if (cursor !== null && mine.length > 0) {
+            if (cursor !== null && mine.length > 0 && !stagedRef.current) {
               setQueue((current) => [...current, ...mine]);
               router.refresh();
             }
@@ -77,6 +84,8 @@ export function AlertListener({ pollIntervalMs = POLL_INTERVAL_MS }: { pollInter
     return () => clearTimeout(timer);
   }, [current, dismiss]);
 
+  // No Facebook banners over staged screens (they imitate Instagram).
+  if (isStagedScreen(pathname)) return null;
   return (
     <div
       role="status"

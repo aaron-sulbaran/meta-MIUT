@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getAlertFeed } from "@/lib/alerts/feed";
+import { ALERT_PAGE_LIMIT, getAlertFeed } from "@/lib/alerts/feed";
 import { getEventStore } from "@/lib/events/store";
 import { formatDateLine } from "@/lib/events/time";
 import { readJsonBody } from "@/lib/http";
@@ -39,4 +39,21 @@ export async function POST(request: Request) {
   });
   if (sent.error !== null) return Response.json({ data: null, error: sent.error }, { status: 502 });
   return Response.json({ data: { to: friend.name, eventId: event.id, alertId: sent.data.id }, error: null }, { status: 201 });
+}
+
+// GET ?to=<viewer id>: the newest invites sent to that person, newest last.
+// The staged Instagram message on Lisa's phone (demo beat U2a) shows them as
+// they arrive, with the words Muse wrote.
+export async function GET(request: Request) {
+  const to = new URL(request.url).searchParams.get("to");
+  if (!to) return Response.json({ data: null, error: "Say who the invites are for (?to=)" }, { status: 400 });
+  const feed = getAlertFeed();
+  const latest = await feed.latestCursor();
+  if (latest.error !== null) return Response.json({ data: null, error: latest.error }, { status: 502 });
+  const page = await feed.listSince(Math.max(0, latest.data - ALERT_PAGE_LIMIT));
+  if (page.error !== null) return Response.json({ data: null, error: page.error }, { status: 502 });
+  const invites = page.data.alerts
+    .filter((alert) => alert.to === to && alert.title.endsWith("invited you"))
+    .map((alert) => ({ id: alert.id, eventId: alert.eventId, from: alert.title.replace(/ invited you$/, ""), message: alert.body, href: alert.href ?? null, at: alert.createdAt }));
+  return Response.json({ data: { invites }, error: null });
 }
