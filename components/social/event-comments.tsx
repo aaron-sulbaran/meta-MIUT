@@ -13,10 +13,10 @@ const SHOWN = 4;
 function ago(iso: string, now: number): string {
   const minutes = Math.max(0, Math.round((now - Date.parse(iso)) / 60_000));
   if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60) return `${minutes}m`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} h`;
-  return `${Math.round(hours / 24)} d`;
+  if (hours < 24) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
 }
 
 export function EventCommentsSection({ initial }: { initial: EventComments }) {
