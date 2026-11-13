@@ -34,6 +34,7 @@ const BEAT_STEP: Record<string, number> = { U3b: 0, U3b2: 1, U3b3: 2, U3c: 3 };
 // The sheet comes about a second after the map's pins and base map are in view, never later than MAP_WAIT_MS.
 const ASK_DELAY_MS = 1_000;
 const MAP_WAIT_MS = 6_000;
+const TILE_WAIT_MS = 3_000;
 // Each source row shows at least this long; the last waits for the answer plus ANSWER_PAD_MS.
 const ROW_MS = 650;
 const ANSWER_PAD_MS = 1_000;
@@ -153,7 +154,10 @@ export function FirstVisit({ startStep = null, openedFromApp = false }: { startS
     };
     const poll = window.setInterval(() => {
       // Event pins (anchored bottom; the blue dot is centered) and the base map drawn (events-map.tsx).
-      const pinsUp = document.querySelector(".maplibregl-marker-anchor-bottom") !== null && document.querySelector("[data-map-loaded]") !== null;
+      // A tile server that never answers holds the sheet only TILE_WAIT_MS once the pins are up.
+      const pins = document.querySelector(".maplibregl-marker-anchor-bottom") !== null;
+      const tiles = document.querySelector("[data-map-loaded]") !== null;
+      const pinsUp = pins && (tiles || Date.now() >= arrived + TILE_WAIT_MS);
       if (!pinsUp && Date.now() < arrived + MAP_WAIT_MS) return;
       window.clearInterval(poll);
       timer = window.setTimeout(ask, Math.max(ASK_DELAY_MS, arrived + ASK_DELAY_MS - Date.now()));
