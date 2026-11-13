@@ -8,7 +8,8 @@ export type GoingPerson = {
   shared: string[];
   note?: string;
   instagram?: string;
-  hello?: "accepted";
+  /** A hi the viewer sent: pending until they accept, then both see each other's Instagram. */
+  hello?: "pending" | "accepted";
   /** Friends the viewer and this person both have, by name (not set for friends). */
   mutual?: string[];
 };

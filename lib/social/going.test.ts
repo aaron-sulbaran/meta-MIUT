@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CampusEvent } from "@/lib/events/schema";
 import { loadSeedEvents } from "@/lib/events/seed";
-import { COMPANY_LIMIT, friendsGoingLine, resetSocial, sayHello, setGoing, sharedLine, whoIsGoing } from "@/lib/social/going";
+import { ACCEPT_AFTER_MS, COMPANY_LIMIT, friendsGoingLine, resetSocial, sayHello, setGoing, sharedLine, whoIsGoing } from "@/lib/social/going";
 import { FRIENDS } from "@/lib/social/fixtures/people";
 
 const viewer = "sample-student";
@@ -58,12 +58,16 @@ describe("going together", () => {
     expect(whoIsGoing(event, viewer, interests).viewer).toEqual({ going: true, open: false });
   });
 
-  it("swaps handles after a hello to someone open, once", () => {
+  it("swaps handles once a hello to someone open is accepted, once", () => {
     const event = eventWith((who) => who.openToCompany.length > 0);
     const target = whoIsGoing(event, viewer, interests).openToCompany[0]!;
-    expect(sayHello(event, viewer, target.id).error).toBeNull();
-    expect(sayHello(event, viewer, target.id).error).toBeNull();
-    const after = whoIsGoing(event, viewer, interests).openToCompany.filter((person) => person.id === target.id);
+    const sent = 1_000_000;
+    expect(sayHello(event, viewer, target.id, sent).error).toBeNull();
+    expect(sayHello(event, viewer, target.id, sent + 1000).error).toBeNull();
+    const pending = whoIsGoing(event, viewer, interests, sent + 1000).openToCompany.find((person) => person.id === target.id);
+    expect(pending).toMatchObject({ hello: "pending" });
+    expect(pending!.instagram).toBeUndefined();
+    const after = whoIsGoing(event, viewer, interests, sent + ACCEPT_AFTER_MS).openToCompany.filter((person) => person.id === target.id);
     expect(after).toHaveLength(1);
     expect(after[0]).toMatchObject({ hello: "accepted" });
     expect(after[0]!.instagram).toBeDefined();

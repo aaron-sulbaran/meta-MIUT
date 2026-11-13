@@ -72,10 +72,12 @@ app/api/alerts/      GET ?since=<cursor> new alerts, POST send an alert for an e
 app/api/events/[id]/ GET one event, PATCH { updates } for a repost Muse matched
 app/api/events/[id]/attendance/  GET ?viewer=<id> counts and seats left, POST {viewerId, action} interested or RSVP
 app/api/demo/reset/  POST the full demo reset: events, alerts, going, comments, Muse memory, Ask history (token in production)
-app/demo/            the pitch stage (beats from lib/demo/beats.ts, persona per beat, keys, reset); /demo/console the operator console
+app/demo/            the pitch stage (beats from lib/demo/beats.ts, persona per beat, keys, reset); /demo/console the operator console;
+                     /demo/remote a phone clicker (Next, Back) that moves the stage through /api/demo/stage
+app/api/demo/stage/  GET where the stage is, POST next, back, or goto (lib/demo/stage-position.ts; laptop stays the master)
 app/api/demo/story/  GET the event the demo follows (created quietly if the organizer act was skipped)
 components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed, the Lock Screen's Live Activity)
-lib/demo/            beats.ts (client safe), staged.ts (staged routes and every handoff path; a beat after a staged screen takes its path from HANDOFF), free-bite.ts, story.ts, reset.ts (one reset for every persona's saved state)
+lib/demo/            beats.ts (client safe), staged.ts (staged routes and every handoff path; a beat after a staged screen takes its path from HANDOFF), free-bite.ts, story.ts, stage-position.ts, reset.ts (one reset for every persona's saved state)
 app/curate/          User 3's first Events visit: Muse reads email, calendar, Instagram, Reels and ranks a first feed
 app/api/curate/      POST a curated feed (Muse job, story event pinned first and flagged storyPinned if Muse ranked it lower)
 lib/curate/          connectors.ts (seeded sources, client safe), curate.ts (request, fixture, pinStory)
@@ -132,6 +134,7 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (record with `hu
 - Pages that show times call `await connection()` so they render per request, not at build.
 - Seed times are relative (`startsInMinutes`). The memory store resolves them at first load; the Redis store seeds on first read, re-seeds when its 12 hour seed marker expires, and on a `/demo` reset. Redis keys are namespaced by `VERCEL_ENV`, so preview deploys never touch production data.
 - Without Redis the store and alert feed live per server process (kept on `globalThis`, because Next dev compiles route handlers and pages as separate module graphs). On Vercel that means a published event can miss another screen: set the Redis env vars there.
+- The `/demo` phone remote needs Redis on Vercel: without it the stage and a phone reach different server instances and never see each other's moves. Locally (one process) it works without Redis, from a phone on the same Wi-Fi at the laptop's dev address.
 - `/demo` switches persona with the `demo-persona` cookie (lib/social/persona.ts): unset is Aaron (sample-student), then lisa, user3, organizer. A new module with saved state adds its key prefix to `DEMO_STATE_PREFIXES` in lib/demo/reset.ts, or the demo reset will not clear it.
 - Redis reads that fail fall back to the in-memory seed and log to the server console; writes return the error.
 - Alerts reach screens by polling `GET /api/alerts` every 2.5 s. The first poll only learns the cursor, so a freshly opened screen does not replay old alerts. A new alert also calls `router.refresh()`, so the feed already has the event when the student taps through.
