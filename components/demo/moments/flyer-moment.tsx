@@ -7,7 +7,7 @@ import { PostedEvent } from "@/components/demo/moments/posted-event";
 import type { MakingState } from "@/components/organizer/muse-making";
 import { publishDraft, type Published } from "@/components/organizer/publish-draft";
 import type { ExtractDraft, OrganizerOption } from "@/components/organizer/types";
-import { MuseMark } from "@/components/ui/icons";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { KnownPlace } from "@/lib/organizer/place";
 
@@ -173,8 +173,8 @@ export function FlyerMoment({
     <section aria-live="polite" aria-busy={reading} className="moment-enter flex flex-col gap-[12px]">
       <style>{MOMENT_CSS}</style>
       <div className="flex items-center gap-[10px]">
-        <span className={`flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary ${reading ? "moment-breathe" : ""}`}>
-          <MuseMark className="h-[22px] w-[22px]" />
+        <span className={`flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-primary-soft`}>
+          <MetaAiMark size={24} working={reading} />
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-title font-bold leading-[20px]">{reading ? "Muse is making your Facebook event" : "Muse made your Facebook event"}</h2>
