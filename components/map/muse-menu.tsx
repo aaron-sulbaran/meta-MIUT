@@ -149,7 +149,7 @@ export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
       className="pointer-events-none absolute right-0 top-[48px] z-50 w-[196px] rounded-[14px] bg-ink px-[12px] py-[9px] text-left text-[12.5px] font-semibold leading-[16px] text-white shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
     >
       <span aria-hidden className="absolute -top-[5px] right-[16px] h-[11px] w-[11px] rotate-45 rounded-[2px] bg-ink" />
-      {mode === "menu" ? "Hi, I'm Muse! Tap me to ask anything or plan a food crawl." : "Hi, I'm Muse! Tap me to ask anything."}
+      {mode === "menu" ? "Hi, I'm Muse! Tap me to ask anything or plan a freebie crawl." : "Hi, I'm Muse! Tap me to ask anything."}
     </span>
   );
   if (mode === "link") {
@@ -171,7 +171,7 @@ export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
           window.dispatchEvent(new Event(MUSE_TOGGLE));
         }}
         aria-expanded={open}
-        aria-label={open ? "Close Muse" : "Muse: ask or plan a food crawl"}
+        aria-label={open ? "Close Muse" : "Muse: ask or plan a freebie crawl"}
         className={box}
       >
         {body}
@@ -218,7 +218,7 @@ export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () =>
 
   const options = [
     { label: "Ask Muse", hint: "Type or say it", Icon: MetaGlyph, run: onAsk },
-    { label: "Food Crawl", hint: "Plan your walk", Icon: RouteGlyph, run: onCrawl },
+    { label: "Freebie Crawl", hint: "Free food and swag on your walk", Icon: RouteGlyph, run: onCrawl },
   ];
 
   return (

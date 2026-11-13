@@ -258,11 +258,11 @@ export function AskBar({
             onPlan(reply.plan, question, { invite });
             return { note: invite ? "Planning it on the map, then sending the invite" : "Planning it on the map" };
           }
-          // From the Ask Muse page, go straight to the Food Crawl planner: with the walk planned
+          // From the Ask Muse page, go straight to the Freebie Crawl planner: with the walk planned
           // when the request says where it ends, else on its "where does your walk end" step.
           keepConversation();
           router.push(walkEndsIn(question, id) ? link.href : "/?plan=crawl");
-          return { note: "Opening the Food Crawl" };
+          return { note: "Opening the Freebie Crawl" };
         }
       }
     },
