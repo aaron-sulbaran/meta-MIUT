@@ -12,7 +12,7 @@
       <div id="root" data-composition-id="problem" data-width="1920" data-height="1080">
         <div id="drift">
           <div id="cam">
-            <!-- Scene 1: the hook. Only these three replies are real and readable; every other bubble is unreadable by design. -->
+            <!-- Scene 1: the hook. These six replies are real (facts.json); every other bubble is unreadable by design. -->
             <section class="scene" id="s1">
               <div class="s1-shot" id="s1-shot">
                 <div class="s1-field" id="s1-field"></div>
@@ -26,9 +26,14 @@
                 </div>
                 <div class="quote" id="s1-r1"><div class="bob"><div class="bubble">Nothing.</div></div></div>
                 <div class="quote" id="s1-r2"><div class="bob"><div class="bubble">It&rsquo;s beyond saving.</div></div></div>
-                <div class="quote" id="s1-r3"><div class="bob"><div class="bubble typing"><i></i><i></i><i></i></div></div></div>
-                <div class="quote big" id="s1-r4"><div class="bob"><div class="bubble">If the love of my life was only on Facebook.</div></div></div>
+                <div class="quote" id="s1-r3t"><div class="bob"><div class="bubble typing"><i></i><i></i><i></i></div></div></div>
+                <div class="quote wrap" id="s1-r3"><div class="bob"><div class="bubble">If the love of my life<br />was only on Facebook.</div></div></div>
+                <div class="quote wrap" id="s1-r5"><div class="bob"><div class="bubble">If it wasn&rsquo;t a worse<br />version of Instagram.</div></div></div>
+                <div class="quote wrap" id="s1-r6"><div class="bob"><div class="bubble">If it wasn&rsquo;t just another<br />doomscrolling platform.</div></div></div>
               </div>
+              <!-- The one reply that led to the idea: everything else steps back behind the veil. -->
+              <div class="s1-veil" id="s1-veil"></div>
+              <div class="quote big" id="s1-r4"><div class="bob"><div class="bubble">If it helped me<br /><span class="hl">get more things done.<i class="underline" id="s1-underline"></i></span></div></div></div>
             </section>
 
             <!-- Scene 2: Marketplace -->

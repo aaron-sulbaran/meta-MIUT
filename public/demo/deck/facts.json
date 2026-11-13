@@ -1,5 +1,5 @@
 {
-  "about": "Every claim or piece of content on screen in the opening decks, with where it comes from. Survey replies: only the three real ones are ever readable; every other bubble is unreadable by design.",
+  "about": "Every claim or piece of content on screen in the opening decks, with where it comes from. Survey replies: only the six real ones listed here are ever readable (Aaron's rule after the dry run, 2026-11-13); every other bubble is unreadable by design. Never write a reply.",
   "problem": [
     {
       "step": "hook-question",
@@ -22,14 +22,29 @@
       "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1."
     },
     {
-      "step": "hook-love",
+      "step": "hook-replies",
       "text": "If the love of my life was only on Facebook.",
-      "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1."
+      "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1. Now an ordinary bubble, not the headline (Aaron, dry run notes, 2026-11-13)."
+    },
+    {
+      "step": "hook-avalanche",
+      "text": "If it wasn't a worse version of Instagram.",
+      "source": "Real survey reply, relayed by Aaron after the team's timed dry run (2026-11-13)."
+    },
+    {
+      "step": "hook-avalanche",
+      "text": "If it wasn't just another doomscrolling platform.",
+      "source": "Real survey reply, relayed by Aaron after the team's timed dry run (2026-11-13)."
     },
     {
       "step": "hook-avalanche",
       "text": "About 120 unreadable message bubbles",
-      "source": "No content: skeleton lines and typing dots only, by design."
+      "source": "No content: skeleton lines and typing dots only, by design. Only the six replies above are readable."
+    },
+    {
+      "step": "hook-standout",
+      "text": "If it helped me get more things done.",
+      "source": "Aaron's paraphrase of a real survey reply (2026-11-13). The respondent wrote a paragraph; Aaron summarized it as using Facebook only for certain tasks like Marketplace, and Facebook helping them complete more tasks. Shown as a quote, so Aaron confirms the exact words."
     },
     {
       "step": "marketplace",

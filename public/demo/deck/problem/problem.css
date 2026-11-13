@@ -147,6 +147,41 @@
   height: 52px;
 }
 
+/* The standout sits above the veil, outside the shot, so the shot's push-in never moves it. */
+.quote.big {
+  z-index: 5;
+}
+
+.quote.big .bubble {
+  width: auto;
+  white-space: nowrap;
+}
+
+.hl {
+  position: relative;
+  display: inline-block;
+}
+
+.hl .underline {
+  right: 0.28em;
+  bottom: -10px;
+}
+
+/* Longer replies wrap the way a real message bubble does. */
+.quote.wrap .bubble {
+  font-size: 54px;
+  border-radius: 46px;
+}
+
+.s1-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .typing {
   display: inline-flex;
   gap: 16px;

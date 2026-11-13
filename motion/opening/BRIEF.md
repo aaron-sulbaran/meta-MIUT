@@ -19,7 +19,7 @@ The opening of the team's Meta "Closer Together" hackathon pitch (Friday Nov 13,
 - Two decks, each a static self-contained page with no network at runtime: `public/demo/deck/problem/` (Jolyn's scenes 1 to 5) and `public/demo/deck/muse/` (scenes 6 and 7). Designed at 1920 x 1080, scaled to fit, letterboxed on near-black.
 - Host contract with the stage (`components/demo/deck-host.tsx`): same-origin postMessage, `ready`, `step`, `end`, `start`; `next`, `back`, `goto`. Keys work alone and embedded. `steps.json` beside each deck with the spoken line per step.
 - Jolyn's palette and mood govern: #08090D, #0866FF, white, #A2A7B3, #292C35, hard cuts to black on reveals.
-- Facts lock (`public/demo/deck/facts.json`). The 50 stays. Only three survey replies are ever readable. Never write a reply.
+- Facts lock (`public/demo/deck/facts.json`). The 50 stays. Only the six real survey replies in facts.json are ever readable (changed from three after the 2026-11-13 dry run). Never write a reply.
 - Real logos only, unmodified. No photos of anyone, no real people. Never imply Instagram sharing already creates Facebook events.
 - One world with the product: MIT, the team's seeded flyers, real captures of this app, Board Game Night as the story event.
 - Sound built but off by default, one key to turn it on. Nothing loud over a spoken line.

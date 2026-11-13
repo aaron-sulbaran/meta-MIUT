@@ -98,15 +98,21 @@
     }
   }
 
-  /* Quote layout, left and top of each bubble's box, in the 1920 x 1080 frame. */
+  /* Quote layout, left and top of each bubble's box, in the 1920 x 1080 frame. Six real
+     replies (facts.json): five ordinary bubbles, and the standout centered in placeQuotes. */
   const QUOTE_POS = {
     "#s1-r1": { x: 190, y: 372 },
     "#s1-r2": { x: 1120, y: 262 },
-    "#s1-r3": { x: 270, y: 836 },
-    "#s1-r4": { x: 350, y: 486 },
+    "#s1-r3t": { x: 230, y: 700 },
+    "#s1-r3": { x: 230, y: 640 },
+    "#s1-r5": { x: 1110, y: 478 },
+    "#s1-r6": { x: 1010, y: 790 },
+    "#s1-r4": { x: 0, y: 0 },
   };
 
   function placeQuotes() {
+    const big = $("#s1-r4");
+    QUOTE_POS["#s1-r4"] = { x: Math.round((1920 - big.offsetWidth) / 2), y: Math.round((1080 - big.offsetHeight) / 2) - 10 };
     Object.entries(QUOTE_POS).forEach(([sel, p]) => {
       gsap.set(sel, { x: p.x, y: p.y });
     });
@@ -138,8 +144,6 @@
     });
     return t;
   }
-
-  const DIM = 0.36;
 
   const SCENE1 = [
     {
@@ -187,48 +191,34 @@
         ctx.sfx(seg, "ding", { f: 1175 }, 0.85);
         popIn(seg, ctx, "#s1-r2", 1.95, { x: 48 });
         ctx.sfx(seg, "ding", { f: 1319 }, 1.95);
-        popIn(seg, ctx, "#s1-r3", 2.85, { x: -30, y: 30 });
+        /* Someone is typing, and then the laugh: the dots become the reply in the same spot. */
+        popIn(seg, ctx, "#s1-r3t", 2.85, { x: -30, y: 30 });
         ctx.sfx(seg, "pop", { f: 600, level: 0.18 }, 2.85);
+        $$("#s1-r3t .typing i").forEach((dot, k) => {
+          ctx.ft(seg, dot, { y: 0, opacity: 1 }, { y: -9, opacity: 0.55, duration: 0.2, ease: "sine.inOut", repeat: 3, yoyo: true }, 3.0 + k * 0.12);
+        });
+        ctx.ft(seg, "#s1-r3t", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.86, duration: 0.14, ease: "power2.in" }, 3.95);
+        popIn(seg, ctx, "#s1-r3", 4.05, { y: 20 });
+        ctx.sfx(seg, "ding", { f: 880, decay: 0.7, level: 0.24 }, 4.05);
       },
       idle(api) {
-        $$("#s1-r3 .typing i").forEach((dot, k) => api.loop(dot, { y: -9, opacity: 0.55, duration: 0.42, delay: k * 0.15 }));
         api.loop("#s1-r1 .bob", { y: -5, duration: 2.7 });
         api.loop("#s1-r2 .bob", { y: 5, duration: 3.2 });
-      },
-    },
-    {
-      id: "hook-love",
-      title: "If the love of my life was only on Facebook",
-      lead: "screen",
-      notes: "Quiet. Let the laugh land.",
-      build(seg, ctx) {
-        ctx.show(seg, "s1");
-        ["#s1-r1", "#s1-r2", "#s1-r3"].forEach((sel) => {
-          ctx.ft(seg, sel, { opacity: 1 }, { opacity: DIM, duration: 0.5, ease: "power2.out" }, 0);
-        });
-        ctx.ft(seg, "#s1-head", { opacity: 1 }, { opacity: 0.5, duration: 0.5 }, 0);
-        const p = QUOTE_POS["#s1-r4"];
-        ctx.ft(seg, "#s1-r4", { opacity: 0 }, { opacity: 1, duration: 0.18 }, 0.22);
-        ctx.ft(seg, "#s1-r4", { x: p.x, y: p.y + 40, scale: 0.8 }, { y: p.y, scale: 1.03, duration: 0.32, ease: "power3.out" }, 0.22);
-        seg.to("#s1-r4", { scale: 1, duration: 0.3, ease: "power1.inOut" }, 0.54);
-        ctx.sfx(seg, "ding", { f: 880, decay: 0.7, level: 0.26 }, 0.22);
-      },
-      idle(api) {
-        $$("#s1-r3 .typing i").forEach((dot, k) => api.loop(dot, { y: -9, opacity: 0.55, duration: 0.42, delay: k * 0.15 }));
-        api.loop("#s1-r4 .bob", { y: -6, duration: 3.4 });
+        api.loop("#s1-r3 .bob", { y: -5, duration: 3.5 });
       },
     },
     {
       id: "hook-avalanche",
       title: "The replies pile up",
       lead: "screen",
-      notes: "Quiet while it fills. Click for the cut to black.",
+      notes: "Quiet while it fills.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
-        /* The real replies come back up and stay on top until the cut. */
-        ["#s1-r1", "#s1-r2", "#s1-r3"].forEach((sel) => {
-          ctx.ft(seg, sel, { opacity: DIM }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0.1);
-        });
+        /* Two more real replies land early, while there is still room to read them. */
+        popIn(seg, ctx, "#s1-r5", 0.95, { x: 48 });
+        ctx.sfx(seg, "ding", { f: 1245, level: 0.2 }, 0.95);
+        popIn(seg, ctx, "#s1-r6", 2.05, { x: 40, y: 30 });
+        ctx.sfx(seg, "ding", { f: 1397, level: 0.2 }, 2.05);
         let lastSound = -1;
         S1.cascade.forEach((b) => {
           const at = 0.25 + b.t;
@@ -242,11 +232,31 @@
           }
         });
         const end = 0.25 + S1.cascade[S1.cascade.length - 1].t;
-        ctx.ft(seg, "#s1-head", { opacity: 0.5 }, { opacity: 0.22, duration: 1.2, ease: "power1.inOut" }, 0.4);
+        ctx.ft(seg, "#s1-head", { opacity: 1 }, { opacity: 0.22, duration: 1.6, ease: "power1.inOut" }, 0.4);
         ctx.ft(seg, "#s1-shot", { scale: 1 }, { scale: 1.08, duration: 2.0, ease: "power2.inOut" }, end - 1.5);
       },
+    },
+    {
+      id: "hook-standout",
+      title: "If it helped me get more things done",
+      lead: "screen",
+      notes: "Quiet. Let them read the reply that led us here.",
+      build(seg, ctx) {
+        ctx.show(seg, "s1");
+        /* Every other reply steps back; the one that led to the idea comes forward. */
+        ctx.ft(seg, "#s1-veil", { opacity: 0 }, { opacity: 0.9, duration: 0.7, ease: "power2.inOut" }, 0);
+        ctx.ft(seg, "#s1-shot", { scale: 1.08 }, { scale: 1.11, duration: 1.6, ease: "power2.out" }, 0);
+        const p = QUOTE_POS["#s1-r4"];
+        ctx.ft(seg, "#s1-r4", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.35);
+        ctx.ft(seg, "#s1-r4", { x: p.x, y: p.y + 44, scale: 0.86 }, { y: p.y, scale: 1.03, duration: 0.36, ease: "power3.out" }, 0.35);
+        seg.to("#s1-r4", { scale: 1, duration: 0.3, ease: "power1.inOut" }, 0.71);
+        ctx.sfx(seg, "ding", { f: 988, decay: 0.7, level: 0.26 }, 0.35);
+        /* The words Marketplace answers next, underlined the way "DO." will be. */
+        ctx.ft(seg, "#s1-underline", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.inOut" }, 1.3);
+        ctx.sfx(seg, "whoosh", { dur: 0.35, level: 0.06, from: 900, to: 3200 }, 1.3);
+      },
       idle(api) {
-        $$("#s1-r3 .typing i").forEach((dot, k) => api.loop(dot, { y: -9, opacity: 0.55, duration: 0.42, delay: k * 0.15 }));
+        api.loop("#s1-r4 .bob", { y: -6, duration: 3.4 });
       },
     },
   ];
@@ -318,12 +328,18 @@
   const SCENE2 = [
     {
       id: "exception",
-      title: "Hard cut: But there was one exception",
+      title: "But there was one exception",
       lead: "speaker",
       notes: "But there was one exception.",
       build(seg, ctx) {
         ctx.show(seg, "s2");
+        /* The hand-off: the noise cuts to black, the standout holds alone for a beat, then
+           lifts away as the exception arrives in its place. */
+        seg.set("#s1", { autoAlpha: 1 }, 0);
         ctx.hush(seg, 0.01);
+        ctx.ft(seg, "#s1-veil", { opacity: 0.9 }, { opacity: 1, duration: 0.12, ease: "none" }, 0);
+        ctx.ft(seg, "#s1-r4", { opacity: 1, y: QUOTE_POS["#s1-r4"].y }, { opacity: 0, y: QUOTE_POS["#s1-r4"].y - 60, duration: 0.55, ease: "power2.in" }, 0.6);
+        seg.set("#s1", { autoAlpha: 0 }, 1.2);
         ctx.ft(seg, "#s2-line", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 1.5, ease: "power2.out" }, 1.0);
       },
     },
