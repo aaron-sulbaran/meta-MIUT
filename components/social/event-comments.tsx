@@ -56,7 +56,9 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
     }
   }
 
-  const shown = all ? comments : comments.slice(0, SHOWN);
+  const threads = comments.filter((comment) => !comment.replyTo);
+  const shownThreads = all ? threads : threads.slice(0, SHOWN);
+  const repliesTo = (id: string) => comments.filter((comment) => comment.replyTo === id);
   return (
     <section aria-labelledby="comments-heading" className="px-3 pb-6">
       <h2 id="comments-heading" className="font-display text-title font-bold">
@@ -84,25 +86,45 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
         <p className="mt-[12px] text-body text-muted">No comments yet. Be the first to say how it is going.</p>
       ) : (
         <ul className="mt-[12px] flex flex-col gap-[12px]">
-          {shown.map((comment) => (
-            <li key={comment.id} className="flex items-start gap-[10px]">
-              <Avatar person={{ id: comment.authorId, name: comment.name }} size={32} />
-              <div className="min-w-0">
-                <div className="rounded-[16px] bg-wash px-[12px] py-[8px]">
-                  <p className="text-meta font-semibold text-ink">{comment.mine ? "You" : comment.name}</p>
-                  <p className="text-body">{comment.text}</p>
-                </div>
-                <p className="mt-[3px] pl-[12px] text-meta text-muted">{ago(comment.at, now)}</p>
-              </div>
-            </li>
-          ))}
+          {shownThreads.map((comment) => {
+            const replies = repliesTo(comment.id);
+            return (
+              <li key={comment.id}>
+                <CommentRow comment={comment} now={now} />
+                {replies.length > 0 && (
+                  <ul className="mt-[8px] flex flex-col gap-[8px] pl-[42px]">
+                    {replies.map((reply) => (
+                      <li key={reply.id}>
+                        <CommentRow comment={reply} now={now} small />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
-      {comments.length > SHOWN && (
+      {threads.length > SHOWN && (
         <button type="button" onClick={() => setAll(!all)} className="mt-[10px] text-meta font-semibold text-muted">
           {all ? "Show fewer comments" : `See all ${comments.length} comments`}
         </button>
       )}
     </section>
+  );
+}
+
+function CommentRow({ comment, now, small = false }: { comment: EventComment; now: number; small?: boolean }) {
+  return (
+    <div className="flex items-start gap-[10px]">
+      <Avatar person={{ id: comment.authorId, name: comment.name }} size={small ? 24 : 32} />
+      <div className="min-w-0">
+        <div className="rounded-[16px] bg-wash px-[12px] py-[8px]">
+          <p className="text-meta font-semibold text-ink">{comment.mine ? "You" : comment.name}</p>
+          <p className="text-body">{comment.text}</p>
+        </div>
+        <p className="mt-[3px] pl-[12px] text-meta text-muted">{ago(comment.at, now)}</p>
+      </div>
+    </div>
   );
 }

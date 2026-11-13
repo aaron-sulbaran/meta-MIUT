@@ -1,5 +1,6 @@
 "use client";
 
+import { HANDOFF, handOff } from "@/lib/demo/staged";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon } from "@/components/ui/icons";
@@ -118,6 +119,8 @@ export function InviteLanding({
       setError("Could not join right now. Try again.");
       return;
     }
+    // In the /demo stage or a presenter's phone: she is in, so the show moves on to U2c here.
+    if (inviterId) handOff(HANDOFF.lisaJoined(eventId, inviterId), () => {});
     setStep("leaving");
     await wait(SHEET_EXIT_MS);
     setStep("joined");

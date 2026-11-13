@@ -1,12 +1,50 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BEATS, type Beat } from "@/lib/demo/beats";
+import { BEATS, deckStepsPath, type Beat, type DeckStep } from "@/lib/demo/beats";
 
 // What the presenter says and does, for the remote and the console only (never
-// the projected stage). The opening lists its sections in order, one note each.
+// the projected stage). A deck brings its own notes (steps.json beside it), the
+// step it last reported highlighted when this window knows it; without them the
+// opening lists its fallback sections, one note each.
 
-export function PresenterNotes({ beat }: { beat: Beat }) {
+function useDeckSteps(beat: Beat): DeckStep[] | null {
+  const [steps, setSteps] = useState<{ deck: string; steps: DeckStep[] | null } | null>(null);
+  useEffect(() => {
+    if (!beat.deck) return;
+    const deck = beat.deck;
+    let cancelled = false;
+    fetch(deckStepsPath(deck), { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: unknown) => {
+        if (cancelled) return;
+        const valid = Array.isArray(body) ? body.filter((step): step is DeckStep => typeof step?.notes === "string" && typeof step?.title === "string") : null;
+        setSteps({ deck, steps: valid && valid.length > 0 ? valid : null });
+      })
+      .catch(() => !cancelled && setSteps({ deck, steps: null }));
+    return () => {
+      cancelled = true;
+    };
+  }, [beat.deck]);
+  return steps && steps.deck === beat.deck ? steps.steps : null;
+}
+
+export function PresenterNotes({ beat, deckStep = null }: { beat: Beat; deckStep?: number | null }) {
+  const deckSteps = useDeckSteps(beat);
+  if (deckSteps) {
+    return (
+      <ol className="flex flex-col gap-[8px]">
+        {deckSteps.map((step, index) => (
+          <li key={step.id} className={`rounded-[10px] px-[12px] py-[9px] ${index === deckStep ? "bg-primary-soft" : "bg-wash"}`}>
+            <p className="font-display text-label font-bold">
+              {index + 1}. {step.title}
+            </p>
+            <p className="mt-[2px] text-body text-ink">{step.notes}</p>
+          </li>
+        ))}
+      </ol>
+    );
+  }
   if (beat.sections) {
     return (
       <ol className="flex flex-col gap-[8px]">
@@ -28,6 +66,18 @@ export function PresenterNotes({ beat }: { beat: Beat }) {
 /** The console's notes: follows the stage's position (read only; it never moves the show). */
 export function StageNotes() {
   const [index, setIndex] = useState<number | null>(null);
+  // The deck step, from the stage window on this browser (it says so on the "demo-stage" channel).
+  const [deckStep, setDeckStep] = useState<{ beatId: string; step: number } | null>(null);
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel("demo-stage");
+    channel.onmessage = (message: MessageEvent<{ type?: string; beatId?: string; step?: number }>) => {
+      if (message.data.type === "deck-step" && typeof message.data.beatId === "string" && typeof message.data.step === "number") {
+        setDeckStep({ beatId: message.data.beatId, step: message.data.step });
+      }
+    };
+    return () => channel.close();
+  }, []);
   useEffect(() => {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -56,7 +106,7 @@ export function StageNotes() {
           <p className="text-venue text-muted">
             {beat.id} · {beat.title}
           </p>
-          <PresenterNotes beat={beat} />
+          <PresenterNotes beat={beat} deckStep={deckStep?.beatId === beat.id ? deckStep.step : null} />
         </>
       ) : (
         <p className="text-body text-muted">Waiting for the stage.</p>

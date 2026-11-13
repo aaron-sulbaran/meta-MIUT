@@ -140,6 +140,14 @@ export function AskBar({
   const router = useRouter();
   const [question, setQuestion] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
+  // When an answer is slow (20 s), say so and let typing back in; the ask keeps going.
+  const [slowSince, setSlowSince] = useState<number | null>(null);
+  useEffect(() => {
+    if (phase !== "asking") return;
+    const started = Date.now();
+    const timer = setTimeout(() => setSlowSince(started), 20_000);
+    return () => clearTimeout(timer);
+  }, [phase]);
   const [thread, setThread] = useState<Exchange[]>([]);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const byVoiceRef = useRef(false);
@@ -250,11 +258,11 @@ export function AskBar({
             onPlan(reply.plan, question, { invite });
             return { note: invite ? "Planning it on the map, then sending the invite" : "Planning it on the map" };
           }
-          // From the Ask Muse page, go straight to the Food Crawl planner: with the walk planned
+          // From the Ask Muse page, go straight to the Freebie Crawl planner: with the walk planned
           // when the request says where it ends, else on its "where does your walk end" step.
           keepConversation();
           router.push(walkEndsIn(question, id) ? link.href : "/?plan=crawl");
-          return { note: "Opening the Food Crawl" };
+          return { note: "Opening the Freebie Crawl" };
         }
       }
     },
@@ -267,6 +275,7 @@ export function AskBar({
       if (text.trim().length === 0) return;
       const id = Date.now();
       setPhase("asking");
+      setSlowSince(null);
       setQuestion("");
       let reply: AskReply | null = null;
       let error: string | null = null;
@@ -381,6 +390,7 @@ export function AskBar({
     listen();
   }
   const busy = phase !== "idle";
+  const slow = phase === "asking" && slowSince !== null;
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (docked && thread.length > 0) endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
@@ -404,7 +414,13 @@ export function AskBar({
     ? "Listening… pause when you're done, or tap the mic"
     : paused
       ? "Stopped listening. Tap the mic to talk again."
-      : phase === "transcribing" ? "Hearing you…" : phase === "asking" ? "Muse is on it…" : null;
+      : phase === "transcribing"
+        ? "Hearing you…"
+        : phase === "asking"
+          ? slow
+            ? "Muse is taking longer than usual. Type it again, or keep waiting."
+            : "Muse is on it…"
+          : null;
 
   const formEl = (
       <form onSubmit={submit} className="flex items-center gap-2 rounded-full bg-wash py-[6px] pl-3 pr-[6px]">
@@ -418,7 +434,7 @@ export function AskBar({
         onChange={(change) => setQuestion(change.target.value)}
         placeholder={thread.at(-1)?.reply?.followUp ? "Answer Muse…" : placeholder ? `Ask Muse, like "${placeholder}"` : "Ask Muse"}
         enterKeyHint="send"
-        disabled={busy || voice.recording}
+        disabled={(busy && !slow) || voice.recording}
         className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-muted"
       />
       {voice.supported && (
@@ -437,7 +453,9 @@ export function AskBar({
   );
   const statusEl = (
     <>
-        {status && <p className="mt-[6px] px-1 text-meta text-muted">{status}</p>}
+        {status && (
+          <p className={`mt-[6px] px-1 text-meta text-muted ${phase === "asking" && !slow ? "motion-safe:animate-pulse" : ""}`}>{status}</p>
+        )}
         {(voice.error ?? voiceError) && <p className="mt-[6px] px-1 text-meta text-[#e41e3f]">{voice.error ?? voiceError}</p>}
     </>
   );
