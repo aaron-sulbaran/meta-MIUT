@@ -13,6 +13,8 @@ export type EventComment = {
   mine: boolean;
   /** The comment this one answers; replies show under it, oldest first. */
   replyTo?: string;
+  /** Name of the person this reply answers, shown in blue before the text, like Facebook. */
+  mention?: string;
 };
 
 export type EventComments = { eventId: string; comments: EventComment[] };
