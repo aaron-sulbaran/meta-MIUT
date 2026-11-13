@@ -7,14 +7,14 @@ import { PERSONA_COOKIE, parsePersona, type PersonaId } from "@/lib/social/perso
 export { PERSONA_COOKIE } from "@/lib/social/persona";
 
 // The demo has no accounts. Each phone is one of the demo's people: the
-// sample student (Aaron, User 1) unless the `demo-persona` cookie names
+// sample student (Jolyn, User 1) unless the `demo-persona` cookie names
 // another (lisa, user3, organizer), which the /demo stage sets per phone.
 
 export type Viewer = { id: string; name: string; interests: string[] };
 
-/** The sample student (Aaron), the viewer when no persona is set. */
+/** The sample student (Jolyn), the viewer when no persona is set. */
 export function demoViewer(): Viewer {
-  return { id: DEMO_USER_ID, name: "Aaron", interests: loadDemoStudent().interests };
+  return { id: DEMO_USER_ID, name: "Jolyn", interests: loadDemoStudent().interests };
 }
 
 /** The persona this request's phone plays, or null for the sample student (server side). */

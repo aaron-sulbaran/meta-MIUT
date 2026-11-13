@@ -23,7 +23,6 @@ import { FEED_FILTER_EVENT, type AskAction, type AskReply, type MuseRouteRespons
 
 type Phase = "idle" | "transcribing" | "asking";
 type Exchange = { id: number; question: string; reply: AskReply | null; error: string | null; done: string[]; planIds: string[]; links: { label: string; href: string }[] };
-type CrawlReply = { data: { stops: { eventId: string }[]; pitch: string } | null; error: string | null };
 
 // The conversation on screen survives opening an event and coming back.
 const THREAD_KEY = "ask-muse-thread";
@@ -239,19 +238,10 @@ export function AskBar({
             onPlan(reply.plan, question, { invite });
             return { note: invite ? "Planning it on the map, then sending the invite" : "Planning it on the map" };
           }
-          try {
-            const response = await fetch("/api/muse/crawl", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ ...reply.plan, toLabel: "home" }),
-            });
-            if (!response.ok) return { note: null, link };
-            const body = (await response.json()) as CrawlReply;
-            if (!body.data) return { note: null, link };
-            return { note: body.data.pitch, planIds: body.data.stops.map((stop) => stop.eventId), link };
-          } catch {
-            return { note: null, link };
-          }
+          // From the Ask Muse page, go straight to the walk on the map (it ends at home unless the request says otherwise).
+          keepConversation();
+          router.push(link.href);
+          return { note: "Opening the Food Crawl" };
         }
       }
     },
