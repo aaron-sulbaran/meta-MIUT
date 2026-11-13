@@ -20,18 +20,21 @@ export function DeckHost({
   controls,
   onEnd,
   onStart,
+  onStep,
 }: {
   src: string;
   startAtEnd: boolean;
   controls: Ref<FilmControls | null>;
   onEnd: () => void;
   onStart: () => void;
+  /** The step the deck reports it is on (for the presenter notes). */
+  onStep?: (step: number) => void;
 }) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
-  const handlers = useRef({ onEnd, onStart, startAtEnd });
+  const handlers = useRef({ onEnd, onStart, onStep, startAtEnd });
   useEffect(() => {
-    handlers.current = { onEnd, onStart, startAtEnd };
-  }, [onEnd, onStart, startAtEnd]);
+    handlers.current = { onEnd, onStart, onStep, startAtEnd };
+  }, [onEnd, onStart, onStep, startAtEnd]);
 
   const send = (message: Record<string, unknown>) => frameRef.current?.contentWindow?.postMessage({ source: "demo-stage", ...message }, window.location.origin);
 
@@ -43,6 +46,7 @@ export function DeckHost({
       if (data.type === "ready" && handlers.current.startAtEnd && typeof data.steps === "number" && data.steps > 0) {
         frameRef.current?.contentWindow?.postMessage({ source: "demo-stage", type: "goto", step: data.steps - 1 }, window.location.origin);
       }
+      if (data.type === "step" && typeof data.index === "number") handlers.current.onStep?.(data.index);
       if (data.type === "end") handlers.current.onEnd();
       if (data.type === "start") handlers.current.onStart();
     };
