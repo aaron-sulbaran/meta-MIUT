@@ -556,14 +556,33 @@ export function EventsMap({
   // Open once, a beat after the first walk is drawn, so the room sees the plan change.
   const autoAskOpened = useRef(false);
   const hasRoute = route !== null;
+  // The /demo stage can ask from inside the walk already on screen (U1b to U1c) instead of
+  // reloading the map: it posts {type: "demo-ask", line}. Only when this page is the stage's phone.
+  const [askLine, setAskLine] = useState<{ line: string; at: number } | null>(() => (autoAsk ? { line: autoAsk, at: 0 } : null));
   useEffect(() => {
-    if (!autoAsk || autoAskOpened.current || (!hasRoute && autoPlan === "home")) return;
-    const timer = setTimeout(() => {
-      autoAskOpened.current = true;
-      setAskOpen(true);
-    }, 1400);
+    if (window.parent === window) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      const data = event.data as { type?: unknown; line?: unknown } | null;
+      if (data?.type !== "demo-ask" || typeof data.line !== "string") return;
+      autoAskOpened.current = false;
+      setAskOpen(false);
+      setAskLine({ line: data.line, at: Date.now() });
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  useEffect(() => {
+    if (!askLine || autoAskOpened.current || (!hasRoute && autoPlan === "home")) return;
+    const timer = setTimeout(
+      () => {
+        autoAskOpened.current = true;
+        setAskOpen(true);
+      },
+      askLine.at ? 300 : 1400,
+    );
     return () => clearTimeout(timer);
-  }, [autoAsk, hasRoute, autoPlan]);
+  }, [askLine, hasRoute, autoPlan]);
   const routeMarkersRef = useRef<Marker[]>([]);
   // The stop whose popup is open, tied to the route it belongs to, so a new
   // route (or none) closes it without an effect.
@@ -917,7 +936,7 @@ export function EventsMap({
 
       {!crawlOpen && !askOpen && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
 
-      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} autoAsk={autoAsk ?? undefined} />}
+      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} autoAsk={askLine?.line} />}
 
       {peekStop && peekPoint && peekIndex !== null && route && (() => {
         const left = Math.min(Math.max(peekPoint.x - PEEK_WIDTH / 2, 10), peekPoint.width - PEEK_WIDTH - 10);

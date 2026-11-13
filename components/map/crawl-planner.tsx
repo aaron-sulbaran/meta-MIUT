@@ -479,6 +479,13 @@ export function CrawlPlanner({
       <div className="flex shrink-0 items-start justify-between px-4">
         <div className="min-w-0">
           <h2 className="font-display text-title font-bold leading-[20px]">{empty ? "Nothing free on the way right now" : plan.pitch}</h2>
+          {/* What Muse did, in words, once it has invited the friend the walk ends with. */}
+          {invited === "sent" && ending?.friendName && plan.invite.eventId && eventsById.get(plan.invite.eventId) && (
+            <p role="status" className="mt-[6px] rounded-[8px] bg-primary-soft px-[10px] py-[6px] text-meta font-semibold text-link">
+              Muse picked {eventsById.get(plan.invite.eventId)!.title} at {eventsById.get(plan.invite.eventId)!.place.name}, between you and {ending.friendName}, and sent{" "}
+              {ending.friendName} the invite.
+            </p>
+          )}
           <p className="mt-[3px] text-meta font-semibold text-muted">
             {route.stops.length} {route.stops.length === 1 ? "stop" : "stops"} · {route.totalWalkMinutes} min on the move · {route.destination.name} by{" "}
             {clock(route.destination.arriveAt)}
