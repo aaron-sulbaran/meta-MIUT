@@ -7,6 +7,7 @@ import type { Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, monogram } from "@/components/map/category-icons";
 import type { AskPlan } from "@/components/ask/ask-bar";
+import { PEEK_HEIGHT, PEEK_WIDTH, StopPeek } from "@/components/map/stop-peek";
 import { CrawlPlanner, type CrawlStart } from "@/components/map/crawl-planner";
 import { MapAsk } from "@/components/map/map-ask";
 import { MuseMenu } from "@/components/map/muse-menu";
@@ -61,6 +62,8 @@ export type MapCard = {
   free: boolean;
   /** What a free event gives, like "Popcorn and soda", or null. */
   perk: string | null;
+  /** The organizer's flyer, for the crawl stop popup; null when there is none. */
+  imagePath: string | null;
   category: Category;
   organizerName: string;
   /** The organizer's logo image, when the event data has one. */
@@ -359,13 +362,27 @@ const END_GLYPHS = {
   friend: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0",
 };
 
-function routeMarkerElement(label: string, home: boolean, friend = false): HTMLDivElement {
-  const element = document.createElement("div");
+// A stop's number is a button (tap it for the stop popup, StopPeek); the end
+// marker is not. MapLibre positions the wrapper by its transform, so the styled
+// circle sits inside and only the circle scales when its stop is selected.
+function routeMarkerElement(label: string, home: boolean, friend = false, onTap?: () => void, title?: string): HTMLDivElement {
+  const wrapper = document.createElement("div");
+  const element = document.createElement(onTap ? "button" : "div");
+  if (onTap) {
+    (element as HTMLButtonElement).type = "button";
+    element.addEventListener("click", (event) => {
+      event.stopPropagation();
+      onTap();
+    });
+    element.style.cursor = "pointer";
+    element.style.transition = "transform 160ms ease, box-shadow 160ms ease";
+  }
   element.textContent = home ? "" : label;
   if (home) {
     element.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${friend ? END_GLYPHS.friend : END_GLYPHS.home}"/></svg>`;
   }
-  element.setAttribute("aria-label", home ? "Where the walk ends" : `Stop ${label}`);
+  element.setAttribute("aria-label", home ? "Where the walk ends" : `Stop ${label}${title ? `: ${title}` : ""}, show details`);
+  wrapper.appendChild(element);
   Object.assign(element.style, {
     width: home ? "28px" : "34px",
     height: home ? "28px" : "34px",
@@ -378,8 +395,18 @@ function routeMarkerElement(label: string, home: boolean, friend = false): HTMLD
     alignItems: "center",
     justifyContent: "center",
     font: `700 ${home ? 12 : 15}px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif`,
+    padding: "0",
   });
-  return element;
+  return wrapper;
+}
+
+/** The selected stop's number grows and gets a green halo. */
+function setStopSelected(wrapper: HTMLElement, selected: boolean) {
+  const circle = wrapper.firstElementChild as HTMLElement | null;
+  if (!circle) return;
+  circle.style.transform = selected ? "scale(1.18)" : "scale(1)";
+  circle.style.boxShadow = selected ? "0 0 0 5px rgba(30,107,51,0.25), 0 4px 10px rgba(0,0,0,0.3)" : "0 2px 6px rgba(0,0,0,0.3)";
+  wrapper.style.zIndex = selected ? "4" : "2";
 }
 
 // While a crawl is on the map, every event bubble is hidden and stops taking
@@ -505,6 +532,11 @@ export function EventsMap({
   const [askOpen, setAskOpen] = useState(false);
   const [route, setRoute] = useState<Route | null>(null);
   const routeMarkersRef = useRef<Marker[]>([]);
+  // The stop whose popup is open, tied to the route it belongs to, so a new
+  // route (or none) closes it without an effect.
+  const [peek, setPeek] = useState<{ route: Route; index: number } | null>(null);
+  const [peekPoint, setPeekPoint] = useState<{ x: number; y: number; width: number } | null>(null);
+  const stopWrappersRef = useRef<HTMLElement[]>([]);
 
   const visibleCards = useMemo(
     () => cards.filter((card) => !dismissed.includes(card.eventId) && card.chips.includes(chip)),
@@ -647,10 +679,14 @@ export function EventsMap({
         paint: { "line-color": "#0866ff", "line-width": 4, "line-dasharray": [0.2, 2] },
       });
     }
+    stopWrappersRef.current = [];
     route.stops.forEach((stop, index) => {
-      routeMarkersRef.current.push(
-        new MarkerClass({ element: routeMarkerElement(String(index + 1), false) }).setLngLat([stop.lng, stop.lat]).addTo(map),
+      const element = routeMarkerElement(String(index + 1), false, false, () =>
+        setPeek((current) => (current && current.route === route && current.index === index ? null : { route, index })),
+        stop.title,
       );
+      stopWrappersRef.current.push(element);
+      routeMarkersRef.current.push(new MarkerClass({ element }).setLngLat([stop.lng, stop.lat]).addTo(map));
     });
     const sameAsStart = route.destination.lat === route.from.lat && route.destination.lng === route.from.lng;
     if (!sameAsStart) {
@@ -671,6 +707,37 @@ export function EventsMap({
       { padding: { top: 70, bottom: 420, left: 50, right: 50 }, maxZoom: 16.5, duration: 700 },
     );
   }, [mapReady, route]);
+
+  // The open stop popup: only while its route is the one on the map.
+  const peekIndex = peek && route && peek.route === route ? peek.index : null;
+  const peekStop = peekIndex !== null && route ? (route.stops[peekIndex] ?? null) : null;
+
+  // Highlight the selected number, keep the popup over it as the map moves,
+  // and close it on a tap on the map.
+  useEffect(() => {
+    stopWrappersRef.current.forEach((wrapper, index) => setStopSelected(wrapper, index === peekIndex));
+    const map = mapRef.current;
+    if (!map || !peekStop) return;
+    const place = () => {
+      const point = map.project([peekStop.lng, peekStop.lat]);
+      setPeekPoint({ x: point.x, y: point.y, width: map.getContainer().clientWidth });
+    };
+    // Slide the map so the stop sits just under the popup's height from the
+    // top: the whole card shows above it and the stop stays above the plan sheet.
+    const start = map.project([peekStop.lng, peekStop.lat]);
+    const target = PEEK_HEIGHT + 40;
+    if (Math.abs(start.y - target) > 8) map.panBy([0, start.y - target], { duration: 300 });
+    place();
+    const close = () => setPeek(null);
+    map.on("move", place);
+    map.on("click", close);
+    return () => {
+      map.off("move", place);
+      map.off("click", close);
+    };
+  }, [peekIndex, peekStop]);
+
+  const closePeek = useCallback(() => setPeek(null), []);
 
   const crawlEvents = useMemo(
     () => cards.map((card) => ({ eventId: card.eventId, title: card.title, place: card.place, startIso: card.startIso, endIso: card.endIso })),
@@ -820,6 +887,23 @@ export function EventsMap({
       {!crawlOpen && !askOpen && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
 
       {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} />}
+
+      {peekStop && peekPoint && peekIndex !== null && route && (() => {
+        const left = Math.min(Math.max(peekPoint.x - PEEK_WIDTH / 2, 10), peekPoint.width - PEEK_WIDTH - 10);
+        const previous = peekIndex === 0 ? route.from : route.stops[peekIndex - 1]!;
+        return (
+          <StopPeek
+            number={peekIndex + 1}
+            stop={peekStop}
+            card={cards.find((card) => card.eventId === peekStop.eventId)}
+            from={previous}
+            left={left}
+            top={peekPoint.y - 26}
+            pointerLeft={Math.min(Math.max(peekPoint.x - left, 22), PEEK_WIDTH - 22)}
+            onClose={closePeek}
+          />
+        );
+      })()}
 
       {crawlOpen && (
         <CrawlPlanner

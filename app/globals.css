@@ -88,14 +88,17 @@ body {
   font-weight: 790;
 }
 
+/* text-wrap-style, not text-wrap: the text-wrap shorthand also resets wrapping
+   to on, and as an unlayered rule it beat Tailwind's truncate and whitespace
+   utilities, so one-line text wrapped anyway. */
 h1,
 h2,
 h3 {
-  text-wrap: balance;
+  text-wrap-style: balance;
 }
 
 p {
-  text-wrap: pretty;
+  text-wrap-style: pretty;
 }
 
 /* Horizontal rails scroll without a visible scrollbar, like the app. */
