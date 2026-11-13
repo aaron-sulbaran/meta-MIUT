@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ACT_LABELS, BEATS, PERSONA_CAPTIONS } from "@/lib/demo/beats";
+import { CastAvatar } from "@/components/demo/cast-avatar";
+import { BEATS, castLine, castOf } from "@/lib/demo/beats";
 
 // A presenter's phone as a clicker for the /demo stage on the laptop. Next and
 // Back write the stage's position (/api/demo/stage); the laptop follows within
@@ -91,10 +92,12 @@ export function StageRemote() {
       <main className="flex min-h-0 flex-1 flex-col justify-center gap-[8px] px-[20px]">
         {beat ? (
           <>
-            <p className="text-meta font-semibold text-muted">{ACT_LABELS[beat.act]}</p>
-            {beat.kind !== "slide" && (
-              <p className="self-start rounded-full bg-primary-soft px-[10px] py-[3px] font-display text-[13px] font-bold text-link">
-                {PERSONA_CAPTIONS[beat.persona ?? "aaron"]}
+            {beat.kind === "slide" || beat.kind === "video" ? (
+              <p className="text-meta font-semibold text-muted">Slide</p>
+            ) : (
+              <p className="inline-flex items-center gap-[8px] self-start rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-[13px] font-bold text-link">
+                <CastAvatar id={castOf(beat.persona)} size={22} />
+                {castLine(castOf(beat.persona))}
               </p>
             )}
             <h1 className="font-display text-root-title leading-[31px] font-bold">{beat.title}</h1>
