@@ -75,7 +75,7 @@ export function buildExtractRequest(input: ExtractInput, now: Date): MuseRequest
       "a delivery, an online giveaway or raffle, an application or deadline reminder, a recap, or a general announcement.",
       "Free food, swag or merch handed out at a set time and place (a T-shirt table in a lobby from 11 to 2) is an event.",
       "Each entry has keys: title, description, start, end (ISO 8601 with offset), placeName, free (boolean),",
-      'food (boolean), foodNote (optional), access ({"kind":"open"} or {"kind":"rsvp","capacity":n}),',
+      'food (boolean), foodNote (the food in a few words, like "pizza"; always set it when food is true), access ({"kind":"open"} or {"kind":"rsvp","capacity":n}),',
       "confidence (map of field name to a number from 0 to 1 for title, description, start, end, place, free, food, access),",
       'evidence (map of field name to {"quote": exact words copied from the flyer or caption, "from": "caption", "image", or "inferred"}',
       "for title, start, end, place, free, food, access).",
