@@ -9,7 +9,8 @@ import { BEATS } from "@/lib/demo/beats";
 // tab showing again asks at once and counts as activity. Client safe.
 
 export const FAST_POLL_MS = 250;
-export const SLOW_POLL_MS = 2_000;
+// Quiet beats still ask every second, so a fresh run reaches every screen within a second or two.
+export const SLOW_POLL_MS = 1_000;
 // Fast polling lasts this long after the last move or touch.
 export const QUIET_AFTER_MS = 3 * 60_000;
 
