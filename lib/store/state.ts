@@ -42,3 +42,31 @@ export async function saveState(name: string, value: unknown): Promise<void> {
   if (!redis) return;
   await redis.command(["SET", keyFor(name), JSON.stringify(value)]);
 }
+
+/**
+ * Deletes every saved value whose name starts with one of the prefixes (the demo
+ * reset). Without Redis there is nothing stored, so it deletes nothing.
+ */
+export async function deleteStatePrefixes(
+  prefixes: string[],
+): Promise<{ data: number; error: null } | { data: null; error: string }> {
+  const redis = client();
+  if (!redis) return { data: 0, error: null };
+  let deleted = 0;
+  for (const prefix of prefixes) {
+    let cursor = "0";
+    do {
+      const reply = await redis.command(["SCAN", cursor, "MATCH", `${keyFor(prefix)}*`, "COUNT", 500]);
+      if (reply.error !== null) return { data: null, error: reply.error };
+      const [nextCursor, keys] = Array.isArray(reply.data) ? reply.data : ["0", []];
+      const names = Array.isArray(keys) ? keys.map(String) : [];
+      if (names.length > 0) {
+        const removed = await redis.command(["DEL", ...names]);
+        if (removed.error !== null) return { data: null, error: removed.error };
+        deleted += typeof removed.data === "number" ? removed.data : names.length;
+      }
+      cursor = String(nextCursor ?? "0");
+    } while (cursor !== "0");
+  }
+  return { data: deleted, error: null };
+}

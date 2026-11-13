@@ -122,6 +122,15 @@ export function createFakeRedis() {
         return { data: sets.get(at(0))?.has(at(1)) ? 1 : 0, error: null };
       case "SMEMBERS":
         return { data: [...(sets.get(at(0)) ?? [])], error: null };
+      case "SCAN": {
+        // One page holds everything; only MATCH with a trailing * is supported.
+        const pattern = text[text.indexOf("MATCH") + 1] ?? "*";
+        const prefix = pattern.endsWith("*") ? pattern.slice(0, -1) : pattern;
+        const keys = [...strings.keys(), ...hashes.keys(), ...sortedSets.keys(), ...sets.keys()].filter((key) =>
+          key.startsWith(prefix),
+        );
+        return { data: ["0", keys], error: null };
+      }
       default:
         return { data: null, error: `Redis error: fake does not support ${name}` };
     }
