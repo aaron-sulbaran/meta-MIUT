@@ -629,7 +629,7 @@ export function EventsMap({
     if (!mapReady || !map || !MarkerClass) return;
     for (const marker of routeMarkersRef.current) marker.remove();
     routeMarkersRef.current = [];
-    for (const [id, { element }] of markersRef.current) setMarkerHidden(element, route !== null, route !== null);
+    for (const { element } of markersRef.current.values()) setMarkerHidden(element, route !== null, route !== null);
     const source = map.getSource(ROUTE_SOURCE) as { setData: (data: unknown) => void } | undefined;
     if (!route) {
       if (map.getLayer(ROUTE_SOURCE)) map.removeLayer(ROUTE_SOURCE);
