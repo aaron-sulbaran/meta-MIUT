@@ -157,7 +157,8 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Aaron knows you're going",
     caption: "She lands on the event, and Aaron knows she is coming.",
-    path: eventPath,
+    // The same landing as U2b, so it stays on her "Aaron knows you're going" screen.
+    path: ({ storyEventId }) => `/invite/${encodeURIComponent(storyEventId)}?from=sample-student`,
   },
   {
     id: "U3a",
