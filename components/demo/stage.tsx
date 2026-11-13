@@ -1,12 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { CastAvatar } from "@/components/demo/cast-avatar";
+import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
-import { ACT_LABELS, BEATS, PERSONA_CAPTIONS, STORY_DUE_AFTER, type Beat } from "@/lib/demo/beats";
+import { BEATS, STORY_DUE_AFTER, castLine, castOf, type Beat, type CastId } from "@/lib/demo/beats";
+import { demoClock } from "@/lib/demo/clock";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
-// The projected stage for the pitch. One beat at a time: a slide fills the
-// stage; an app beat shows the real app in a phone, playing that beat's
+// The projected stage for the pitch, on Facebook's white page. One beat at a
+// time: a slide fills the stage (or its video, when a file is dropped into
+// public/demo/); an app beat shows the real app in a large phone, playing that beat's
 // persona; a staged beat shows a screen from another app that hands off with
 // one tap (a staged page posts "demo-handoff" to move on without a reload;
 // until a staged route exists, a placeholder stands in). Keys: Right, Space or Page Down next; Left or Page Up back; Home
@@ -16,9 +20,16 @@ import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 // show too: the stage keeps its beat in the shared store (/api/demo/stage) and
 // follows any newer move within about a second. The laptop stays the master:
 // if that store or the network fails, the stage keeps running on its keys.
+// When the person changes, a short card says who is on now (Next skips it);
+// within one person the phone cross-fades. Reset and the beat list stay off
+// the projected view: they live on /demo/console and the remote (keys still work).
 
 const PHONE_WIDTH = 390;
 const PHONE_HEIGHT = 844;
+const BEZEL = 12;
+const FOOTER_HEIGHT = 72;
+const PERSON_CARD_MS = 700;
+const FADE_MS = 200;
 const CHANNEL = "demo-stage";
 const TOKEN_KEY = "demo-reset-token";
 
@@ -68,12 +79,17 @@ function readToken(): string {
   }
 }
 
-// Fit a 390 by 844 phone into the stage at any projector size.
+// Fit a 390 by 844 phone into the stage at any projector size: as tall as the
+// window allows, with room above and below. On a narrow window the words stack under it.
 function subscribeToResize(onChange: () => void) {
   window.addEventListener("resize", onChange);
   return () => window.removeEventListener("resize", onChange);
 }
-const phoneScale = () => Math.min((window.innerHeight * 0.86) / PHONE_HEIGHT, (window.innerWidth * 0.42) / PHONE_WIDTH);
+const phoneScale = () => {
+  const byHeight = (window.innerHeight - FOOTER_HEIGHT - 48 - BEZEL * 2) / PHONE_HEIGHT;
+  if (window.innerWidth < 768) return Math.min(byHeight * 0.55, (window.innerWidth - 32 - BEZEL * 2) / PHONE_WIDTH);
+  return Math.min(byHeight, (window.innerWidth * 0.44 - BEZEL * 2) / PHONE_WIDTH);
+};
 
 async function fetchStoryEvent(): Promise<{ id: string; error: null } | { id: null; error: string }> {
   try {
@@ -85,27 +101,37 @@ async function fetchStoryEvent(): Promise<{ id: string; error: null } | { id: nu
   }
 }
 
-function personaCaption(persona: PersonaId | null): string {
-  return PERSONA_CAPTIONS[persona ?? "aaron"];
+type Frame = { src: string; key: number; loaded: boolean };
+
+/** Checks once whether each file or route exists (a staged screen, a slide's video). */
+function useExists(path: string | null): boolean | undefined {
+  const [known, setKnown] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (!path || path in known) return;
+    fetch(path, { method: "HEAD", cache: "no-store" })
+      .then((response) => setKnown((ready) => ({ ...ready, [path]: response.ok })))
+      .catch(() => setKnown((ready) => ({ ...ready, [path]: false })));
+  }, [path, known]);
+  return path ? known[path] : undefined;
 }
 
 export function Stage() {
   const [index, setIndex] = useState(0);
   const [storyEventId, setStoryEventId] = useState<string | null>(null);
-  const [frame, setFrame] = useState<{ src: string; key: number } | null>(null);
+  // The phone's screens: the newest fades in over the one before, which is dropped once it shows.
+  const [frames, setFrames] = useState<Frame[]>([]);
   const scale = useSyncExternalStore(subscribeToResize, phoneScale, () => 0.8);
   const [showList, setShowList] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  // The run's clock: every beat's times count from it. It is stamped again when
-  // the first live beat opens (the stage may sit open long before the pitch),
-  // and a reset starts a new run.
-  const [runStartedAt, setRunStartedAt] = useState(() => new Date());
-  const clockStamped = useRef(false);
+  // The person card shown when the person on screen changes.
+  const [personCard, setPersonCard] = useState<CastId | null>(null);
+  const personCardRef = useRef<CastId | null>(null);
+  const lastCastRef = useRef<CastId | null>(null);
+  // The run's clock: one fixed campus afternoon (lib/demo/clock.ts), the same for every beat.
+  const [runStartedAt, setRunStartedAt] = useState(() => demoClock());
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
   // Where the phone is now, as far as the stage knows (a handoff moves it too).
   const locationRef = useRef<string | null>(null);
-  // Staged routes checked so far: true when the route exists.
-  const [stagedReady, setStagedReady] = useState<Record<string, boolean>>({});
   const channelRef = useRef<BroadcastChannel | null>(null);
   // The newest stage move this window has seen in the store, and its own beat, for the remote.
   const lastSeqRef = useRef(0);
@@ -131,21 +157,40 @@ export function Stage() {
   }, [storyDue, storyEventId]);
   const beatSrc = beat.path ? beat.path({ storyEventId, now: runStartedAt }) : null;
 
-  const goTo = useCallback((next: number, source: MoveSource = "local") => {
-    const clamped = Math.max(0, Math.min(BEATS.length - 1, next));
-    if (!clockStamped.current && BEATS[clamped]?.kind !== "slide") {
-      clockStamped.current = true;
-      setRunStartedAt(new Date());
-    }
-    indexRef.current = clamped;
-    setIndex(clamped);
-    if (source !== "channel") channelRef.current?.postMessage({ type: "goto", index: clamped } satisfies StageMessage);
-    if (source === "local") {
-      void writePosition(clamped).then((position) => {
-        if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
-      });
-    }
+  const showPersonCard = useCallback((id: CastId | null) => {
+    personCardRef.current = id;
+    setPersonCard(id);
   }, []);
+
+  const goTo = useCallback(
+    (next: number, source: MoveSource = "local") => {
+      const clamped = Math.max(0, Math.min(BEATS.length - 1, next));
+      const target = BEATS[clamped];
+      // A new person on screen: say who, briefly.
+      if (target && target.kind !== "slide" && target.kind !== "video") {
+        const cast = castOf(target.persona);
+        if (cast !== lastCastRef.current) {
+          lastCastRef.current = cast;
+          showPersonCard(cast);
+        }
+      }
+      indexRef.current = clamped;
+      setIndex(clamped);
+      if (source !== "channel") channelRef.current?.postMessage({ type: "goto", index: clamped } satisfies StageMessage);
+      if (source === "local") {
+        void writePosition(clamped).then((position) => {
+          if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
+        });
+      }
+    },
+    [showPersonCard],
+  );
+
+  useEffect(() => {
+    if (!personCard) return;
+    const timer = setTimeout(() => showPersonCard(null), PERSON_CARD_MS);
+    return () => clearTimeout(timer);
+  }, [personCard, showPersonCard]);
 
   // A phone remote moves the show through the store: follow any move newer than
   // the last one seen. On load the stage first claims the record for its own beat.
@@ -172,7 +217,7 @@ export function Stage() {
 
   // Open the beat: its persona, its screen.
   useEffect(() => {
-    if (beat.kind === "slide") return;
+    if (beat.kind === "slide" || beat.kind === "video") return;
     const personaChanged = personaRef.current !== beat.persona;
     if (personaChanged) {
       setPersonaCookie(beat.persona);
@@ -181,19 +226,22 @@ export function Stage() {
     if (!beatSrc) return;
     if (personaChanged || locationRef.current !== beatSrc) {
       locationRef.current = beatSrc;
-      setFrame({ src: beatSrc, key: Date.now() });
+      setFrames((current) => [...current.slice(-1), { src: beatSrc, key: Date.now(), loaded: false }]);
     }
   }, [beat, beatSrc]);
 
-  // A staged beat's route may not be built yet: check once, use a placeholder until it is.
+  const frameLoaded = useCallback((key: number) => {
+    setFrames((current) => current.map((frame) => (frame.key === key ? { ...frame, loaded: true } : frame)));
+    setTimeout(() => setFrames((current) => (current.at(-1)?.key === key ? current.slice(-1) : current)), FADE_MS + 40);
+  }, []);
+
+  // A staged beat's route may not be built yet: use a placeholder until it is.
   const stagedPath = beat.kind === "staged" ? beatSrc : null;
-  useEffect(() => {
-    if (!stagedPath || stagedPath in stagedReady) return;
-    fetch(stagedPath, { method: "HEAD", cache: "no-store" })
-      .then((response) => setStagedReady((ready) => ({ ...ready, [stagedPath]: response.ok })))
-      .catch(() => setStagedReady((ready) => ({ ...ready, [stagedPath]: false })));
-  }, [stagedPath, stagedReady]);
-  const showPlaceholder = beat.kind === "staged" && (!stagedPath || stagedReady[stagedPath] !== true);
+  const stagedReady = useExists(stagedPath);
+  const showPlaceholder = beat.kind === "staged" && (!stagedPath || stagedReady !== true);
+  // A slide plays its video instead when the file is there.
+  const videoReady = useExists(beat.video ?? null);
+  const playVideo = Boolean(beat.video) && (beat.kind === "video" || videoReady === true);
 
   const resetDemo = useCallback(async () => {
     setStatus("Resetting the demo");
@@ -215,15 +263,21 @@ export function Stage() {
       setStatus("Reset failed; the demo data was not changed");
       return;
     }
-    setRunStartedAt(new Date());
-    clockStamped.current = false;
+    setRunStartedAt(demoClock());
     personaRef.current = undefined;
     locationRef.current = null;
-    setFrame(null);
+    lastCastRef.current = null;
+    setFrames([]);
     setStoryEventId(null);
     setStatus(null);
     goTo(0);
   }, [goTo]);
+
+  useEffect(() => {
+    if (!status || status === "Resetting the demo") return;
+    const timer = setTimeout(() => setStatus(null), 6_000);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   // Presenter windows on the same browser stay in step.
   useEffect(() => {
@@ -255,7 +309,9 @@ export function Stage() {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       if (["ArrowRight", "PageDown", " "].includes(event.key)) {
         event.preventDefault();
-        goTo(index + 1);
+        // Next during the person card skips the card, not the beat.
+        if (personCardRef.current) showPersonCard(null);
+        else goTo(index + 1);
       } else if (["ArrowLeft", "PageUp"].includes(event.key)) {
         event.preventDefault();
         goTo(index - 1);
@@ -264,7 +320,7 @@ export function Stage() {
       } else if (event.key === "R") {
         void resetDemo();
       } else if (event.key === "r") {
-        setFrame((current) => (current ? { ...current, key: Date.now() } : current));
+        setFrames((current) => current.slice(-1).map((frame) => ({ ...frame, key: Date.now(), loaded: false })));
       } else if (event.key === "h" || event.key === "H") {
         setShowList((shown) => !shown);
       } else if (event.key === "f" || event.key === "F") {
@@ -274,73 +330,82 @@ export function Stage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [beat.id, goTo, index, resetDemo]);
+  }, [goTo, index, resetDemo, showPersonCard]);
 
-  const progress = `${index + 1} / ${BEATS.length}`;
+  const cast = castOf(beat.persona);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-wash text-ink">
-      {beat.kind === "slide" ? (
-        <section className="flex flex-1 flex-col justify-center gap-6 px-[8vw]">
-          <p className="font-display text-[clamp(16px,1.6vw,26px)] font-bold text-muted">
-            {ACT_LABELS[beat.act]}
-          </p>
-          <h1 className="font-display text-[clamp(44px,6vw,104px)] leading-[1.02] font-extrabold tracking-[-0.02em]">{beat.title}</h1>
-          <p className="max-w-[28ch] text-[clamp(26px,2.8vw,48px)] leading-[1.25] font-medium text-muted">
-            {beat.caption}
-          </p>
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-page text-ink">
+      {beat.kind === "slide" || beat.kind === "video" ? (
+        <section className="flex min-h-0 flex-1 flex-col justify-center gap-[3vh] px-[8vw]">
+          <h1 className="font-display text-[clamp(44px,6.2vw,104px)] leading-[1.02] font-bold tracking-[-0.02em]">{beat.title}</h1>
+          <p className="max-w-[30ch] text-[clamp(22px,2.3vw,40px)] leading-[1.3] font-medium text-muted">{beat.caption}</p>
         </section>
       ) : (
-        <section className="grid flex-1 grid-cols-[auto_minmax(0,1fr)] items-center gap-[5vw] px-[6vw]">
+        <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[24px] px-[16px] py-[24px] md:flex-row md:gap-[5vw] md:px-[6vw]">
           <div
-            className="relative overflow-hidden rounded-[48px] border-[10px] border-ink bg-card shadow-[0_24px_60px_rgba(0,0,0,0.25)]"
-            style={{ width: PHONE_WIDTH * scale + 20, height: PHONE_HEIGHT * scale + 20 }}
+            className="relative shrink-0 overflow-hidden rounded-[52px] bg-card shadow-[0_18px_50px_rgba(0,0,0,0.18)]"
+            style={{ width: PHONE_WIDTH * scale + BEZEL * 2, height: PHONE_HEIGHT * scale + BEZEL * 2, border: `${BEZEL}px solid #1c1e21` }}
           >
-            <div style={{ width: PHONE_WIDTH, height: PHONE_HEIGHT, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+            <div className="relative" style={{ width: PHONE_WIDTH, height: PHONE_HEIGHT, transform: `scale(${scale})`, transformOrigin: "top left" }}>
               {showPlaceholder && beat.staged ? (
                 <StagedScreenView screen={beat.staged} onHandoff={() => goTo(index + 1)} />
-              ) : frame ? (
-                <iframe
-                  key={frame.key}
-                  src={frame.src}
-                  title={`${personaCaption(beat.persona)}: phone`}
-                  allow="microphone; geolocation; autoplay"
-                  className="h-full w-full border-0 bg-card"
-                />
+              ) : frames.length > 0 ? (
+                frames.map((frame, frameIndex) => (
+                  <iframe
+                    key={frame.key}
+                    src={frame.src}
+                    title={`${castLine(cast)}: phone`}
+                    allow="microphone; geolocation; autoplay"
+                    onLoad={() => frameLoaded(frame.key)}
+                    className="absolute inset-0 h-full w-full border-0 bg-card transition-opacity ease-out motion-reduce:transition-none"
+                    style={{ opacity: frame.loaded || frameIndex < frames.length - 1 ? 1 : 0, transitionDuration: `${FADE_MS}ms` }}
+                  />
+                ))
               ) : (
                 <div className="flex h-full items-center justify-center text-body text-muted">Loading the story event</div>
               )}
             </div>
           </div>
-          <div className="flex min-w-0 flex-col gap-5">
-            <p className="font-display text-[clamp(14px,1.4vw,22px)] font-bold text-muted">
-              {ACT_LABELS[beat.act]}
-            </p>
-            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-4 py-1.5 font-display text-[clamp(16px,1.5vw,24px)] font-bold text-link">
-              <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary" />
-              {personaCaption(beat.persona)}
+          <div className="flex w-full max-w-[600px] min-w-0 flex-col gap-[2.4vh]">
+            <span className="inline-flex w-fit items-center gap-[12px] rounded-full bg-primary-soft py-[6px] pr-[18px] pl-[6px] font-display text-[clamp(16px,1.5vw,24px)] font-bold text-link">
+              <CastAvatar id={cast} size={40} />
+              {castLine(cast)}
             </span>
-            <h1 className="font-display text-[clamp(30px,3.4vw,60px)] leading-[1.05] font-extrabold tracking-[-0.01em]">{beat.title}</h1>
-            <p className="max-w-[26ch] text-[clamp(22px,2.3vw,40px)] leading-[1.3] font-medium text-muted">{beat.caption}</p>
+            <h1 className="font-display text-[clamp(30px,3.9vw,64px)] leading-[1.08] font-bold tracking-[-0.01em]">{beat.title}</h1>
+            <p className="text-[clamp(18px,1.8vw,30px)] leading-[1.35] font-medium text-muted">{beat.caption}</p>
           </div>
         </section>
       )}
 
-      <footer className="flex items-center gap-4 px-[6vw] pb-5">
-        <div className="h-[6px] flex-1 overflow-hidden rounded-full bg-button" aria-hidden>
-          <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${((index + 1) / BEATS.length) * 100}%` }} />
-        </div>
-        <span className="font-display text-[clamp(14px,1.2vw,20px)] font-bold text-muted tabular-nums">{progress}</span>
+      <footer className="flex shrink-0 items-center justify-center px-[16px]" style={{ height: FOOTER_HEIGHT }}>
+        <StageProgress index={index} />
       </footer>
 
+      {playVideo && beat.video && (
+        <video key={beat.video} src={beat.video} autoPlay playsInline className="absolute inset-0 z-10 h-full w-full bg-black object-cover" />
+      )}
+
+      {personCard && (
+        <div
+          role="status"
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-[24px] bg-page motion-safe:animate-[stage-card_700ms_ease-out_both]"
+        >
+          <style>{"@keyframes stage-card{0%{opacity:0}20%{opacity:1}80%{opacity:1}100%{opacity:0}}"}</style>
+          <CastAvatar id={personCard} size={128} />
+          <p className="font-display text-[clamp(28px,3.4vw,56px)] font-bold">Now: {castLine(personCard)}</p>
+        </div>
+      )}
+
       {status && (
-        <p role="status" className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-body text-card">
+        <p role="status" className="absolute top-4 left-1/2 z-30 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-body text-card">
           {status}
         </p>
       )}
 
+      {/* The operator's beat list (H). Hidden unless asked for; reset lives on /demo/console and Shift+R. */}
       {showList && (
-        <nav aria-label="Beats" className="absolute top-4 right-4 max-h-[80vh] w-[320px] overflow-y-auto rounded-card bg-card p-3 shadow-xl">
+        <nav aria-label="Beats" className="absolute top-4 right-4 z-30 max-h-[80vh] w-[320px] overflow-y-auto rounded-card bg-card p-3 shadow-xl">
           <ol className="flex flex-col gap-1">
             {BEATS.map((item, itemIndex) => (
               <li key={item.id}>
@@ -354,10 +419,6 @@ export function Stage() {
               </li>
             ))}
           </ol>
-          <button type="button" onClick={() => void resetDemo()} className="mt-3 w-full rounded-button bg-button py-2 font-display text-label font-bold">
-            Reset the demo
-          </button>
-          <p className="mt-2 text-meta text-muted">Keys: arrows or clicker to move, R reload beat, Shift+R reset, H this list, F full screen.</p>
         </nav>
       )}
     </div>
