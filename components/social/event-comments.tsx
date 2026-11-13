@@ -39,6 +39,20 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
     setError(null);
   }
 
+  // Coming back to a cached page still shows the latest comments, yours included.
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/social/events/${encodeURIComponent(initial.eventId)}/comments`, { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ data: EventComments | null }>)
+      .then((result) => {
+        if (live && result.data) setComments(result.data.comments);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [initial.eventId]);
+
   useEffect(() => {
     const tick = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(tick);

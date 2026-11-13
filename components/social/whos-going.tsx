@@ -112,6 +112,20 @@ export function WhosGoing({
   const goingUrl = `/api/social/events/${encodeURIComponent(who.eventId)}`;
   const full = seats !== null && seats.left === 0 && !who.viewer.going;
 
+  // Coming back to a cached page still shows your latest Going and the latest list.
+  useEffect(() => {
+    let live = true;
+    fetch(goingUrl, { cache: "no-store" })
+      .then((response) => response.json() as Promise<Response>)
+      .then((latest) => {
+        if (live && latest?.data) setWho(latest.data);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [goingUrl]);
+
   async function setGoing(going: boolean, open: boolean) {
     setBusy(true);
     setError(null);

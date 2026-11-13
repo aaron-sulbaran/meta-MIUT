@@ -1,17 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { buttonClass } from "@/components/ui/button";
 import { ShareIcon, StarFilledIcon, StarIcon } from "@/components/ui/icons";
 
-/** The full-width grey Interested button with a star. Toggles locally. */
-export function InterestedButton({ className = "" }: { className?: string }) {
+/** The full-width grey Interested button with a star. Toggles locally, and remembers it for this tab when given an id. */
+export function InterestedButton({ id, className = "" }: { id?: string; className?: string }) {
   const [interested, setInterested] = useState(false);
+  const key = id ? `interested:${id}` : null;
+
+  useEffect(() => {
+    if (!key) return;
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        if (sessionStorage.getItem(key) === "1") setInterested(true);
+      } catch {}
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [key]);
+
+  function toggle() {
+    const next = !interested;
+    setInterested(next);
+    if (!key) return;
+    try {
+      if (next) sessionStorage.setItem(key, "1");
+      else sessionStorage.removeItem(key);
+    } catch {}
+  }
+
   return (
     <button
       type="button"
       aria-pressed={interested}
-      onClick={() => setInterested((value) => !value)}
+      onClick={toggle}
       className={buttonClass(interested ? "soft" : "secondary", className)}
     >
       {interested ? (

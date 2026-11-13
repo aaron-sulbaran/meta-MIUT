@@ -53,7 +53,7 @@ export function FbEventCard({ href, sharePath, image, dateLine, title, venue, me
         <div>{body}</div>
       )}
       <div className="flex gap-[7.6px] px-[11.3px] pb-[11.7px] pt-[9px]">
-        <InterestedButton className="flex-1" />
+        <InterestedButton id={href ?? sharePath ?? title} className="flex-1" />
         <ShareButton path={sharePath ?? href ?? "/"} title={title} />
       </div>
     </article>
