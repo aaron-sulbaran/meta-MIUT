@@ -17,10 +17,10 @@ export function posterKicker(event: CampusEvent): string {
   return event.organizer.name;
 }
 
-export function EventCard({ event, now }: { event: CampusEvent; now: Date }) {
+export function EventCard({ event, now, from }: { event: CampusEvent; now: Date; from?: "ask" }) {
   return (
     <FbEventCard
-      href={`/events/${event.id}`}
+      href={`/events/${event.id}${from ? `?from=${from}` : ""}`}
       image={<Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />}
       dateLine={formatDateLine(event, now)}
       title={event.title}

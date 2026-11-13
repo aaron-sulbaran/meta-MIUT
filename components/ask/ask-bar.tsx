@@ -24,6 +24,9 @@ type Phase = "idle" | "transcribing" | "asking";
 type Exchange = { id: number; question: string; reply: AskReply | null; error: string | null; done: string[]; planIds: string[]; links: { label: string; href: string }[] };
 type CrawlReply = { data: { stops: { eventId: string }[]; pitch: string } | null; error: string | null };
 
+// The conversation on screen survives opening an event and coming back.
+const THREAD_KEY = "ask-muse-thread";
+
 const FILTER_LABELS = { forYou: "For you", free: "Free", today: "Today", week: "This week" } as const;
 
 function MicIcon({ className }: { className?: string }) {
@@ -53,7 +56,7 @@ function linked(answer: string, mentioned: CampusEvent[]): ReactNode {
   return parts.map((part, index) => {
     const event = titles.find((candidate) => candidate.title === part);
     return event ? (
-      <Link key={index} href={`/events/${event.id}`} className="font-semibold text-primary">
+      <Link key={index} href={`/events/${event.id}?from=ask`} className="font-semibold text-primary">
         {part}
       </Link>
     ) : (
@@ -69,6 +72,22 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
   const [thread, setThread] = useState<Exchange[]>([]);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const byVoiceRef = useRef(false);
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const saved = window.sessionStorage.getItem(THREAD_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (saved) setThread(JSON.parse(saved) as Exchange[]);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    if (!restoredRef.current) return;
+    try {
+      window.sessionStorage.setItem(THREAD_KEY, JSON.stringify(thread));
+    } catch {}
+  }, [thread]);
   const startListeningRef = useRef<() => void>(() => {});
   const byId = new Map(events.map((event) => [event.id, event]));
   const now = new Date(nowIso);
@@ -98,7 +117,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
           return { note: result.error === null ? `Marked interested in ${title(id)}` : `Couldn't save ${title(id)}` };
         }
         case "open":
-          if (id) router.push(`/events/${id}`);
+          if (id) router.push(`/events/${id}?from=ask`);
           return { note: id ? `Opened ${title(id)}` : null };
         case "filter":
           if (!action.filter) return { note: null };
@@ -294,7 +313,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
                       </Link>
                     ))}
                     {[...mentioned, ...planned.filter((event) => !mentioned.includes(event))].map((event) => (
-                      <EventCard key={event.id} event={event} now={now} />
+                      <EventCard key={event.id} event={event} now={now} from="ask" />
                     ))}
                   </li>
                 );

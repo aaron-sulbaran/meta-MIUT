@@ -12,9 +12,16 @@ import { formatDateLine, formatEventTime } from "@/lib/events/time";
 import { loadSocial, whoIsGoing } from "@/lib/social/going";
 import { demoViewer } from "@/lib/social/viewer";
 
-export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EventPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+}) {
   await connection();
   const { id } = await params;
+  const fromAsk = (await searchParams).from === "ask";
   const event = await getEventStore().getEvent(id);
   if (!event) notFound();
   const now = new Date();
@@ -25,7 +32,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   return (
     <>
-      <SubPageHeader title="Event" backHref="/" backLabel="Back to Events" actions={<EventShareAction event={event} />} />
+      <SubPageHeader
+        title="Event"
+        backHref={fromAsk ? "/ask" : "/"}
+        backLabel={fromAsk ? "Back to Ask Muse" : "Back to Events"}
+        actions={<EventShareAction event={event} />}
+      />
       <Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />
 
       <section className="px-3 pt-[14px]">
