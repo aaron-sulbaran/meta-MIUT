@@ -1,0 +1,453 @@
+[
+ {
+  "id": "normal-pizza",
+  "lines": [
+   "MIT ACM",
+   "FREE PIZZA NIGHT",
+   "Friday, November 13",
+   "6:00 - 8:00 PM",
+   "Stata Center 32-123",
+   "All students welcome"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "food": true,
+   "start": "2026-11-13T18:00",
+   "end": "2026-11-13T20:00",
+   "place": "32-123"
+  },
+  "note": "",
+  "kind": "normal"
+ },
+ {
+  "id": "normal-talk",
+  "lines": [
+   "MIT CSAIL presents",
+   "Robots That Learn",
+   "A talk by Prof. Ana Ruiz",
+   "Monday Nov 16 | 4 PM",
+   "Kirsch Auditorium, 32-123",
+   "Refreshments served"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "food": true,
+   "start": "2026-11-16T16:00",
+   "place": "32-123"
+  },
+  "note": "",
+  "kind": "normal"
+ },
+ {
+  "id": "paid-formal",
+  "lines": [
+   "Winter Formal",
+   "Saturday, November 21",
+   "8 PM to midnight",
+   "Walker Memorial",
+   "Tickets $15 at the door"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": false,
+   "start": "2026-11-21T20:00",
+   "place": "Walker"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "free-entry-paid-drinks",
+  "lines": [
+   "Coffeehouse Open Mic",
+   "Free entry",
+   "Drinks $3",
+   "Tonight 9 PM",
+   "Lobdell, Student Center W20"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "start": "2026-11-13T21:00",
+   "place": "W20"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "swag-table",
+  "lines": [
+   "FREE T-SHIRTS",
+   "MIT Hacks swag table",
+   "Today 11 AM - 2 PM",
+   "Lobby 10",
+   "While supplies last"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "start": "2026-11-13T11:00",
+   "end": "2026-11-13T14:00",
+   "place": "Lobby 10"
+  },
+  "note": "A timed free swag table; the Free tab counts swag",
+  "kind": "edge"
+ },
+ {
+  "id": "weekly-no-date",
+  "lines": [
+   "Chess Club",
+   "Every Tuesday, 7 PM",
+   "Room 4-237",
+   "Boards provided, all levels"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count_min": 1,
+   "free": true,
+   "start": "2026-11-17T19:00",
+   "place": "4-237"
+  },
+  "note": "Recurring, no date: the next Tuesday",
+  "kind": "edge"
+ },
+ {
+  "id": "past-date",
+  "lines": [
+   "Fall Harvest Fest",
+   "Saturday, October 3, 2026",
+   "1 - 4 PM",
+   "Kresge Lawn",
+   "Free cider and donuts"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count_min": 0,
+   "past_ok": true
+  },
+  "note": "Already happened: should not look upcoming",
+  "kind": "edge"
+ },
+ {
+  "id": "multi-event",
+  "lines": [
+   "CAREER WEEK",
+   "Mon 11/16  Resume Workshop  5 PM  4-370",
+   "Wed 11/18  Mock Interviews  6 PM  E51-145",
+   "Fri 11/20  Alumni Mixer  7 PM  Walker Memorial",
+   "Hosted by MIT CAPD"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 3,
+   "starts": [
+    "2026-11-16T17:00",
+    "2026-11-18T18:00",
+    "2026-11-20T19:00"
+   ]
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "multi-day",
+  "lines": [
+   "HackMIT Mini",
+   "Saturday Nov 14, 9 AM",
+   "to Sunday Nov 15, 5 PM",
+   "Stata Center",
+   "Free meals all weekend"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count_min": 1,
+   "free": true,
+   "food": true,
+   "start": "2026-11-14T09:00",
+   "end": "2026-11-15T17:00"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "overnight",
+  "lines": [
+   "Midnight Breakfast",
+   "Friday Nov 13",
+   "10 PM - 2 AM",
+   "Baker House dining",
+   "Free pancakes"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "food": true,
+   "start": "2026-11-13T22:00",
+   "end": "2026-11-14T02:00",
+   "place": "Baker"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "brunch-ambiguous",
+  "lines": [
+   "Sunday Brunch Social",
+   "Nov 15, 11 - 1",
+   "Maseeh Hall lounge",
+   "Bagels and coffee on us"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "food": true,
+   "start": "2026-11-15T11:00",
+   "end": "2026-11-15T13:00",
+   "place": "Maseeh"
+  },
+  "note": "11 - 1 with no AM/PM",
+  "kind": "edge"
+ },
+ {
+  "id": "rsvp-capacity",
+  "lines": [
+   "Sushi Making Workshop",
+   "Thursday Nov 19, 6 PM",
+   "Next House kitchen",
+   "Only 40 spots, RSVP required",
+   "Free"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "food": true,
+   "access": "rsvp",
+   "capacity": 40,
+   "start": "2026-11-19T18:00"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "caption-overrides",
+  "lines": [
+   "Board Game Night",
+   "Friday Nov 13, 6 PM",
+   "Walker Memorial"
+  ],
+  "caption": "UPDATE: we moved to 7 PM because of a room conflict! Same place.",
+  "style": "",
+  "expect": {
+   "count": 1,
+   "start": "2026-11-13T19:00"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "spanish",
+  "lines": [
+   "Noche de Salsa",
+   "Viernes 13 de noviembre",
+   "7 PM",
+   "Walker Memorial",
+   "Entrada gratis, todos bienvenidos"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "start": "2026-11-13T19:00",
+   "place": "Walker"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "not-event-sale",
+  "lines": [
+   "Finals Care Packages",
+   "Order by Friday Nov 20",
+   "$12 each, delivered to your dorm",
+   "Order online"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 0
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "handwritten-rotated",
+  "lines": [
+   "free ice cream!!",
+   "tonight 8pm",
+   "east campus courtyard",
+   "bring friends"
+  ],
+  "caption": null,
+  "style": "font-family:'Comic Sans MS','Segoe Print',cursive;transform:rotate(-9deg);",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "food": true,
+   "start": "2026-11-13T20:00",
+   "place": "East Campus"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "blurry-lowcontrast",
+  "lines": [
+   "MIT Film Society",
+   "Movie Night: Inception",
+   "Saturday Nov 14, 8 PM",
+   "Room 26-100",
+   "Free popcorn"
+  ],
+  "caption": null,
+  "style": "filter:blur(1.6px) contrast(0.45) brightness(1.15);",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "food": true,
+   "start": "2026-11-14T20:00",
+   "place": "26-100"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "busy-noise",
+  "lines": [
+   "!!! BIG ANNOUNCEMENT !!!",
+   "Follow us @mit_dance",
+   "Swing Dance Lesson",
+   "Tue 11/17 8-9:30pm",
+   "Lobdell Dining Hall",
+   "no partner needed",
+   "Instagram | Twitter | linktr.ee/mitdance"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "free": true,
+   "start": "2026-11-17T20:00",
+   "end": "2026-11-17T21:30",
+   "place": "Lobdell"
+  },
+  "note": "",
+  "kind": "edge"
+ },
+ {
+  "id": "no-place",
+  "lines": [
+   "Study Break",
+   "Monday Nov 16, 3 PM",
+   "Free cookies"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count_min": 0
+  },
+  "note": "No place given: should flag low place confidence",
+  "kind": "edge"
+ },
+ {
+  "id": "repost-time-change",
+  "lines": [
+   "HSA Movie Night",
+   "NEW TIME: tonight 9 PM",
+   "Building 4, Room 4-237",
+   "Free snacks"
+  ],
+  "caption": "Movie night is pushed back to 9!",
+  "style": "",
+  "expect": {
+   "count": 1,
+   "start": "2026-11-13T21:00",
+   "match": "evt-hsa-movie-night"
+  },
+  "note": "",
+  "kind": "match"
+ },
+ {
+  "id": "same-org-new-event",
+  "lines": [
+   "MIT HSA",
+   "Diwali Dinner",
+   "Saturday Nov 21, 7 PM",
+   "Walker Memorial",
+   "Free dinner"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 1,
+   "start": "2026-11-21T19:00",
+   "match": null
+  },
+  "note": "Same organizer, different event",
+  "kind": "match"
+ },
+ {
+  "id": "merch-sale",
+  "lines": [
+   "MIT Dance Hoodies",
+   "$30 each",
+   "Order online by Friday Nov 20",
+   "Pick up at our next practice"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 0
+  },
+  "note": "Merch for sale, not an event",
+  "kind": "edge"
+ },
+ {
+  "id": "online-raffle",
+  "lines": [
+   "GIVEAWAY",
+   "Win AirPods!",
+   "Follow @mit_ux and tag 2 friends",
+   "Winner announced Nov 20"
+  ],
+  "caption": null,
+  "style": "",
+  "expect": {
+   "count": 0
+  },
+  "note": "Online giveaway, no place to go",
+  "kind": "edge"
+ }
+]
