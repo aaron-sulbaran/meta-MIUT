@@ -15,7 +15,7 @@ const content = JSON.parse(readFileSync(`${dir}/content.json`, 'utf8'));
 content.openingQr = mode === 'on';
 writeFileSync(`${dir}/content.json`, JSON.stringify(content, null, 2) + '\n');
 
-const TRY_IT = { id: 'try-it', title: 'Try it yourself while we set up', lead: 'screen', notes: 'Leave this up while we plug in. Click when ready.' };
+const TRY_IT = { id: 'try-it', title: 'Try it yourself while we set up', lead: 'speaker', notes: "We built this and it's live. Scan it now, but stay with us for the demo and play with it after: every call you'll see is real." };
 const steps = JSON.parse(readFileSync(`${dir}/steps.json`, 'utf8')).filter((s) => s.id !== 'try-it');
 if (mode === 'on') steps.unshift(TRY_IT);
 writeFileSync(`${dir}/steps.json`, JSON.stringify(steps, null, 2) + '\n');

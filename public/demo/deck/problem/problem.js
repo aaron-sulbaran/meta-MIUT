@@ -37,8 +37,8 @@
   const TRY_IT = {
     id: "try-it",
     title: "Try it yourself while we set up",
-    lead: "screen",
-    notes: "Leave this up while we plug in. Click when ready.",
+    lead: "speaker",
+    notes: "We built this and it's live. Scan it now, but stay with us for the demo and play with it after: every call you'll see is real.",
     build(seg, ctx) {
       ctx.show(seg, "s0");
       ctx.ft(seg, "#s0-code", { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }, 0.1);
