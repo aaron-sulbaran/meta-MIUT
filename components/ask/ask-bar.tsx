@@ -241,7 +241,7 @@ export function AskBar({
           // From the Ask Muse page, go straight to the walk on the map (it ends at home unless the request says otherwise).
           keepConversation();
           router.push(link.href);
-          return { note: "Opening the Food Crawl" };
+          return { note: "Opening the Freebie Crawl" };
         }
       }
     },

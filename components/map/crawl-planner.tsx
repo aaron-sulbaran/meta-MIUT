@@ -321,7 +321,7 @@ export function CrawlPlanner({
 
   if (step === "choose") {
     return (
-      <div className={`${sheet} px-4 pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+16px)] pt-3`} role="dialog" aria-label="Plan a food crawl">
+      <div className={`${sheet} px-4 pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+16px)] pt-3`} role="dialog" aria-label="Plan a freebie crawl">
         <div className="mx-auto mb-2 h-1 w-8 rounded-full bg-divider" />
         <div className="flex items-start justify-between">
           <div>
@@ -333,7 +333,7 @@ export function CrawlPlanner({
               </button>
             )}
           </div>
-          <button type="button" onClick={close} aria-label="Close food crawl" className="-mr-1 flex h-8 w-8 items-center justify-center rounded-full text-muted">
+          <button type="button" onClick={close} aria-label="Close freebie crawl" className="-mr-1 flex h-8 w-8 items-center justify-center rounded-full text-muted">
             <CloseIcon className="h-[14px] w-[14px]" />
           </button>
         </div>
@@ -456,7 +456,7 @@ export function CrawlPlanner({
       <div className={`${sheet} px-4 pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+20px)] pt-4`} role="status">
         <div className="flex items-center justify-between">
           <p className="text-label font-semibold">{step === "loading" ? "Muse is planning your walk..." : "Muse could not plan a walk right now."}</p>
-          <button type="button" onClick={close} aria-label="Close food crawl" className="flex h-8 w-8 items-center justify-center rounded-full text-muted">
+          <button type="button" onClick={close} aria-label="Close freebie crawl" className="flex h-8 w-8 items-center justify-center rounded-full text-muted">
             <CloseIcon className="h-[14px] w-[14px]" />
           </button>
         </div>
@@ -474,7 +474,7 @@ export function CrawlPlanner({
   const empty = route.stops.length === 0;
 
   return (
-    <div className={`${sheet} flex max-h-[62%] flex-col pt-2`} role="dialog" aria-label="Your food crawl">
+    <div className={`${sheet} flex max-h-[62%] flex-col pt-2`} role="dialog" aria-label="Your freebie crawl">
       <div className="mx-auto mb-2 h-1 w-8 shrink-0 rounded-full bg-divider" />
       <div className="flex shrink-0 items-start justify-between px-4">
         <div className="min-w-0">
@@ -491,7 +491,7 @@ export function CrawlPlanner({
             {clock(route.destination.arriveAt)}
           </p>
         </div>
-        <button type="button" onClick={close} aria-label="Close food crawl" className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted">
+        <button type="button" onClick={close} aria-label="Close freebie crawl" className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted">
           <CloseIcon className="h-[14px] w-[14px]" />
         </button>
       </div>

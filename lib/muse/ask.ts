@@ -41,8 +41,8 @@ const SYSTEM = [
   "Each turn, work out what this student wants and give them everything that gets them there: the right events for them, the actions they asked for, and the next useful step.",
   'Return JSON only: {"answer":"one or two short sentences, spoken aloud, so talk like a friend: casual, warm, contractions, no lists or symbols","eventIds":["..."],"actions":[{"type":"...","eventId":"... or null","filter":"... or null"}],"followUp":"a question or null","learnedTopics":["..."]}.',
   "eventIds: events your answer is about, best first, at most 5, only ids from the list. Name each event by its title in the answer.",
-  'actions: do what the student asks. "rsvp" (they say they are going or want to RSVP), "cancel_rsvp", "interested" (save or mark interested), "open" (show one event), "filter" with filter one of forYou, free, today, week (show a list), "plan_night" (anything about a path, route, walk or directions: plan my night, a food crawl or anything that implies one (hungry on the way, snacks or free food along a walk), a route home past free food, how to get to an event, with eventId set to that event, else null), "create_event" with eventId null (they describe an event they are hosting or ask to post, create, or publish one; Muse drafts it for them to check and publish), "invite_friend" (they ask to send, invite, or tell a friend about an event: eventId that event, or null together with plan_night when the walk picks it; the app sends the invite to the friend they named). Only act on events from the list, and only when the student asked; never RSVP on your own guess.',
-  "A food crawl never needs a follow-up: return plan_night with followUp null, and the app plans the walk (home when the request names no end) and opens it. ","followUp: if the request is vague or could mean several things (which event, what time, what kind) and you cannot make a confident prediction from the conversation, the student and what is on, ask one short question that offers two or three concrete choices, and do not RSVP, mark interested, plan or create yet. Keep asking on each turn until it is clear; once the student answers, combine the answer with their earlier request and carry it out. When you can make a good prediction of what they want, answer with it and set followUp to null. When you ask, the answer is a short lead-in that does not repeat the question.",
+  'actions: do what the student asks. "rsvp" (they say they are going or want to RSVP), "cancel_rsvp", "interested" (save or mark interested), "open" (show one event), "filter" with filter one of forYou, free, today, week (show a list), "plan_night" (anything about a path, route, walk or directions: plan my night, a freebie crawl or food crawl or anything that implies one (a path, walk or crawl of free stuff, freebies, swag or free food, hungry on the way, snacks along a walk), a route home past free food, how to get to an event, with eventId set to that event, else null), "create_event" with eventId null (they describe an event they are hosting or ask to post, create, or publish one; Muse drafts it for them to check and publish), "invite_friend" (they ask to send, invite, or tell a friend about an event: eventId that event, or null together with plan_night when the walk picks it; the app sends the invite to the friend they named). Only act on events from the list, and only when the student asked; never RSVP on your own guess.',
+  "A freebie crawl or food crawl never needs a follow-up: return plan_night with followUp null, and the app plans the walk (home when the request names no end) and opens it. ","followUp: if the request is vague or could mean several things (which event, what time, what kind) and you cannot make a confident prediction from the conversation, the student and what is on, ask one short question that offers two or three concrete choices, and do not RSVP, mark interested, plan or create yet. Keep asking on each turn until it is clear; once the student answers, combine the answer with their earlier request and carry it out. When you can make a good prediction of what they want, answer with it and set followUp to null. When you ask, the answer is a short lead-in that does not repeat the question.",
   "learnedTopics: lowercase interests the student showed in this request, for example climbing or free food; empty if none.",
   "Personalize: you know the student (profile, interests they listed, clubs they follow, what they have been into lately, topics they skip, events they acted on) and each event's match for them (higher is a better fit, matched lists what fits). Choose and order events by that fit and by when they are; never offer events on topics they skip unless they ask.",
   'Why: when the student asks why, asks what you recommend, or asks if they would like something, say in one or two sentences why they in particular would enjoy it, tied to what they like (for example "you are into climbing and film, and it is a short walk from your place"), not a summary of the event. Do not volunteer reasons otherwise.',
@@ -54,6 +54,28 @@ const SYSTEM = [
 const WAITS_FOR_ANSWER = new Set(["rsvp", "cancel_rsvp", "interested", "plan_night", "create_event", "invite_friend"]);
 
 /** While Muse is still asking, it only shows things (open, filter); it changes nothing for the student. */
+// "Give me a path of free stuff", "I want a free food crawl": the Freebie Crawl,
+// even when Muse is offline and the recorded answer is about something else.
+const CRAWL_WORD = /\bcrawl\b/i;
+const PATH_WORD = /\b(path|route|walk|trail|tour|loop)\b/i;
+const FREE_WORD = /\b(free|freebies?|swag|merch|giveaways?|food|snacks?)\b/i;
+
+export function asksForCrawl(question: string): boolean {
+  return CRAWL_WORD.test(question) || (PATH_WORD.test(question) && FREE_WORD.test(question));
+}
+
+/** Makes sure a crawl request opens the Freebie Crawl. */
+export function routeCrawlRequest(output: AskOutput, question: string, recorded: boolean): AskOutput {
+  if (!asksForCrawl(question) || output.actions.some((action) => action.type === "plan_night")) return output;
+  return {
+    ...output,
+    answer: recorded ? "Here is a Freebie Crawl: free food and swag along your walk home." : output.answer,
+    eventIds: recorded ? [] : output.eventIds,
+    actions: [...output.actions.slice(0, 2), { type: "plan_night", eventId: null, filter: null }],
+    followUp: null,
+  };
+}
+
 export function holdActionsWhileAsking(output: AskOutput): AskOutput {
   if (output.followUp === null) return output;
   return { ...output, actions: output.actions.filter((action) => !WAITS_FOR_ANSWER.has(action.type)) };
@@ -121,10 +143,16 @@ export async function askAboutEvents(
   const known = (id: string | null) => id === null || knownIds.has(id);
   return {
     ...result,
-    data: holdActionsWhileAsking({
-      ...result.data,
-      eventIds: result.data.eventIds.filter((id) => knownIds.has(id)),
-      actions: result.data.actions.filter((action) => known(action.eventId)),
-    }),
+    data: holdActionsWhileAsking(
+      routeCrawlRequest(
+        {
+          ...result.data,
+          eventIds: result.data.eventIds.filter((id) => knownIds.has(id)),
+          actions: result.data.actions.filter((action) => known(action.eventId)),
+        },
+        input.question,
+        result.source === "fixture",
+      ),
+    ),
   };
 }
