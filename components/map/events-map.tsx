@@ -382,12 +382,12 @@ function routeMarkerElement(label: string, home: boolean, friend = false): HTMLD
   return element;
 }
 
-// While a crawl is on the map, events off the route fade and bubbles stop
-// taking taps, so the route reads clearly.
-// MapLibre manages the marker element's own opacity, so fade the bubble inside.
-function setMarkerFaded(element: HTMLElement, faded: boolean, locked: boolean) {
+// While a crawl is on the map, events off the route are hidden and bubbles stop
+// taking taps, so only the stops show.
+// MapLibre manages the marker element's own styles, so hide the bubble inside.
+function setMarkerHidden(element: HTMLElement, hidden: boolean, locked: boolean) {
   const inner = element.firstElementChild as HTMLElement | null;
-  if (inner) inner.style.opacity = faded ? "0.3" : "1";
+  if (inner) inner.style.visibility = hidden ? "hidden" : "";
   element.style.pointerEvents = locked ? "none" : "";
 }
 
@@ -622,7 +622,7 @@ export function EventsMap({
     if (mapRef.current) setLabelsForZoom(markersRef.current, mapRef.current.getZoom());
   }, [currentActive, mapReady, visibleCards]);
 
-  // The crawl's route on the map: dotted line, numbered stops, the rest faded.
+  // The crawl's route on the map: dotted line, numbered stops, the rest hidden.
   useEffect(() => {
     const map = mapRef.current;
     const MarkerClass = markerClassRef.current;
@@ -630,7 +630,7 @@ export function EventsMap({
     for (const marker of routeMarkersRef.current) marker.remove();
     routeMarkersRef.current = [];
     const stopIds = new Set(route?.stops.map((stop) => stop.eventId) ?? []);
-    for (const [id, { element }] of markersRef.current) setMarkerFaded(element, route !== null && !stopIds.has(id), route !== null);
+    for (const [id, { element }] of markersRef.current) setMarkerHidden(element, route !== null && !stopIds.has(id), route !== null);
     const source = map.getSource(ROUTE_SOURCE) as { setData: (data: unknown) => void } | undefined;
     if (!route) {
       if (map.getLayer(ROUTE_SOURCE)) map.removeLayer(ROUTE_SOURCE);
