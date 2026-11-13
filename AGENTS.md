@@ -75,13 +75,13 @@ app/api/events/      GET all events, POST publish a confirmed draft (stores it, 
 app/api/alerts/      GET ?since=<cursor> new alerts, POST send an alert for an event
 app/api/events/[id]/ GET one event, PATCH { updates } for a repost Muse matched
 app/api/events/[id]/attendance/  GET ?viewer=<id> counts and seats left, POST {viewerId, action} interested or RSVP
-app/api/demo/reset/  POST the full demo reset: events, alerts, going, comments, Muse memory, Ask history (token in production)
+app/api/demo/reset/  POST the fresh run: clears every run's demo state and starts a new run id on the first beat (token in production, kept per browser by the console)
 app/demo/            the pitch stage (beats from lib/demo/beats.ts, persona per beat, keys, reset); /demo/console the operator console;
                      /demo/remote a phone clicker (Next, Back) that moves the stage through /api/demo/stage
 app/api/demo/stage/  GET where the stage is, POST next, back, or goto (lib/demo/stage-position.ts; laptop stays the master)
 app/api/demo/story/  GET the event the demo follows (created quietly if the organizer act was skipped)
 components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed, the Lock Screen's Live Activity); app-switch.tsx plays Facebook opening over a page opened with ?opened=instagram (withAppSwitch in lib/demo/app-switch.ts)
-lib/demo/            beats.ts (client safe), staged.ts (staged routes and every handoff path; a beat after a staged screen takes its path from HANDOFF), free-bite.ts, story.ts, stage-position.ts, reset.ts (one reset for every persona's saved state)
+lib/demo/            beats.ts (client safe), staged.ts (staged routes and every handoff path; a beat after a staged screen takes its path from HANDOFF), free-bite.ts, story.ts, stage-position.ts (also carries the run id), run.ts (runs, client safe), reset.ts (the fresh run), instance-memory.ts (one server instance's in-memory demo state)
                      head-start.ts: the stage asks O3's flyer read, U1b's walk home and U3b's curate a few beats early (components/demo/head-start.ts, app/api/demo/head-start); the screen's route shares that call per run, stamps the real Muse time (`museMs`), and past 8 s after its beat appears answers recorded
 app/curate/          User 3's first Events visit: Muse reads email, calendar, Instagram, Reels and ranks a first feed
 app/api/curate/      POST a curated feed (Muse job, story event pinned first and flagged storyPinned if Muse ranked it lower)
@@ -142,7 +142,8 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (record with `hu
 - Seed times are relative (`startsInMinutes`). The memory store resolves them at first load; the Redis store seeds on first read, re-seeds when its 12 hour seed marker expires, and on a `/demo` reset. Redis keys are namespaced by `VERCEL_ENV`, so preview deploys never touch production data.
 - Without Redis the store and alert feed live per server process (kept on `globalThis`, because Next dev compiles route handlers and pages as separate module graphs). On Vercel that means a published event can miss another screen: set the Redis env vars there.
 - The `/demo` phone remote needs Redis on Vercel: without it the stage and a phone reach different server instances and never see each other's moves. Locally (one process) it works without Redis, from a phone on the same Wi-Fi at the laptop's dev address.
-- `/demo` switches persona with the `demo-persona` cookie (lib/social/persona.ts): unset is Aaron (sample-student), then lisa, user3, organizer. A new module with saved state adds its key prefix to `DEMO_STATE_PREFIXES` in lib/demo/reset.ts, or the demo reset will not clear it.
+- `/demo` switches persona with the `demo-persona` cookie (lib/social/persona.ts): unset is Aaron (sample-student), then lisa, user3, organizer. A new module with saved state adds its key prefix to `DEMO_STATE_PREFIXES` in lib/demo/reset.ts, and any in-memory copy to `clearInstanceMemory` in lib/demo/instance-memory.ts, or a fresh run will not clear it. Other server instances drop their copies when `loadState` (or `followRun`) sees the run id in the stage record change; a cache that reads memory before the store calls `followRun()` first. Screens follow the run id too: the stage starts over, phones clear browser storage and reload.
+- Every publish from the story's organizer (`mit_boardgames`) lands on `evt-demo-story` with one alert per run (lib/events/publish.ts), and `listEvents` drops repeated listings (same organizer, title, day).
 - Redis reads that fail fall back to the in-memory seed and log to the server console; writes return the error.
 - Alerts reach screens by polling `GET /api/alerts` every 2.5 s. The first poll only learns the cursor, so a freshly opened screen does not replay old alerts. A new alert also calls `router.refresh()`, so the feed already has the event when the student taps through.
 - Times display in the campus time zone (`CAMPUS_TIME_ZONE`), not the viewer's.
