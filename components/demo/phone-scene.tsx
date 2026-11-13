@@ -195,7 +195,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   // What the screen heard (U1c: the mic opened or closed, the transcript came back): put it
   // in the stage record, so the projected stage shows it live. The stage refuses it off this person's beat.
   const signal = useCallback(
-    (kind: "listening" | "said", detail: { on?: boolean; text?: string }) => {
+    (kind: "listening" | "said" | "failed", detail: { on?: boolean; text?: string }) => {
       const at = indexRef.current;
       if (at === null) return;
       pollRef.current?.active();
@@ -219,6 +219,8 @@ export function PhoneScene({ cast }: { cast: CastId }) {
           signal("said", { text: heard.text.slice(0, 600) });
           spokenRef.current = true;
         }
+        // Hearing failed (blocked mic, nothing heard, no transcript): the stage stops Listening and shows the same line.
+        if (heard.type === "failed" && typeof heard.text === "string") signal("failed", { text: heard.text.slice(0, 600) });
         // The screen passes the show to the next person (Lisa's "Open to company", Jolyn's "Sent to Lisa").
         if (heard.type === "pass") void move("pass");
         return;
