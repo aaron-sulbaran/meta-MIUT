@@ -82,10 +82,12 @@ function useDeckSteps(beat: Beat): DeckStep[] | null {
   return steps && steps.deck === beat.deck ? steps.steps : null;
 }
 
-export function PresenterNotes({ beat, deckStep = null }: { beat: Beat; deckStep?: number | null }) {
+/** `currentOnly` (the phone remote): once the deck step is known, only that step and the look ahead, readable at arm's length. */
+export function PresenterNotes({ beat, deckStep = null, currentOnly = false }: { beat: Beat; deckStep?: number | null; currentOnly?: boolean }) {
   const deckSteps = useDeckSteps(beat);
   if (deckSteps) {
     const current = deckStep !== null ? deckSteps[deckStep] : undefined;
+    if (current && deckStep !== null && currentOnly) return <CurrentStep step={current} next={deckSteps[deckStep + 1]} />;
     return (
       <div className="flex flex-col gap-[10px]">
         {current && deckStep !== null && <CurrentStep step={current} next={deckSteps[deckStep + 1]} />}
