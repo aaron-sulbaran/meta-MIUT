@@ -591,7 +591,7 @@
       build(seg, ctx) {
         ctx.show(seg, "s3");
         ctx.ft(seg, "#s3-stamp", { opacity: 0, scale: 2.3, rotation: -16 }, { opacity: 1, scale: 1, rotation: -16, duration: 0.2, ease: "power4.in" }, 0.08);
-        ctx.ft(seg, "#s3-hero img", { filter: "brightness(1)" }, { filter: "brightness(0.55)", duration: 0.35, ease: "power2.out" }, 0.28);
+        ctx.ft(seg, "#s3-shade", { opacity: 0 }, { opacity: 0.45, duration: 0.35, ease: "power2.out" }, 0.28);
         ctx.ft(seg, "#s3-hero", { scale: 0.96 }, { scale: 0.94, duration: 0.07, ease: "power2.out" }, 0.28);
         seg.to("#s3-hero", { scale: 0.96, duration: 0.45, ease: "elastic.out(1, 0.5)" }, 0.35);
         ctx.ft(seg, "#cam", { x: 0 }, { x: 9, duration: 0.04, ease: "none", repeat: 3, yoyo: true }, 0.28);

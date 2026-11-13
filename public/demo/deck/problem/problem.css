@@ -524,6 +524,14 @@
   transform-origin: 50% 50%;
 }
 
+.s3-hero .shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: #000;
+  opacity: 0;
+}
+
 .s3-hero img {
   display: block;
   width: 640px;
@@ -555,10 +563,6 @@
   box-shadow: 0 0 0 4px rgba(16, 4, 6, 0.35);
   opacity: 0;
   mix-blend-mode: normal;
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.2 1.75'/></filter><rect width='300' height='120' filter='url(%23n)'/></svg>");
-  -webkit-mask-size: 300px 120px;
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.2 1.75'/></filter><rect width='300' height='120' filter='url(%23n)'/></svg>");
-  mask-size: 300px 120px;
 }
 
 .stamp span {
