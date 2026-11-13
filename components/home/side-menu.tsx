@@ -43,9 +43,6 @@ const ITEMS: Item[] = [
 /** The menu bars on Home: a side menu sliding in from the left. */
 export function SideMenu() {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -67,22 +64,18 @@ export function SideMenu() {
       >
         <MenuIcon className="h-[22px] w-[22px]" />
       </button>
-      {mounted &&
+      {open &&
         createPortal(
-          <div
-            className={`fixed inset-0 z-[60] mx-auto w-full max-w-[390px] overflow-hidden ${open ? "" : "pointer-events-none"}`}
-            aria-hidden={!open}
-          >
+          <div className="fixed inset-0 z-[60] mx-auto w-full max-w-[390px] overflow-hidden">
             <button
               type="button"
               aria-label="Close menu"
-              tabIndex={open ? 0 : -1}
               onClick={() => setOpen(false)}
-              className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`}
+              className="absolute inset-0 bg-black/40"
             />
             <nav
               aria-label="Menu"
-              className={`absolute inset-y-0 left-0 flex w-[82%] flex-col bg-page pt-[env(safe-area-inset-top)] shadow-xl transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}
+              className="absolute inset-y-0 left-0 flex w-[82%] flex-col bg-page pt-[env(safe-area-inset-top)] shadow-xl"
             >
               <div className="flex h-[52px] items-center justify-between pl-[14px] pr-[6px]">
                 <span className="font-display text-root-title font-semibold">
@@ -91,7 +84,6 @@ export function SideMenu() {
                 <button
                   type="button"
                   aria-label="Close menu"
-                  tabIndex={open ? 0 : -1}
                   onClick={() => setOpen(false)}
                   className="flex h-11 w-11 items-center justify-center text-ink"
                 >
@@ -109,7 +101,6 @@ export function SideMenu() {
                   <li key={label}>
                     <Link
                       href={href}
-                      tabIndex={open ? 0 : -1}
                       onClick={() => setOpen(false)}
                       className="flex items-center gap-[12px] rounded-card px-[8px] py-[9px] active:bg-wash"
                     >
