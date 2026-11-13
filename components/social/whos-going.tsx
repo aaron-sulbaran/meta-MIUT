@@ -4,6 +4,7 @@ import { SourceBadge } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
 import { MuseFace } from "@/components/map/muse-menu";
 import { buttonClass } from "@/components/ui/button";
+import { CompanyToggle } from "@/components/social/company-toggle";
 import { ChevronRightIcon, CloseIcon, InstagramPostIcon, WaveIcon } from "@/components/ui/icons";
 import { updateAttendance } from "@/lib/attendance/client";
 import { EVENT_FULL_ERROR } from "@/lib/attendance/schema";
@@ -16,7 +17,7 @@ import { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type 
 // Facebook look (hub kb/facebook-ui.md). One going button sits under the title
 // like Facebook's action row: I'm going, or RSVP on RSVP events, then a grey
 // You're going (lisa). RSVP events with a limit show the spots left, kept in
-// the attendance store (t-vp0w). Open to company is a checkbox only (lisa).
+// the attendance store (t-vp0w). Open to company is a switch (CompanyToggle).
 // Who's going leads with friends by name ("Aaron and Lisa are going"), which
 // opens a sheet of friends going (trish); Ask Muse says who to go with (demo
 // beat U3d); Looking for company is Muse's card at the end of it: new people
@@ -106,6 +107,8 @@ export function WhosGoing({
   seats: initialSeats = null,
   autoAsk = false,
   autoSayHi = false,
+  onJoin,
+  onCompany,
 }: {
   initial: WhoIsGoing;
   rsvp?: boolean;
@@ -115,6 +118,10 @@ export function WhosGoing({
   autoAsk?: boolean;
   /** Demo hook (?hi=1, beat U3e): say hi to everyone open to company once Muse has suggested them. */
   autoSayHi?: boolean;
+  /** Joining through someone's invite (Lisa): marks this viewer and the inviter going instead of the plain going call. */
+  onJoin?: () => Promise<boolean>;
+  /** Told after Open to company is saved. */
+  onCompany?: (open: boolean) => void;
 }) {
   const [who, setWho] = useState(initial);
   const [seats, setSeats] = useState(initialSeats);
@@ -157,6 +164,14 @@ export function WhosGoing({
   async function setGoing(going: boolean, open: boolean) {
     setBusy(true);
     setError(null);
+    if (onJoin && going && !who.viewer.going) {
+      const joined = await onJoin();
+      const latest = joined ? await fetch(goingUrl, { cache: "no-store" }).then((response) => response.json() as Promise<Response>).catch(() => null) : null;
+      setBusy(false);
+      if (!joined) setError(SAVE_FAILED);
+      if (latest?.data) setWho(latest.data);
+      return;
+    }
     // An RSVP holds a spot, so it goes through the attendance store first.
     if (rsvp && going !== who.viewer.going) {
       const attendance = await updateAttendance(who.eventId, getViewerId(), going ? "rsvp" : "cancel_rsvp");
@@ -173,6 +188,7 @@ export function WhosGoing({
     setBusy(false);
     if (result.error) setError(result.error);
     if (result.data) setWho(result.data);
+    if (result.data && going && open !== who.viewer.open) onCompany?.(open);
   }
 
   async function askMuse() {
@@ -342,21 +358,7 @@ export function WhosGoing({
           rsvp && !who.viewer.going && <p className="mt-[6px] text-meta text-muted">RSVP required. Your RSVP saves your spot.</p>
         )}
 
-        {who.viewer.going && (
-          <label className="mt-[10px] flex cursor-pointer items-start gap-[10px]">
-            <input
-              type="checkbox"
-              checked={who.viewer.open}
-              disabled={busy}
-              onChange={(change) => void setGoing(true, change.target.checked)}
-              className="mt-[2px] h-[18px] w-[18px] shrink-0 accent-[var(--color-primary)]"
-            />
-            <span>
-              <span className="block text-body font-semibold">Open to company</span>
-              <span className="block text-meta text-muted">Students going can see your first name and the interests you share, and say hi.</span>
-            </span>
-          </label>
-        )}
+        {who.viewer.going && <CompanyToggle on={who.viewer.open} disabled={busy} onChange={(open) => void setGoing(true, open)} />}
         {error && <p className="mt-[6px] text-meta font-semibold text-badge">{error}</p>}
       </section>
 
