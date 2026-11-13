@@ -181,7 +181,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Change of plans",
     caption: `He says it out loud: I'm meeting ${CAST.lisa.name}. Muse finds a spot between them and invites her.`,
-    path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
+    path: ({ now }) => HANDOFF.replanLisa(now.toISOString()),
   },
   {
     id: "U2a",
