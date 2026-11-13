@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { MUSE_MODELS, REASONING_EFFORTS, callMuse, type ReasoningEffort } from "@/lib/muse/client";
-import { ExtractOutputSchema, buildExtractRequest } from "@/lib/muse/extract";
+import { ExtractListOutputSchema, buildExtractRequest } from "@/lib/muse/extract";
 import { extractJsonObject } from "@/lib/muse/job";
 
 const MEDIA_TYPES = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" } as const;
@@ -34,12 +34,13 @@ const { values: flags, positionals } = parseArgs({
     models: { type: "string" },
     effort: { type: "string" },
     timeout: { type: "string" },
+    json: { type: "boolean" },
   },
 });
 
 const [imagePath, caption = DEFAULT_CAPTION] = positionals;
 if (!imagePath) {
-  fail("Usage: pnpm spike:muse <image path> [caption] [--models a,b] [--effort low] [--timeout ms]");
+  fail("Usage: pnpm spike:muse <image path> [caption] [--models a,b] [--effort low] [--timeout ms] [--json]");
 }
 
 try {
@@ -106,18 +107,28 @@ for (const model of models) {
   } catch {
     parsedCleanly = false;
   }
-  const draft = extractJsonObject(result.data);
-  const validation = ExtractOutputSchema.safeParse(draft);
+  const drafts = extractJsonObject(result.data);
+  const validation = ExtractListOutputSchema.safeParse(drafts);
   summary.push(
     `finish ${meta?.finishReason ?? "-"}`,
     `json ${parsedCleanly ? "clean" : "needed repair"}`,
     `schema ${validation.success ? "pass" : "FAIL"}`,
+    `events ${validation.success ? validation.data.events.length : "-"}`,
   );
   console.log(summary.join(" | "));
   if (!validation.success) {
     console.log(validation.error.issues.map((issue) => `  ${issue.path.join(".")}: ${issue.message}`).join("\n"));
+  } else {
+    // One line per drafted event; --json prints everything, evidence included.
+    for (const event of validation.data.events) {
+      const access = event.access.kind === "rsvp" ? `RSVP${event.access.capacity ? ` ${event.access.capacity}` : ""}` : "open";
+      const offer = [event.free ? "free" : "paid", event.food ? `food: ${event.foodNote ?? "yes"}` : "no food"].join(", ");
+      console.log(`  - ${event.title} | ${event.start} to ${event.end} | ${event.placeName} | ${offer} | ${access}`);
+    }
   }
-  console.log(draft === null ? `  raw: ${result.data.slice(0, 500)}` : JSON.stringify(draft, null, 2));
+  if (flags.json || !validation.success) {
+    console.log(drafts === null ? `  raw: ${result.data.slice(0, 500)}` : JSON.stringify(drafts, null, 2));
+  }
   console.log("");
 }
 
