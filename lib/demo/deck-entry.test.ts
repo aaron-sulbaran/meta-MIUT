@@ -36,10 +36,12 @@ describe("followsAsBeatMove", () => {
 });
 
 describe("catchesUpOnRemoteStep", () => {
-  const control = { seq: 50, from: 0, to: 1 };
+  const control = { seq: 50, from: 0, to: 1, dir: 1 as const };
   it("steps for a remote Next or Back another stage already put back", () => {
     expect(catchesUpOnRemoteStep(control, 40, 0)).toBe(true);
     expect(catchesUpOnRemoteStep({ seq: 50, from: 3, to: 2 }, 40, 3)).toBe(true);
+    // Back on the first beat, Next on the last: the record stays, the deck still steps.
+    expect(catchesUpOnRemoteStep({ seq: 50, from: 0, to: 0 }, 40, 0)).toBe(true);
   });
 
   it("never applies the same move twice, a move from another beat, or a jump", () => {

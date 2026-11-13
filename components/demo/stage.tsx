@@ -51,7 +51,7 @@ type StageMessage = { type: "goto"; index: number; fresh?: boolean } | { type: "
 type MoveSource = "local" | "channel" | "remote";
 // The shared stage record: where the show is, a deck's step, and what the presenter's phone heard.
 type StageSignal = { from: string; kind: "listening" | "said" | "failed"; on?: boolean; text?: string; at: string };
-type StagePosition = { index: number; seq: number; by?: "stage" | "control"; control?: { seq: number; from: number; to: number }; run?: string; at?: string; movedAt?: string; furthest?: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
+type StagePosition = { index: number; seq: number; by?: "stage" | "control"; control?: { seq: number; from: number; to: number; dir: 1 | -1 }; run?: string; at?: string; movedAt?: string; furthest?: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
 
 const POSITION_URL = "/api/demo/stage";
 
@@ -346,7 +346,7 @@ export function Stage() {
           if (position.index !== indexRef.current) goTo(position.index, "remote", followsAsBeatMove(position.by));
           // The remote's step that another stage already put back: step this stage's deck or film too.
           else if (catchUp && control && filmRef.current) {
-            if (control.to > control.from) filmRef.current.next();
+            if (control.dir === 1) filmRef.current.next();
             else filmRef.current.back();
           }
         }

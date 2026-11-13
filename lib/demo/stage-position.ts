@@ -35,10 +35,11 @@ export const StagePositionSchema = z.object({
   // follows applies it as a beat move) or "control" (the remote's Next and Back, a
   // presenter phone: a stage on a deck or film steps it first). Missing reads as "control".
   by: z.enum(["stage", "control"]).optional(),
-  // The last control move (the remote's Next or Back, a phone): its seq and the beats it went
-  // from and to. Kept after a stage puts the record back (it stepped a deck instead), so every
+  // The last control move (the remote's Next or Back, a phone): its seq, the beats it went
+  // from and to, and its direction (1 Next, -1 Back; Back on the first beat or Next on the last
+  // stays on the beat but still steps a deck). Kept after a stage puts the record back (it stepped a deck instead), so every
   // other stage still sees that move once and steps its own deck too.
-  control: z.object({ seq: z.number().int(), from: z.number().int().min(0), to: z.number().int().min(0) }).optional(),
+  control: z.object({ seq: z.number().int(), from: z.number().int().min(0), to: z.number().int().min(0), dir: z.union([z.literal(1), z.literal(-1)]) }).optional(),
   // The step a deck beat is on (the stage reports it from the deck's "step"
   // message), so a phone can show that step's presenter notes. Belongs to beat
   // `index` only: any move drops it. Optional, so older records still parse.
@@ -154,8 +155,8 @@ function runFields(current: StagePosition | null, index: number, now: Date, move
 const memory = globalThis as typeof globalThis & { __demoStagePosition?: StagePosition };
 
 /** The control field after a move: a control move records itself; a stage move keeps the last one. */
-function controlAfter(current: StagePosition | null, by: MoveBy, index: number, seq: number) {
-  if (by === "control") return { control: { seq, from: current?.index ?? 0, to: index } };
+function controlAfter(current: StagePosition | null, by: MoveBy, index: number, seq: number, dir: 1 | -1) {
+  if (by === "control") return { control: { seq, from: current?.index ?? 0, to: index, dir } };
   return current?.control ? { control: current.control } : {};
 }
 
@@ -177,7 +178,7 @@ export function applyMove(
     seq,
     at: now.toISOString(),
     by,
-    ...controlAfter(current, by, index, seq),
+    ...controlAfter(current, by, index, seq, move.action === "next" ? 1 : move.action === "back" ? -1 : index >= from ? 1 : -1),
     ...(current?.deck && current.index === index ? { deck: current.deck } : {}),
     ...(current?.signal && current.index === index ? { signal: current.signal } : {}),
   };

@@ -16,13 +16,14 @@ export function followsAsBeatMove(by: "stage" | "control" | undefined): boolean 
   return by === "stage";
 }
 
-// A remote move this stage has not applied yet, already put back by another stage that stepped
-// its deck instead: true when it was one beat from where this stage is, so this stage steps its
-// own deck or film for it too. `seen` is the newest control seq this stage has applied.
+// A remote move this stage has not applied yet that leaves the record on this stage's beat:
+// another stage already put it back (it stepped its deck instead), or it was Back on the first
+// beat or Next on the last. This stage steps its own deck or film for it, once.
+// `seen` is the newest control seq this stage has applied.
 export function catchesUpOnRemoteStep(
   control: { seq: number; from: number; to: number } | undefined,
   seen: number,
   here: number,
 ): boolean {
-  return control !== undefined && control.seq > seen && control.from === here && Math.abs(control.to - control.from) === 1;
+  return control !== undefined && control.seq > seen && control.from === here && Math.abs(control.to - control.from) <= 1;
 }

@@ -17,7 +17,8 @@ describe("who moved the stage", () => {
     const at0 = applyMove(null, { action: "goto", index: 0 }, 16, NOW);
     expect(at0.control).toBeUndefined();
     const remote = applyMove(at0, { action: "next" }, 16, NOW);
-    expect(remote.control).toEqual({ seq: remote.seq, from: 0, to: 1 });
+    expect(remote.control).toEqual({ seq: remote.seq, from: 0, to: 1, dir: 1 });
+    expect(applyMove(at0, { action: "back" }, 16, NOW).control).toMatchObject({ from: 0, to: 0, dir: -1 });
     const putBack = applyMove(remote, { action: "goto", index: 0, undo: 1 }, 16, NOW);
     expect(putBack.control).toEqual(remote.control);
     expect(applyDeckStep(putBack, { action: "deck", at: 0, name: "problem", step: 1 }, NOW)?.control).toEqual(remote.control);
