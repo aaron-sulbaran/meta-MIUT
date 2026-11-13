@@ -31,7 +31,7 @@ import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
 // scrolls the strip to its card. X hides an event ("Not for me") and, after
 // the Undo window, Muse learns from it. Directions opens walking directions.
 // One Muse button at the top right fans out to Ask Muse (a popup over the map)
-// and Food crawl (the planner sheet). /?plan=home opens with Muse's walk from
+// and Food Crawl (the planner sheet). /?plan=home opens with Muse's walk from
 // class to home already planned, for the "just out of class" alert.
 // Tiles: OpenFreeMap "liberty" (OpenStreetMap data, no key), restyled on load.
 
@@ -569,14 +569,13 @@ export function EventsMap({
           style: STYLE_URL,
           center: [studentSpot.lng, studentSpot.lat],
           zoom: STUDENT_ZOOM,
-          attributionControl: { compact: true },
+          // No "i" credit button on the map (Lisa); the required OpenStreetMap
+          // credit is a small line instead (see the JSX below).
+          attributionControl: false,
           dragRotate: false,
           pitchWithRotate: false,
         });
         map.touchZoomRotate.disableRotation();
-        // Lift the map credit above the card strip and tab bar so it stays visible.
-        const corner = container.querySelector<HTMLElement>(".maplibregl-ctrl-bottom-right");
-        if (corner) corner.style.bottom = "calc(var(--tabbar-height) + var(--tabbar-gap) + 196px)";
         mapRef.current = map;
 
         const dot = document.createElement("div");
@@ -598,7 +597,6 @@ export function EventsMap({
 
         map.on("load", () => {
           if (!map) return;
-          container.querySelector(".maplibregl-compact-show")?.classList.remove("maplibregl-compact-show");
           softenBaseMap(map);
           frameStudent(map, studentSpot, cards, false);
           setMapReady(true);
@@ -958,6 +956,16 @@ export function EventsMap({
           {chip === "forYou"
             ? "Nothing picked for you right now. Try Free to see everything free nearby."
             : "Nothing free right now. New events show up here as clubs post them."}
+        </p>
+      )}
+
+      {/* OpenStreetMap's license asks for a visible credit; a quiet line, not a button. */}
+      {!crawlOpen && (
+        <p
+          className="pointer-events-none absolute left-3 z-10 text-[9px] font-medium text-black/35"
+          style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 142px)" }}
+        >
+          © OpenStreetMap
         </p>
       )}
 
