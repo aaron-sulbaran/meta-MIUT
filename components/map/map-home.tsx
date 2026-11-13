@@ -58,6 +58,7 @@ export async function MapHome({
         dateLine: formatDateLine(event, now),
         free: event.free,
         perk: freePerk(event),
+        imagePath: event.source.imagePath ?? null,
         category: eventCategory(event),
         organizerName: event.organizer.name,
         logoUrl: organizerLogo(event.organizer),
