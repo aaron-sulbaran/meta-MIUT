@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/demo/brand-mark";
 import { CastAvatar } from "@/components/demo/cast-avatar";
+import { HelloArrival } from "@/components/demo/hello-arrival";
 import { PHONE_SLUG, beatScreen, inFrameMessage, nextActStart, phoneView, storyDue, type PhoneView } from "@/lib/demo/beat-context";
 import { CAST, type CastId } from "@/lib/demo/beats";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
@@ -305,6 +306,8 @@ function Waiting({ cast, view, online, now, onJoin }: { cast: CastId; view: Phon
 
       <section className="mt-[32px] flex flex-col gap-[12px]">
         {arrived && <JoinMoment cast={cast} now={now} onJoin={onJoin} />}
+        {/* Trish's act ends with her hi reaching Jolyn and Lisa here. */}
+        <HelloArrival cast={cast} watching={waiting?.onNow === "user3" || waiting?.phase === "after"} />
         {waiting?.upNext && !arrived && (
           <p role="status" className="rounded-card bg-primary-soft px-[16px] py-[14px] text-center font-display text-title font-bold text-link">
             You&apos;re up next
