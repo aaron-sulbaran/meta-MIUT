@@ -27,11 +27,19 @@ export function isInWindow(event: CampusEvent, window: TimeWindow, now: Date): b
   return start <= nowMs + 7 * 24 * 60 * MINUTE;
 }
 
-// The Free tab is for events anyone can walk into. A free event with limited spots stays
-// off it (Muse still recommends it) until the organizer opens it to everyone.
-// An RSVP with no capacity is only a headcount, so it still counts.
+const TAKEAWAY = /\b(merch|t-?shirts?|swag|giveaways?|free gifts?|tote bags?|stickers)\b/i;
+
+// Something to take away beyond the event itself: food or drinks, or merch.
+export function hasTakeaway(event: CampusEvent): boolean {
+  return event.food || TAKEAWAY.test(`${event.title} ${event.description}`);
+}
+
+// The Free tab is for free events anyone can walk into that give something beyond the
+// event itself (food, drinks, merch). A free talk or concert stays a general event.
+// A free event with limited spots stays off it (Muse still recommends it) until the
+// organizer opens it to everyone. An RSVP with no capacity is only a headcount, so it counts.
 export function isOpenFree(event: CampusEvent): boolean {
-  return event.free && !(event.access.kind === "rsvp" && event.access.capacity !== undefined);
+  return event.free && hasTakeaway(event) && !(event.access.kind === "rsvp" && event.access.capacity !== undefined);
 }
 
 export function filterEvents(

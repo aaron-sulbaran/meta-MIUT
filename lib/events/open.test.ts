@@ -33,6 +33,13 @@ describe("Free tab and opening to everyone", () => {
     expect(free.map((event) => event.id)).toEqual(["evt-headcount"]);
   });
 
+  it("keeps a free talk with nothing to take away off Free, but free merch counts", () => {
+    const talk = { ...limited, id: "evt-talk", food: false, foodNote: undefined, access: { kind: "open" as const } };
+    const merch = { ...talk, id: "evt-merch", description: "Free T-shirts for the first 50." };
+    expect(isOpenFree(talk)).toBe(false);
+    expect(isOpenFree(merch)).toBe(true);
+  });
+
   it("opens the event, puts it on Free, and tells students there is food left", async () => {
     const store = createMemoryStore([limited]);
     const feed = createMemoryAlertFeed(() => NOW);
