@@ -659,97 +659,126 @@
   z-index: 6;
 }
 
-.s5-link {
+/* Instagram posts the clubs already made: Instagram's own light post layout, drawn. */
+.igp {
   position: absolute;
   left: 0;
   top: 0;
-  width: 120px;
-  height: 8px;
-  transform-origin: 50% 50%;
+  width: 360px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+  transform-origin: 0 0;
   opacity: 0;
+  z-index: 2;
 }
 
-.s5-link i {
+.igp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+  padding: 0 14px;
+}
+
+.igp-av {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #c7c7cc;
+}
+
+.igp-head b {
+  flex: 1;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.igp-head span {
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #262626;
+}
+
+.igp-pic {
+  display: block;
+  width: 360px;
+  height: 360px;
+  object-fit: cover;
+}
+
+.igp-act {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 54px;
+  padding: 0 14px;
+}
+
+.igp-act svg:last-child {
+  margin-left: auto;
+}
+
+/* The two apps' own marks: where the posts start, and where they end up. */
+.s5-app {
   position: absolute;
-  inset: 0;
-  border-radius: 4px;
-  background: var(--blue);
-  box-shadow: 0 0 24px rgba(8, 102, 255, 0.8);
-}
-
-.s5-field {
-  position: absolute;
-  inset: 0;
-}
-
-.s5-field .flyer,
-.s5-field .nt {
-  z-index: 1;
-}
-
-.s5-field .hero {
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transform-origin: 50% 50%;
   z-index: 3;
 }
 
-.box {
-  position: absolute;
-  border: 4px solid var(--blue);
-  border-radius: 10px;
-  background: rgba(8, 102, 255, 0.12);
-  opacity: 0;
-  pointer-events: none;
+#s5-ig {
+  width: 72px;
+  height: 72px;
 }
 
-.xcard {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 380px;
-  padding: 22px 24px 24px;
-  border-radius: 22px;
-  background: #1b1d23;
-  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  font-family: var(--text);
-  opacity: 0;
-  z-index: 4;
+#s5-f {
+  width: 64px;
+  height: 64px;
 }
 
-.xcard .xt {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 30px;
-  line-height: 1.15;
-  color: var(--white);
-}
-
-.xcard .xm {
-  margin-top: 8px;
-  font-size: 24px;
-  color: #c9ccd3;
-}
-
-.xcard .xf {
-  display: inline-block;
-  margin-top: 14px;
-  padding: 6px 16px;
-  border-radius: 999px;
-  background: rgba(8, 102, 255, 0.18);
-  color: #6aa5ff;
-  font-weight: 650;
-  font-size: 22px;
-}
-
-.s5-scan {
-  z-index: 8;
+/* Muse in the middle: every post passes through it on its way across. */
+.s5-muse {
   position: absolute;
   left: 0;
   top: 0;
-  width: 6px;
-  height: 520px;
-  border-radius: 3px;
-  background: #5c9bff;
-  box-shadow: 0 0 18px 4px rgba(8, 102, 255, 0.9), -60px 0 80px 10px rgba(8, 102, 255, 0.18);
+  width: 104px;
+  height: 104px;
   opacity: 0;
+  transform-origin: 50% 50%;
+  z-index: 3;
+}
+
+.s5-muse img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.s5-fly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360px;
+  height: 360px;
+  border-radius: 14px;
+  object-fit: cover;
+  transform-origin: 0 0;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  z-index: 7;
 }
 
 .s5-end {

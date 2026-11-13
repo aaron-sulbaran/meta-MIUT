@@ -10,7 +10,8 @@
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-  const PHONE = { x: 560 - 200, y: 107 };
+  /* The stage's phone, 414 x 868, its center at x 560. */
+  const PHONE = { x: 560 - 207, y: 106 };
   const EMBER = "Muse Ember";
   const VOICE = "Muse Voice Transcribe";
   /* Labels stay at five words or fewer; Aaron's line carries the rest. */
@@ -24,17 +25,15 @@
   ];
   const PROOF = window.RECAP_PROOF || {};
 
-  /* A box in the 390 x 844 capture, in the phone screen's pixels (cover-fit, cropped at the sides). */
+  /* A box in the 390 x 797 capture, in the phone's app area: the capture fills it 1 to 1. */
   function screenBox(box) {
-    const k = 842 / 844;
-    const crop = (390 * k - 376) / 2;
     const pad = 7;
-    return { left: box.x * k - crop - pad, top: box.y * k - pad, width: box.width * k + pad * 2, height: box.height * k + pad * 2 };
+    return { left: box.x - pad, top: box.y - pad, width: box.width + pad * 2, height: box.height + pad * 2 };
   }
 
   function prepare() {
     const col = $("#r-col");
-    const screen = $("#r-phone .screen");
+    const screen = $("#r-phone .app");
     MOMENTS.forEach((m, i) => {
       const p = PROOF[m.key] || {};
       if (p.file) $(`#r-s${i + 1}`).src = `../shared/captures/${p.file}`;

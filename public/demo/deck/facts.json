@@ -92,14 +92,19 @@
       "source": "Jolyn's opening pitch script, The Solution."
     },
     {
-      "step": "muse-organizes",
-      "text": "Extracted fields: Spring Hackathon Info Session, 3 PM, Stata Center, 32-155, Free food; Intro to Bouldering, 3:30 PM, Z-Center Climbing Wall, Free swag; Pizza Study Break at Stata, 2 PM, Stata Center lobby, Free food",
-      "source": "Each line repeats what that flyer itself says. An illustration of what Muse extracts, not a recorded Muse call."
+      "step": "instagram-to-events",
+      "text": "Three Instagram posts by mit_outing, mit_hacks and mit_eecs, with their flyers",
+      "source": "Seeded events and their organizers' seed handles (data/seed/demo-day-events.json): Intro to Bouldering (MIT Outing Club), Spring Hackathon Info Session (MIT Hacking Club), Pizza Study Break at Stata (EECS Undergraduate Office); the flyers are the app's own (public/flyers). The post layout is drawn in Instagram's style; the Instagram glyph is the official asset (shared/brand/instagram-glyph.png), unmodified. Illustrative: these posts are not real Instagram posts. Aaron's dry-run note, 2026-11-13: the posts clubs already make come over to Facebook."
     },
     {
-      "step": "muse-organizes",
-      "text": "Events feed and the map with Muse's walk home",
-      "source": "Real captures of this app from the same capture pass as the recap (motion/opening/recap-pass.json): the List view and the walk home inside a 390 x 844 frame, live Muse, the server on the 3:05 PM demo clock. Each flyer lands where its event really appears there: Spring Hackathon and Intro to Bouldering in the Top 3, Pizza Study Break as the walk's first stop (planned 4.1 s)."
+      "step": "instagram-to-events",
+      "text": "Meta AI mark between the posts and Facebook Events; Facebook f above the phones",
+      "source": "Official assets, unmodified (shared/brand/meta-ai.png, shared/brand/facebook-f.svg). The mark stands for Muse reading each post on the way across."
+    },
+    {
+      "step": "instagram-to-events",
+      "text": "Facebook Events: the List view and the Events map",
+      "source": "Real captures of this app from the same capture pass as the recap (motion/opening/recap-pass.json), each in the 390 x 797 app area the stage's phone gives an app, live Muse, the server on the 3:05 PM demo clock. The map is the Events map exactly as a judge sees it on opening the site, logo pins around campus (Aaron's dry-run note, 2026-11-13). Each flyer lands on its event's own tile or row in the List view."
     },
     {
       "step": "events-reimagined",

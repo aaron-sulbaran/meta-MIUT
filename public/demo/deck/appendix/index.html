@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Appendix</title>
+    <link rel="stylesheet" href="../shared/deck.css" />
+    <link rel="stylesheet" href="./appendix.css" />
+  </head>
+  <body>
+    <div id="fit">
+      <div id="root" data-composition-id="appendix" data-width="1920" data-height="1080">
+        <div id="drift">
+          <div id="cam">
+            <!-- Appendix, past the thank you: how we built it, then the questions we expect.
+                 Every word comes from content.json; the question scenes are built from it. -->
+            <section class="scene" id="a1">
+              <div class="a-head">
+                <h2 class="a-title" id="b-title"></h2>
+                <p class="a-line" id="b-line"></p>
+              </div>
+              <div class="b-flow" id="b-flow"></div>
+              <div class="b-stats" id="b-stats"></div>
+              <p class="b-asof" id="b-asof"></p>
+            </section>
+
+            <section class="scene" id="a2">
+              <div class="a-head">
+                <h2 class="a-title" id="i-title"></h2>
+              </div>
+              <div class="i-grid" id="i-grid"></div>
+            </section>
+          </div>
+        </div>
+        <div id="toast"></div>
+      </div>
+    </div>
+    <script src="../shared/gsap.min.js"></script>
+    <script src="../shared/sound.js"></script>
+    <script src="../shared/deck.js"></script>
+    <script src="../shared/icons.js"></script>
+    <script src="../recap/proof.js"></script>
+    <script src="./appendix.js"></script>
+  </body>
+</html>

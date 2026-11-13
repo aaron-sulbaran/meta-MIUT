@@ -203,13 +203,3 @@
   transform-origin: 0 50%;
 }
 
-/* The posted screen sits over the review screen in the same phone and fades in. */
-.phone .screen {
-  position: relative;
-}
-
-.phone .screen img.over {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-}
