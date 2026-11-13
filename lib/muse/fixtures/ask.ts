@@ -7,5 +7,8 @@ export function askFixture(): AskOutput {
   return {
     answer: "The Festival Jazz Ensemble plays Thomas Tull Concert Hall on Friday at 8 PM, free for MIT students.",
     eventIds: ["evt-herb-pomeroy-jazz"],
+    actions: [],
+    followUp: null,
+    learnedTopics: [],
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChipRow, FilterChip, LocationChip } from "@/components/ui/chips";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { EventCard } from "@/components/events/event-card";
@@ -12,6 +12,7 @@ import {
   type EventChip,
 } from "@/components/events/chip-filter";
 import type { CampusEvent } from "@/lib/events/schema";
+import { FEED_FILTER_EVENT, type FeedFilter } from "@/lib/muse/types";
 
 /**
  * The chip row and the list it filters. `topPicks` is rendered by the server
@@ -31,6 +32,13 @@ export function EventFeed({
   const now = new Date(nowIso);
   const [chip, setChip] = useState<EventChip>("forYou");
   const visible = eventsForChip(events, chip, now);
+
+  // Ask Muse can switch the list ("show me what's free").
+  useEffect(() => {
+    const onFilter = (event: Event) => setChip((event as CustomEvent<FeedFilter>).detail);
+    window.addEventListener(FEED_FILTER_EVENT, onFilter);
+    return () => window.removeEventListener(FEED_FILTER_EVENT, onFilter);
+  }, []);
 
   return (
     <div>
