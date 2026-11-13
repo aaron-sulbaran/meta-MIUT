@@ -72,18 +72,16 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
                       )}
                     </span>
                     <div className="absolute inset-x-0 bottom-0 bg-black/60 px-[7px] pb-[7px] pt-[6px] text-white">
-                      <h3 className="line-clamp-2 font-display text-[12px] font-bold leading-[14px]">{event.title}</h3>
+                      <h3 className="line-clamp-2 min-h-[28px] font-display text-[12px] font-bold leading-[14px]">{event.title}</h3>
                       <p className="mt-[2px] text-[10px] font-semibold leading-[13px] text-white/85" style={ONE_LINE}>
                         {formatDateLine(event, now)}
                       </p>
                       <p className="text-[10px] font-semibold leading-[13px] text-white/85" style={ONE_LINE}>
                         {tile.walkMinutes} min · {event.free ? "Free" : "Paid"}
                       </p>
-                      {friendsGoing && (
-                        <p className="mt-[1px] text-[10px] font-semibold leading-[13px]" style={ONE_LINE}>
-                          {friendsGoing}
-                        </p>
-                      )}
+                      <p className="mt-[1px] text-[10px] font-semibold leading-[13px]" style={ONE_LINE}>
+                        {friendsGoing ?? "\u00a0"}
+                      </p>
                     </div>
                   </Link>
                 </li>
