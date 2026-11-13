@@ -53,6 +53,12 @@ describe("food crawl", () => {
     expect(result.data!.invite.path).toMatch(/^\/events\//);
   });
 
+  it("never stops at an event the student hid", async () => {
+    const result = await planCrawl({ from, to, exclude: ["pizza"] }, all, NOW);
+    expect(result.data!.stops.map((s) => s.eventId)).not.toContain("pizza");
+    expect(result.data!.stops.length).toBeGreaterThan(0);
+  });
+
   it("rejects a Muse plan with two main courses", async () => {
     vi.stubEnv("MUSE_API_KEY", "test-key-not-real");
     const two = { stops: [{ eventId: "pizza", kind: "main" }, { eventId: "tacos", kind: "main" }], pitch: "Go", invite: { eventId: null, message: "Join me" } };
