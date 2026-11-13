@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
+import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { isOpenFree } from "@/lib/events/time";
 import { walkMinutes } from "@/lib/geo";
 import { crawlFixture } from "@/lib/muse/fixtures/crawl";
@@ -120,6 +121,9 @@ function combinations<T>(items: T[], size: number): T[][] {
   return items.flatMap((item, index) => combinations(items.slice(index + 1), size - 1).map((rest) => [item, ...rest]));
 }
 
+const campusClock = (iso: string) =>
+  new Date(iso).toLocaleString("en-US", { timeZone: CAMPUS_TIME_ZONE, weekday: "short", hour: "numeric", minute: "2-digit" });
+
 export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = new Date()): Promise<MuseJobResult<CrawlPlan>> {
   const candidates = crawlCandidates(input, events, now);
   const byId = new Map(candidates.map((event) => [event.id, event]));
@@ -129,8 +133,9 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
     description: event.description,
     food: event.food,
     foodNote: event.foodNote,
-    start: event.start,
-    end: event.end,
+    // Campus clock times, so the invite says "until 10 PM", not a UTC hour.
+    start: campusClock(event.start),
+    end: campusClock(event.end),
     place: event.place.name,
   }));
   const result = await runMuseJob({
@@ -143,7 +148,7 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
         '"invite":{"eventId": the stop best to share with a friend, or null,"message":"a short text the student sends a friend to join, naming the event, under 200 characters"}}.',
         "Use only ids from the list. If the student mentions a friend, write the invite to that friend. Plain words, no emoji.",
       ].join(" "),
-      prompt: `Now: ${now.toISOString()}\nHeading to: ${input.toLabel ?? "home"}\nStudent said: ${input.note ?? "nothing"}\nFree stops on the way: ${JSON.stringify(listed)}`,
+      prompt: `Now: ${campusClock(now.toISOString())}\nHeading to: ${input.toLabel ?? "home"}\nStudent said: ${input.note ?? "nothing"}\nFree stops on the way: ${JSON.stringify(listed)}`,
       structuredOutput: CRAWL_STRUCTURED_OUTPUT,
     },
     outputSchema: CrawlPickSchema,
