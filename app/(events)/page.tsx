@@ -21,10 +21,11 @@ import { getEventStore } from "@/lib/events/store";
 // plans every walk from a set campus time, for the demo (?at= is the nearby
 // watcher's simulated location). ?auto=1 (the demo's U1c) has Ask Muse ask the
 // scripted re-plan line on its own, as typed text; the real ask call still runs.
+// ?reveal=wait (the stage loading U1b ahead) holds Muse's reveal until the stage posts {type: "reveal"}.
 export default async function EventsTabPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string }>;
+  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string; reveal?: string }>;
 }) {
   await connection();
   const params = await searchParams;
@@ -59,6 +60,7 @@ export default async function EventsTabPage({
                   : null
               }
               autoAsk={params.auto === "1" ? REPLAN_LINE : null}
+              holdReveal={params.reveal === "wait"}
               planAt={params.time && Number.isFinite(Date.parse(params.time)) ? params.time : null}
             />
           </Suspense>
