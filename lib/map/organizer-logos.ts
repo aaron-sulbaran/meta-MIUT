@@ -1,5 +1,6 @@
 import type { CampusEvent } from "@/lib/events/schema";
 import { generatedLogo } from "@/lib/map/generated-logo";
+import { LOCAL_LOGO_FILES } from "@/lib/map/organizer-logo-files";
 
 // Logos for the organizers in the demo and test seeds, keyed by Instagram-style
 // handle, each taken from the organizer's own public site (linked, not copied
@@ -75,7 +76,11 @@ export const ORGANIZER_LOGOS: Record<string, string> = {
   mitmuseum: STUDENT_LIFE,
 };
 
-/** The organizer's logo: from the event data first, then the list above, else one generated for them. */
+/**
+ * The organizer's logo: from the event data first, then the list above, else one generated for them.
+ * A logo with a local copy (organizer-logo-files.ts) is served from this site.
+ */
 export function organizerLogo(organizer: CampusEvent["organizer"]): string {
-  return organizer.logoUrl ?? ORGANIZER_LOGOS[organizer.handle.replace(/^@/, "").toLowerCase()] ?? generatedLogo(organizer.name);
+  const logo = organizer.logoUrl ?? ORGANIZER_LOGOS[organizer.handle.replace(/^@/, "").toLowerCase()] ?? generatedLogo(organizer.name);
+  return LOCAL_LOGO_FILES[logo] ?? logo;
 }

@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { LOCAL_LOGO_FILES } from "@/lib/map/organizer-logo-files";
 import { generatedLogo, logoKindFor } from "@/lib/map/generated-logo";
 import { ORGANIZER_LOGOS, organizerLogo } from "@/lib/map/organizer-logos";
 
@@ -7,8 +10,16 @@ describe("organizerLogo", () => {
     expect(organizerLogo({ name: "Thai Students at MIT", handle: "mit_tsmit", logoUrl: "/logos/tsmit.png" })).toBe("/logos/tsmit.png");
   });
 
-  it("falls back to the known logo by handle, ignoring @ and case", () => {
-    expect(organizerLogo({ name: "Thai Students at MIT", handle: "@MIT_TSMIT" })).toBe(ORGANIZER_LOGOS.mit_tsmit);
+  it("falls back to the known logo by handle, ignoring @ and case, served from its local copy", () => {
+    expect(organizerLogo({ name: "Thai Students at MIT", handle: "@MIT_TSMIT" })).toBe(LOCAL_LOGO_FILES[ORGANIZER_LOGOS.mit_tsmit!]);
+  });
+
+  it("has a local copy on disk for every listed logo, so no screen waits on an outside site", () => {
+    for (const url of Object.values(ORGANIZER_LOGOS)) {
+      const local = LOCAL_LOGO_FILES[url];
+      expect(local, url).toMatch(/^\/logos\/organizers\//);
+      expect(existsSync(join(process.cwd(), "public", local ?? "missing")), local).toBe(true);
+    }
   });
 
   it("generates a logo for an organizer with none", () => {
