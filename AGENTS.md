@@ -80,12 +80,12 @@ app/demo/            the pitch stage (beats from lib/demo/beats.ts, persona per 
                      /demo/remote a phone clicker (Next, Back) that moves the stage through /api/demo/stage
 app/api/demo/stage/  GET where the stage is, POST next, back, or goto (lib/demo/stage-position.ts; laptop stays the master)
 app/api/demo/story/  GET the event the demo follows (created quietly if the organizer act was skipped)
-components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed, the Lock Screen's Live Activity)
+components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed, the Lock Screen's Live Activity); app-switch.tsx plays Facebook opening over a page opened with ?opened=instagram (withAppSwitch in lib/demo/app-switch.ts)
 lib/demo/            beats.ts (client safe), staged.ts (staged routes and every handoff path; a beat after a staged screen takes its path from HANDOFF), free-bite.ts, story.ts, stage-position.ts, reset.ts (one reset for every persona's saved state)
 app/curate/          User 3's first Events visit: Muse reads email, calendar, Instagram, Reels and ranks a first feed
 app/api/curate/      POST a curated feed (Muse job, story event pinned first and flagged storyPinned if Muse ranked it lower)
 lib/curate/          connectors.ts (seeded sources, client safe), curate.ts (request, fixture, pinStory)
-app/invite/[id]/     Lisa's no-account landing: invited by a friend, one tap account, joined state
+app/invite/[id]/     Lisa's no-account landing, one ?state= per beat: locked preview, Meta account sheet, account ready, Join, going and Open to company
 app/api/invite/[id]/accept/  POST {from} marks the viewer and the inviter going
 components/alerts/   AlertListener (mount once in the root layout), banner, demo console
 components/ui/       Facebook shell: tab-bar (TabBar, ProfileAvatar), header (HomeHeader, SectionHeader,
