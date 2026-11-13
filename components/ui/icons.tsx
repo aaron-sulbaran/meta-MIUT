@@ -234,6 +234,25 @@ export function FriendsIcon({ className }: IconProps) {
   );
 }
 
+export function CalendarIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={2} className={className}>
+      <rect x="3.5" y="4.5" width="17" height="16.5" rx="3" />
+      <path d="M3.5 9.6h17M8 2.8v3.4M16 2.8v3.4" />
+      <rect x="7.4" y="12.6" width="3.6" height="3.6" rx="0.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function CalendarFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...solid} className={className}>
+      <path fillRule="evenodd" d="M8 1.8a1 1 0 0 1 1 1V3.5h6v-.7a1 1 0 1 1 2 0v.7h.5a3 3 0 0 1 3 3V19a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3V6.5a3 3 0 0 1 3-3H7v-.7a1 1 0 0 1 1-1zM5.5 10.4V19a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-8.6z" />
+      <rect x="7.4" y="12.6" width="3.6" height="3.6" rx="0.8" />
+    </svg>
+  );
+}
+
 export function MarketplaceIcon({ className }: IconProps) {
   return (
     <svg {...line} strokeWidth={2} className={className}>
