@@ -18,10 +18,12 @@ import { PERSONA_COOKIE } from "@/lib/social/persona";
 //   { job: "flyer", input }  the story's flyer and caption, as the organizer screen sends them (O3)
 //   { job: "walk-home", at } the walk home on the run's clock (U1b)
 //   { job: "curate" }        Trish's first Events feed (U3b)
+//   { job: "going", eventId } who Trish could go with at the story event (U3d, the ending)
 const HeadStartSchema = z.discriminatedUnion("job", [
   z.object({ job: z.literal("flyer"), input: ExtractInputSchema }),
   z.object({ job: z.literal("walk-home"), at: z.iso.datetime({ offset: true }) }),
   z.object({ job: z.literal("curate") }),
+  z.object({ job: z.literal("going"), eventId: z.string().min(1).max(200) }),
 ]);
 
 export async function POST(request: Request) {
@@ -41,13 +43,16 @@ export async function POST(request: Request) {
   } else if (job.job === "walk-home") {
     path = "/api/muse/crawl";
     payload = walkHomeRequest(loadDemoStudent().home, job.at);
-  } else {
+  } else if (job.job === "curate") {
     path = "/api/curate";
+    headers.cookie = `${PERSONA_COOKIE}=user3`;
+  } else {
+    path = `/api/social/events/${encodeURIComponent(job.eventId)}/muse`;
     headers.cookie = `${PERSONA_COOKIE}=user3`;
   }
   // The map under the walk home and Trish's first Events renders its Top 3 first (lib/muse/rank.ts,
   // shared across instances), and its Muse card only after that: warm it alongside.
-  const picks = job.job === "flyer" ? Promise.resolve(null) : warmTopPicks().catch(() => null);
+  const picks = job.job === "flyer" || job.job === "going" ? Promise.resolve(null) : warmTopPicks().catch(() => null);
   try {
     const response = await fetch(new URL(path, request.url), {
       method: "POST",
