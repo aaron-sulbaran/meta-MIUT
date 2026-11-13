@@ -476,9 +476,19 @@ export type AskPlanLink = { note: string; toEventId: string | null; invite?: boo
 /** To the event asked about, else to a friend named in the request, else home. */
 function startFromAsk(link: AskPlanLink, events: CampusEvent[]): CrawlStart {
   const event = link.toEventId ? events.find((candidate) => candidate.id === link.toEventId) : undefined;
-  // The note names the event's place, so the walk ends there and not at a place that only sounds like it.
-  if (event) return { kind: "friend", to: { lat: event.place.lat, lng: event.place.lng }, label: event.place.name, note: `${link.note} (${event.title} at ${event.place.name})`, friendName: null };
   const friend = friendNamedIn(link.note);
+  // The note names the event's place, so the walk ends there and not at a place that only sounds like it.
+  // A friend named too ("find one between me and Lisa and invite her") still gets the invite.
+  if (event)
+    return {
+      kind: "friend",
+      to: { lat: event.place.lat, lng: event.place.lng },
+      label: event.place.name,
+      note: `${link.note} (${event.title} at ${event.place.name})`,
+      friendName: friend?.name ?? null,
+      friendId: friend?.id ?? null,
+      sendInvite: friend !== null && link.invite === true,
+    };
   return friend
     ? { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name, friendId: friend.id, sendInvite: link.invite === true }
     : { kind: "home", note: link.note };
@@ -493,6 +503,7 @@ export function EventsMap({
   askPlan = null,
   planAt = null,
   startLabel = null,
+  autoAsk = null,
 }: {
   cards: MapCard[];
   studentSpot: Point;
@@ -506,6 +517,8 @@ export function EventsMap({
   planAt?: string | null;
   /** How the walk's start reads, like "Out of Data Structures". */
   startLabel?: string | null;
+  /** Demo hook (?auto=1): once the walk is up, open Ask Muse and ask this. */
+  autoAsk?: string | null;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -531,6 +544,17 @@ export function EventsMap({
   );
   const [askOpen, setAskOpen] = useState(false);
   const [route, setRoute] = useState<Route | null>(null);
+  // Open once, a beat after the first walk is drawn, so the room sees the plan change.
+  const autoAskOpened = useRef(false);
+  const hasRoute = route !== null;
+  useEffect(() => {
+    if (!autoAsk || autoAskOpened.current || (!hasRoute && autoPlan === "home")) return;
+    const timer = setTimeout(() => {
+      autoAskOpened.current = true;
+      setAskOpen(true);
+    }, 1400);
+    return () => clearTimeout(timer);
+  }, [autoAsk, hasRoute, autoPlan]);
   const routeMarkersRef = useRef<Marker[]>([]);
   // The stop whose popup is open, tied to the route it belongs to, so a new
   // route (or none) closes it without an effect.
@@ -884,7 +908,7 @@ export function EventsMap({
 
       {!crawlOpen && !askOpen && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
 
-      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} />}
+      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} autoAsk={autoAsk ?? undefined} />}
 
       {peekStop && peekPoint && peekIndex !== null && route && (() => {
         const left = Math.min(Math.max(peekPoint.x - PEEK_WIDTH / 2, 10), peekPoint.width - PEEK_WIDTH - 10);

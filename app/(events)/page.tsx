@@ -9,6 +9,7 @@ import { ViewToggle } from "@/components/map/view-toggle";
 import { HeaderAction, SubPageHeader } from "@/components/ui/header";
 import { PlusSquareIcon } from "@/components/ui/icons";
 import { CAMPUS_NAME } from "@/lib/brand";
+import { REPLAN_LINE } from "@/lib/demo/staged";
 import { getEventStore } from "@/lib/events/store";
 
 // The Events tab opens on the map (lisa, t-94t4). The feed is one tap away as
@@ -18,11 +19,12 @@ import { getEventStore } from "@/lib/events/store";
 // the List view it opens Ask Muse. /?plan=home opens the map with Muse's walk from
 // class to home planned (the "just out of class" alert links here); ?time=<ISO>
 // plans every walk from a set campus time, for the demo (?at= is the nearby
-// watcher's simulated location).
+// watcher's simulated location). ?auto=1 (the demo's U1c) has Ask Muse ask the
+// scripted re-plan line on its own, as typed text; the real ask call still runs.
 export default async function EventsTabPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string }>;
+  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string }>;
 }) {
   await connection();
   const params = await searchParams;
@@ -56,6 +58,7 @@ export default async function EventsTabPage({
                   ? { note: params.note.slice(0, 300), toEventId: params.to ?? null, invite: params.invite === "1" }
                   : null
               }
+              autoAsk={params.auto === "1" ? REPLAN_LINE : null}
               planAt={params.time && Number.isFinite(Date.parse(params.time)) ? params.time : null}
             />
           </Suspense>

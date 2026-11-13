@@ -57,6 +57,10 @@ export function storyCaption(now: Date): string {
   return `Board Game Night today at the MIT Museum (314 Main St), ${storyTimeLine(now)}: free dumplings while they last and 40 board games. Open to everyone, no experience needed. Come by after class!`;
 }
 
+/** U1c's scripted line (hub shot list, shot 7), asked as typed text when no mic is used. */
+export const REPLAN_LINE =
+  "Wait, actually I'm not going home, I was gonna hang out with Lisa. Can you find an event closer to both of us and send Lisa the invite?";
+
 /**
  * Where each staged screen hands off into the real app: the /demo stage's next
  * beat paths (lib/demo/beats.ts). They must match exactly, or the stage reloads
@@ -76,6 +80,8 @@ export const HANDOFF = {
   organizerPosted: (atIso: string | null) => withClock(`${ORGANIZER_HANDOFF}&state=posted`, atIso),
   // U1b: the map with Muse's walk home planned from the demo clock (?time= pins it).
   walkHome: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}`,
+  // U1c: the same map, then Ask Muse asks the re-plan line by itself (typed, real call).
+  replanLisa: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}&auto=1`,
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
   organizer: ORGANIZER_HANDOFF,
   // U2b: the no-account landing (t-1lup).
