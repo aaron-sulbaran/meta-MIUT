@@ -21,6 +21,8 @@ type Result = {
   mode: InputMode;
   caption: string;
   drafts: ExtractDraft[];
+  // Sessions of a series that already ended (a term-long class lists every week).
+  skippedPast: number;
   live: boolean;
   fallbackReason: string | null;
   error: string | null;
@@ -87,17 +89,20 @@ export function OrganizerFlow({
         body: JSON.stringify(body),
       });
       const answer = (await response.json()) as ExtractDraftsResponse;
+      const all = answer.data?.events ?? [];
+      const upcoming = all.filter((draft) => !(Date.parse(draft.end) <= Date.now()));
       setResult({
         run,
         mode,
         caption: mode === "photo" ? caption.trim() : spoken.trim(),
-        drafts: answer.data?.events ?? [],
+        drafts: upcoming,
+        skippedPast: all.length - upcoming.length,
         live: answer.source === "muse",
         fallbackReason: answer.fallbackReason ?? null,
         error: answer.data ? null : (answer.error ?? `Muse could not read it (HTTP ${response.status}).`),
       });
     } catch {
-      setResult({ run, mode, caption: sentCaption, drafts: [], live: false, fallbackReason: null, error: "No connection. Try again." });
+      setResult({ run, mode, caption: sentCaption, drafts: [], skippedPast: 0, live: false, fallbackReason: null, error: "No connection. Try again." });
     } finally {
       setReading(false);
     }
@@ -237,7 +242,9 @@ export function OrganizerFlow({
               {result.error
                 ? "Muse could not read it"
                 : result.drafts.length === 0
-                  ? "No event found in this post"
+                  ? result.skippedPast > 0
+                    ? "Every date in this post has passed"
+                    : "No event found in this post"
                   : result.drafts.length === 1
                     ? "Muse drafted 1 event"
                     : `Muse drafted ${result.drafts.length} events`}
@@ -245,7 +252,12 @@ export function OrganizerFlow({
             {!result.error && <SourceBadge source={result.live ? "muse" : "fixture"} />}
           </div>
           {result.error && <p className="text-body text-ink">{result.error}</p>}
-          {!result.error && result.drafts.length === 0 && (
+          {result.skippedPast > 0 && (
+            <p className="text-venue text-muted">
+              Skipped {result.skippedPast === 1 ? "1 session that already happened" : `${result.skippedPast} sessions that already happened`}.
+            </p>
+          )}
+          {!result.error && result.drafts.length === 0 && result.skippedPast === 0 && (
             <p className="text-body text-muted">Muse reads this as something other than an event people go to, like a sale or a reminder. Nothing was drafted.</p>
           )}
           {!result.live && !result.error && result.drafts.length > 0 && (
