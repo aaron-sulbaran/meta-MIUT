@@ -24,6 +24,14 @@ type Response = { data: WhoIsGoing | null; error: string | null };
 type Seats = { capacity: number; left: number };
 type MusePick = { line: string; people: { id: string; why: string }[] };
 type MuseResponse = { data: (MusePick & { who: WhoIsGoing }) | null; error: string | null; source?: "muse" | "fixture" };
+// Say hi: Muse writes the hello, then it goes to everyone named (POST /api/social/hello with write).
+type HelloResponse = Response & { hello?: { message: string; source: "muse" | "fixture"; ms: number } | null };
+type Hi = { names: string[]; state: "writing" | "sent" | "error"; message?: string; source?: "muse" | "fixture"; ms?: number };
+
+/** "Lisa", "Lisa and Jolyn", "Lisa, Jolyn and Maya". */
+function joinNames(names: string[]): string {
+  return names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
 
 async function post<T>(url: string, body: unknown): Promise<T | { data: null; error: string }> {
   try {
@@ -103,6 +111,14 @@ export function WhosGoing({
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [helloBusy, setHelloBusy] = useState<string | null>(null);
   const [helloError, setHelloError] = useState<string | null>(null);
+  const [hi, setHi] = useState<Hi | null>(null);
+  const hiRef = useRef<HTMLDivElement>(null);
+  // Muse's hello comes into view as it is written and sent.
+  useEffect(() => {
+    if (!hi) return;
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    hiRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "center" });
+  }, [hi]);
   const [muse, setMuse] = useState<{ state: "idle" | "asking" | "done"; pick: MusePick | null; error: string | null; recorded?: boolean }>({
     state: "idle",
     pick: null,
@@ -182,15 +198,21 @@ export function WhosGoing({
     sectionRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "nearest" });
   }, [autoAsk, muse.state]);
 
-  async function sayHi(personId: string) {
-    setHelloBusy(personId);
+  // Muse writes the hi (a real call), shows it, and sends it to everyone named.
+  async function sayHi(personIds: string[]) {
+    const names = personIds.map((id) => who.openToCompany.find((person) => person.id === id)?.name ?? "them");
+    setHelloBusy(personIds[0] ?? null);
     setHelloError(null);
-    const result = await post<Response>("/api/social/hello", { eventId: who.eventId, to: personId });
+    setHi({ names, state: "writing" });
+    const result = await post<HelloResponse>("/api/social/hello", { eventId: who.eventId, to: personIds, write: true });
     setHelloBusy(null);
     if (!result.data) {
+      setHi(null);
       setHelloError(result.error ?? "Could not say hi right now.");
       return;
     }
+    const written = "hello" in result ? result.hello : null;
+    setHi({ names, state: "sent", message: written?.message, source: written?.source, ms: written?.ms });
     setWho(result.data);
     // They answer a few seconds later; check back until they have.
     for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -198,7 +220,7 @@ export function WhosGoing({
       const latest = await fetch(goingUrl).then((response) => response.json() as Promise<Response>).catch(() => null);
       if (!latest?.data) continue;
       setWho(latest.data);
-      if (latest.data.openToCompany.find((person) => person.id === personId)?.hello === "accepted") return;
+      if (personIds.every((id) => latest.data!.openToCompany.find((person) => person.id === id)?.hello === "accepted")) return;
     }
   }
 
@@ -337,7 +359,7 @@ export function WhosGoing({
                           <button
                             type="button"
                             disabled={helloBusy !== null}
-                            onClick={() => void sayHi(person.id)}
+                            onClick={() => void sayHi([person.id])}
                             aria-label={`Say hi to ${person.name}`}
                             title="Say hi"
                             className={buttonClass("secondary", "h-[42px] w-[42px] shrink-0 rounded-full px-0")}
@@ -349,6 +371,49 @@ export function WhosGoing({
                     );
                   })}
                 </ul>
+              )}
+              {(() => {
+                // One tap says hi to everyone Muse suggested who has not heard from you yet.
+                const unsaid = muse.pick.people
+                  .map((pick) => who.openToCompany.find((candidate) => candidate.id === pick.id))
+                  .filter((person): person is GoingPerson => Boolean(person && !person.hello));
+                if (hi || unsaid.length < 2) return null;
+                return (
+                  <button
+                    type="button"
+                    disabled={helloBusy !== null}
+                    onClick={() => void sayHi(unsaid.map((person) => person.id))}
+                    className={buttonClass("secondary", "mt-[10px] ml-[40px] w-[calc(100%-40px)] gap-[6px]")}
+                  >
+                    <WaveIcon className="h-[24px] w-[24px]" />
+                    Say hi to {joinNames(unsaid.map((person) => person.name))}
+                  </button>
+                );
+              })()}
+              {hi && (
+                <div ref={hiRef} className="mt-[12px] flex items-start gap-[10px]" aria-live="polite">
+                  <MuseBadge size={30} />
+                  <div className="min-w-0 flex-1">
+                    {hi.state === "writing" ? (
+                      <p className="font-display text-label font-bold">Muse is writing your hi to {joinNames(hi.names)}...</p>
+                    ) : (
+                      <>
+                        {hi.message && (
+                          <p className="rounded-[16px] rounded-tl-[6px] bg-wash px-[12px] py-[8px] text-body">{hi.message}</p>
+                        )}
+                        <p className="mt-[4px] flex items-center gap-[5px] text-meta font-semibold text-link">
+                          <CheckGlyph className="h-[14px] w-[14px]" />
+                          Sent to {joinNames(hi.names)}
+                        </p>
+                        {hi.source === "muse" && hi.ms !== undefined ? (
+                          <p className="text-meta text-muted">Written by Muse · Live, {(hi.ms / 1000).toFixed(1)} s</p>
+                        ) : hi.source === "fixture" ? (
+                          <SourceBadge source="fixture" />
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
               {helloError && <p className="mt-[8px] pl-[40px] text-meta font-semibold text-badge">{helloError}</p>}
             </div>
