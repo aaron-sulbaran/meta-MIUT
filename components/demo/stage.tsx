@@ -708,9 +708,15 @@ export function Stage() {
         </div>
       )}
 
-      {/* The fresh run, offered quietly on the first beat until the show moves on (Shift+R works anywhere). */}
+      {/* The fresh run, on the first beat until the show moves on (Shift+R works anywhere). It stays
+          invisible over the projected opening unless the pointer is in that corner, it is being
+          confirmed, or the run is stale (then the note shows). */}
       {index === 0 && !leftStart && (
-        <div className="absolute right-3 bottom-3 z-30 flex items-center gap-2 text-[12px] text-white/45 hover:text-white/90">
+        <div
+          className={`absolute right-0 bottom-0 z-30 flex items-center gap-2 p-3 text-[12px] text-white/45 transition-opacity duration-200 hover:text-white/90 hover:opacity-100 focus-within:opacity-100 ${
+            staleNote || confirmFresh ? "opacity-100" : "opacity-0"
+          }`}
+        >
           {confirmFresh ? (
             <>
               <span>Clear every earlier run and start over?</span>
