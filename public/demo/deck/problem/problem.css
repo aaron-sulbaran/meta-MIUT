@@ -1,0 +1,755 @@
+/* Problem deck: scenes 1 to 5 of Jolyn's motion script. */
+
+/* ---------- Scene 1: the hook ---------- */
+.s1-shot {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 46%;
+}
+
+.s1-field {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.s1-head {
+  z-index: 1;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1080px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 50% 0%;
+  padding-bottom: 40px;
+}
+
+.eyebrow {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 54px;
+  letter-spacing: -0.01em;
+  color: var(--gray);
+  margin-bottom: 44px;
+  opacity: 0;
+}
+
+.q {
+  position: relative;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 124px;
+  letter-spacing: -0.028em;
+  line-height: 1.07;
+  text-align: center;
+  color: var(--white);
+}
+
+.q-line {
+  display: block;
+  white-space: nowrap;
+}
+
+.q-line .ch {
+  white-space: pre;
+  opacity: 0;
+}
+
+.caret {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 118px;
+  opacity: 0;
+}
+
+.caret-blink {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: var(--blue);
+}
+
+/* Message bubbles: dark charcoal, white text, a tail at the bottom left. */
+.quote {
+  z-index: 3;
+}
+
+.quote,
+.cb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transform-origin: 0% 100%;
+}
+
+.bob {
+  position: relative;
+}
+
+.bubble {
+  position: relative;
+  display: inline-block;
+  background: var(--card);
+  color: var(--white);
+  font-family: var(--text);
+  font-weight: 500;
+  font-size: 58px;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  padding: 28px 46px 30px;
+  border-radius: 52px;
+  white-space: nowrap;
+  box-shadow:
+    0 22px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.bubble::before {
+  content: "";
+  position: absolute;
+  left: -11px;
+  bottom: -1px;
+  width: 34px;
+  height: 36px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 36'><path d='M14 0 C14 16 9 28 0 35.5 C11 36 22 33 32 26 L34 0 Z' fill='%23292C35'/></svg>") no-repeat;
+  background-size: 100% 100%;
+}
+
+.quote.big {
+  transform-origin: 50% 50%;
+}
+
+.quote.big .bubble {
+  font-size: 84px;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  white-space: normal;
+  width: 1220px;
+  text-align: left;
+  padding: 44px 64px 50px;
+  border-radius: 76px;
+  box-shadow:
+    0 40px 90px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.quote.big .bubble::before {
+  left: -16px;
+  width: 48px;
+  height: 52px;
+}
+
+.typing {
+  display: inline-flex;
+  gap: 16px;
+  align-items: center;
+  height: 126px;
+  padding: 0 50px;
+}
+
+.typing i,
+.cb .dots i {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #8b909b;
+}
+
+/* Cascade bubbles: skeleton lines or typing dots, never words. */
+.cb .bubble {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  padding: 30px 40px;
+  border-radius: 44px;
+}
+
+.cb .bubble b {
+  display: block;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--bar);
+}
+
+.cb .dots {
+  display: flex;
+  gap: 13px;
+  padding: 6px 4px;
+}
+
+.cb.d1 .bubble {
+  background: #25282f;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+}
+
+.cb.d1 .bubble::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 36'><path d='M14 0 C14 16 9 28 0 35.5 C11 36 22 33 32 26 L34 0 Z' fill='%2325282F'/></svg>");
+}
+
+.cb.d1 .bubble b {
+  background: #33363f;
+}
+
+.cb.d2 .bubble {
+  background: #1f2128;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+}
+
+.cb.d2 .bubble::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 36'><path d='M14 0 C14 16 9 28 0 35.5 C11 36 22 33 32 26 L34 0 Z' fill='%231F2128'/></svg>");
+}
+
+.cb.d2 .bubble b {
+  background: #2b2e36;
+}
+
+.cb.d1 .dots i {
+  background: #5d616b;
+}
+
+.cb.d2 .dots i {
+  background: #3c4049;
+}
+
+/* ---------- Scene 2: Marketplace ---------- */
+.s2-listings {
+  position: absolute;
+  inset: 0;
+}
+
+.listing {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transform-origin: 50% 50%;
+}
+
+.l-card {
+  width: 330px;
+  border-radius: 26px;
+  overflow: hidden;
+  background: #17191f;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.l-card img {
+  display: block;
+  width: 330px;
+  height: 330px;
+}
+
+.l-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 22px 22px;
+  font-family: var(--text);
+}
+
+.l-meta b {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.l-meta span {
+  font-size: 26px;
+  color: #d5d8de;
+}
+
+.l-meta em {
+  font-style: normal;
+  font-size: 21px;
+  color: #8a8f99;
+}
+
+.s2-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 340px;
+  height: 400px;
+  background: var(--blue);
+  clip-path: inset(50% 50% 50% 50% round 40px);
+  will-change: clip-path;
+}
+
+.s2-word {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 196px;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--white);
+  opacity: 0;
+  line-height: 1;
+  padding-bottom: 10px;
+}
+
+.s2-pair {
+  gap: 34px;
+}
+
+#s2-a,
+#s2-b,
+#s2-line {
+  opacity: 0;
+}
+
+.em {
+  position: relative;
+  display: inline-block;
+}
+
+.underline {
+  position: absolute;
+  left: 2px;
+  right: 0.32em;
+  bottom: -14px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--blue);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+
+.statement .w {
+  display: inline-block;
+}
+
+/* ---------- Scenes 3 and 4: flyers and the pile ---------- */
+.s3-shot {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 52%;
+  /* Stays one GPU layer, so settling the push-in does not re-render the whole pile. */
+  will-change: transform;
+}
+
+.s3-flyers,
+.s3-pile {
+  position: absolute;
+  inset: 0;
+}
+
+.s3-flyers {
+  z-index: 1;
+}
+
+.s3-pile {
+  z-index: 2;
+}
+
+.flyer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transform-origin: 50% 50%;
+}
+
+.flyer img {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.nt {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  border-radius: 26px;
+  background: #24262d;
+  color: var(--white);
+  font-family: var(--text);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.nt.email {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 24px 28px 26px;
+}
+
+.nt-ico {
+  flex: none;
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  background: #3b4a63;
+  display: grid;
+  place-items: center;
+}
+
+.nt-ico svg {
+  width: 32px;
+  height: 32px;
+}
+
+.nt-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nt-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 24px;
+}
+
+.nt-top b {
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-top time {
+  color: #8a8f99;
+  font-size: 21px;
+  flex: none;
+}
+
+.nt-sub {
+  font-size: 23px;
+  color: #c9ccd3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sk {
+  display: block;
+  height: 14px;
+  border-radius: 7px;
+  background: #383b45;
+}
+
+.nt.ig {
+  padding: 18px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ig-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 22px;
+  font-weight: 650;
+}
+
+.ig-head img {
+  width: 34px;
+  height: 34px;
+}
+
+.ig-pic {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+}
+
+.nt.chat {
+  padding: 22px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-b {
+  border-radius: 22px;
+  padding: 16px 20px;
+  background: #33363f;
+  align-self: flex-start;
+}
+
+.chat-b.me {
+  align-self: flex-end;
+  background: var(--blue);
+}
+
+.chat-b.me .sk {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.nt.channel {
+  display: flex;
+  gap: 18px;
+  padding: 22px 26px 24px;
+  background: #2b2d34;
+}
+
+.ch-av {
+  flex: none;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+}
+
+.s3-dim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 38% 52% at 50% 50%, rgba(8, 9, 13, 0.7), rgba(8, 9, 13, 0.95));
+  opacity: 0;
+}
+
+.s3-hero {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 640px;
+  height: 640px;
+  opacity: 0;
+  transform-origin: 50% 50%;
+}
+
+.s3-hero .shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: #000;
+  opacity: 0;
+}
+
+.s3-hero img {
+  display: block;
+  width: 640px;
+  height: 640px;
+  border-radius: 14px;
+  box-shadow: 0 50px 120px rgba(0, 0, 0, 0.75);
+}
+
+.stamp {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 740px;
+  margin-left: -370px;
+  height: 160px;
+  margin-top: -80px;
+  display: grid;
+  place-items: center;
+  border: 12px solid #ff3b3f;
+  border-radius: 18px;
+  color: #ff3b3f;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 92px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  background: rgba(16, 4, 6, 0.55);
+  box-shadow: 0 0 0 4px rgba(16, 4, 6, 0.35);
+  opacity: 0;
+  mix-blend-mode: normal;
+}
+
+.stamp span {
+  white-space: nowrap;
+}
+
+.s4-pair {
+  gap: 30px;
+}
+
+#s4-a,
+#s4-b {
+  opacity: 0;
+}
+
+/* ---------- Scene 5: the solution ---------- */
+.s5-q {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.s5-q .statement {
+  font-size: 92px;
+  opacity: 0;
+}
+
+#s5-lamp .l-card {
+  width: 300px;
+}
+
+#s5-lamp .l-card img {
+  width: 300px;
+  height: 300px;
+}
+
+#s5-flyer {
+  width: 360px;
+}
+
+.ping {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 6px solid var(--blue);
+  box-shadow: 0 0 30px rgba(8, 102, 255, 0.7);
+  opacity: 0;
+  z-index: 6;
+}
+
+.s5-link {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 120px;
+  height: 8px;
+  transform-origin: 50% 50%;
+  opacity: 0;
+}
+
+.s5-link i {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: var(--blue);
+  box-shadow: 0 0 24px rgba(8, 102, 255, 0.8);
+}
+
+.s5-field {
+  position: absolute;
+  inset: 0;
+}
+
+.s5-field .flyer,
+.s5-field .nt {
+  z-index: 1;
+}
+
+.s5-field .hero {
+  z-index: 3;
+}
+
+.box {
+  position: absolute;
+  border: 4px solid var(--blue);
+  border-radius: 10px;
+  background: rgba(8, 102, 255, 0.12);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.xcard {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 380px;
+  padding: 22px 24px 24px;
+  border-radius: 22px;
+  background: #1b1d23;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  font-family: var(--text);
+  opacity: 0;
+  z-index: 4;
+}
+
+.xcard .xt {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.15;
+  color: var(--white);
+}
+
+.xcard .xm {
+  margin-top: 8px;
+  font-size: 24px;
+  color: #c9ccd3;
+}
+
+.xcard .xf {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(8, 102, 255, 0.18);
+  color: #6aa5ff;
+  font-weight: 650;
+  font-size: 22px;
+}
+
+.s5-scan {
+  z-index: 8;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 520px;
+  border-radius: 3px;
+  background: #5c9bff;
+  box-shadow: 0 0 18px 4px rgba(8, 102, 255, 0.9), -60px 0 80px 10px rgba(8, 102, 255, 0.18);
+  opacity: 0;
+}
+
+.s5-end {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+}
+
+.s5-brand {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.s5-brand .fb {
+  width: 136px;
+  height: 136px;
+  opacity: 0;
+}
+
+.s5-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 132px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  opacity: 0;
+}
+
+.s5-tag {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 54px;
+  letter-spacing: -0.01em;
+  color: var(--gray);
+  opacity: 0;
+}
