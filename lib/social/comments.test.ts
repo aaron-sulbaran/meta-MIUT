@@ -1,0 +1,45 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import type { CampusEvent } from "@/lib/events/schema";
+import { loadSeedEvents } from "@/lib/events/seed";
+import { addComment, eventComments, resetComments } from "@/lib/social/comments";
+
+const viewer = { id: "sample-student", name: "Sample" };
+const events: CampusEvent[] = loadSeedEvents(new Date("2026-11-12T18:00:00Z"));
+const foodEvent = events.find((event) => event.food) as CampusEvent;
+const at = (event: CampusEvent, minutesFromStart: number) => new Date(Date.parse(event.start) + minutesFromStart * 60_000);
+
+describe("event comments", () => {
+  beforeEach(() => resetComments());
+
+  it("shows only sample comments whose time has come, newest first", () => {
+    const now = at(foodEvent, 30);
+    const { comments } = eventComments(foodEvent, viewer.id, now);
+    expect(comments.length).toBeGreaterThan(0);
+    for (const comment of comments) expect(Date.parse(comment.at)).toBeLessThanOrEqual(now.getTime());
+    const times = comments.map((comment) => Date.parse(comment.at));
+    expect(times).toEqual([...times].sort((a, b) => b - a));
+  });
+
+  it("grows as the event goes on and is stable for the same time", () => {
+    const early = eventComments(foodEvent, viewer.id, at(foodEvent, -24 * 60)).comments.length;
+    const late = eventComments(foodEvent, viewer.id, new Date(Date.parse(foodEvent.end) + 60 * 60_000)).comments;
+    expect(late.length).toBeGreaterThanOrEqual(early);
+    expect(eventComments(foodEvent, viewer.id, new Date(Date.parse(foodEvent.end) + 60 * 60_000)).comments).toEqual(late);
+  });
+
+  it("never mentions food at an event without it", () => {
+    const noFood = events.find((event) => !event.food) as CampusEvent;
+    const after = new Date(Date.parse(noFood.end) + 60 * 60_000);
+    for (const comment of eventComments(noFood, viewer.id, after).comments) expect(comment.text).not.toMatch(/left|gone|run out/);
+  });
+
+  it("puts the viewer's comment on top, marked as theirs, on that event only", () => {
+    const now = at(foodEvent, 30);
+    addComment(foodEvent, viewer, "Saving a seat by the door", now);
+    const { comments } = eventComments(foodEvent, viewer.id, now);
+    expect(comments[0]).toMatchObject({ text: "Saving a seat by the door", name: "Sample", mine: true });
+    expect(comments.filter((comment) => comment.mine)).toHaveLength(1);
+    const other = events.find((event) => event.id !== foodEvent.id) as CampusEvent;
+    expect(eventComments(other, viewer.id, now).comments.some((comment) => comment.mine)).toBe(false);
+  });
+});

@@ -11,6 +11,7 @@ import { CrawlPlanner, type CrawlStart } from "@/components/map/crawl-planner";
 import { MapAsk } from "@/components/map/map-ask";
 import { MuseMenu } from "@/components/map/muse-menu";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
+import { travel } from "@/lib/crawl/order";
 import type { CampusEvent } from "@/lib/events/schema";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
@@ -58,6 +59,8 @@ export type MapCard = {
   place: Point & { name: string };
   dateLine: string;
   free: boolean;
+  /** What a free event gives, like "Popcorn and soda", or null. */
+  perk: string | null;
   category: Category;
   organizerName: string;
   /** The organizer's logo image, when the event data has one. */
@@ -91,12 +94,23 @@ function settledCardId(strip: HTMLElement): string | null {
   return best?.id || null;
 }
 
-function directionsUrl(from: Point, to: Point): string {
+// The card gives the faster of walking or the T (a rough estimate, as in the crawl).
+function transitMinutes(from: Point, to: Point): number | null {
+  const leg = travel(from, to, "transit");
+  return leg.mode === "transit" ? leg.minutes : null;
+}
+
+function travelLine(from: Point, to: Point): string {
+  const transit = transitMinutes(from, to);
+  return transit === null ? `${walkMinutes(from, to)} min walk` : `${transit} min by T`;
+}
+
+function directionsUrl(from: Point, to: Point, byTransit = false): string {
   const params = new URLSearchParams({
     api: "1",
     origin: `${from.lat},${from.lng}`,
     destination: `${to.lat},${to.lng}`,
-    travelmode: "walking",
+    travelmode: byTransit ? "transit" : "walking",
   });
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
@@ -882,7 +896,7 @@ export function EventsMap({
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
             <article
-              className="relative flex h-[128px] items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
+              className="relative flex h-[144px] items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
             >
               <LogoTile card={card} />
               <div className="min-w-0 flex-1">
@@ -894,10 +908,11 @@ export function EventsMap({
                 <p className="truncate text-meta font-semibold text-muted">{card.dateLine}</p>
                 <p className="mt-[3px] flex items-center gap-[6px] text-meta font-semibold text-muted">
                   <span className="truncate">
-                    {walkMinutes(studentSpot, card.place)} min walk · {card.free ? "Free" : "Paid"}
+                    {travelLine(studentSpot, card.place)}
+                    {card.perk ? "" : card.free ? " · Free" : " · Paid"}
                   </span>
                   <a
-                    href={directionsUrl(studentSpot, card.place)}
+                    href={directionsUrl(studentSpot, card.place, transitMinutes(studentSpot, card.place) !== null)}
                     target="_blank"
                     rel="noreferrer"
                     className="relative z-10 shrink-0 rounded-full bg-primary-soft px-[8px] py-[2px] text-primary"
@@ -908,6 +923,9 @@ export function EventsMap({
                 {/* Every card is one size and tall enough for a two-line title, the
                     time, walk and Directions, and the place. Personalization reasons
                     stay inside the agent, as on the Top 3 and alerts (d-fwq6). */}
+                {card.perk ? (
+                  <p className="mt-[3px] truncate text-meta font-semibold text-ink">Free: {card.perk}</p>
+                ) : null}
                 <p className="mt-[4px] flex items-center gap-[5px] text-[12px] font-semibold leading-[15px] text-muted">
                   <MapPinIcon className="h-[12px] w-[12px] shrink-0" />
                   <span className="truncate">{card.place.name}</span>
