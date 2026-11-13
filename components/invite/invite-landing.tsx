@@ -165,14 +165,14 @@ export function InviteLanding({
 
           {/* What came over, in Accounts Center's shape: white grouped rows on a pale wash. */}
           <section
-            className="mx-[12px] mt-[20px] rounded-[20px] p-[12px] motion-safe:animate-[ma-swap_380ms_ease-out_120ms_both]"
+            className="mt-[20px] px-[12px] py-[14px] motion-safe:animate-[ma-swap_380ms_ease-out_120ms_both]"
             style={{ background: "linear-gradient(135deg, #fdf2f6 0%, #eef3ff 100%)", fontFamily: META_SYSTEM_FONT }}
           >
             <div className="flex items-center justify-between px-[4px] pb-[10px]">
               <p className="text-[15px] font-semibold text-[#1c2b33]">Came with you from Instagram</p>
-              <MetaLockup />
+              <MetaLockup height={13} />
             </div>
-            <ul className="overflow-hidden rounded-[14px] bg-white">
+            <ul className="overflow-hidden rounded-[16px] bg-white">
               <AccountRow
                 icon={
                   <span className="relative inline-flex">
@@ -181,7 +181,7 @@ export function InviteLanding({
                   </span>
                 }
                 label="Profile"
-                detail={handle ? `${viewerName}, the same as ${handle}` : `${viewerName}, the same as on Instagram`}
+                detail={handle ? `Your name and photo from ${handle}` : "Your name and photo from Instagram"}
               />
               {friendNames.length > 0 && <AccountRow icon={<PeopleIcon className="h-[24px] w-[24px]" />} label="Friends" detail={`${namesLine(friendNames)} are already here`} />}
               <AccountRow
@@ -192,7 +192,7 @@ export function InviteLanding({
                   </svg>
                 }
                 label="Login"
-                detail="One Meta Account, nothing new to remember"
+                detail="Your Instagram login works here"
               />
             </ul>
           </section>
@@ -209,14 +209,14 @@ export function InviteLanding({
         <div className="fixed inset-y-0 left-1/2 z-50 w-full max-w-[390px] -translate-x-1/2" style={{ fontFamily: META_SYSTEM_FONT }}>
           <div
             aria-hidden
-            className={`absolute inset-0 bg-black/45 ${step === "leaving" ? "animate-[ma-dim-out_320ms_ease-in_both]" : "motion-safe:animate-[ma-dim-in_300ms_ease-out]"}`}
+            className={`absolute inset-0 bg-black/45 ${step === "leaving" ? "motion-safe:animate-[ma-dim-out_320ms_ease-in_both] motion-reduce:opacity-0" : "motion-safe:animate-[ma-dim-in_300ms_ease-out]"}`}
           />
           <section
             role="dialog"
             aria-modal="true"
             aria-label={step === "invite" ? "Your Meta Account is here" : "Your Meta Account now includes Facebook"}
             className={`absolute inset-x-0 bottom-0 rounded-t-[28px] bg-white px-[20px] pt-[44px] pb-[max(22px,env(safe-area-inset-bottom))] text-[#1c2b33] ${
-              step === "leaving" ? "animate-[ma-sheet-down_320ms_ease-in_both]" : "motion-safe:animate-[ma-sheet-up_420ms_cubic-bezier(.2,.8,.2,1)_250ms_both]"
+              step === "leaving" ? "motion-safe:animate-[ma-sheet-down_320ms_ease-in_both] motion-reduce:opacity-0" : "motion-safe:animate-[ma-sheet-up_420ms_cubic-bezier(.2,.8,.2,1)_250ms_both]"
             }`}
           >
             <StagedNote />
