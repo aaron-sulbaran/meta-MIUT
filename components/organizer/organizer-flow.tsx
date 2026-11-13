@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DraftCard } from "@/components/organizer/draft-card";
 import { prepareFlyer } from "@/components/organizer/flyer-image";
 import type { ExtractDraft, ExtractDraftsResponse, FlyerImage, InputMode, OrganizerOption } from "@/components/organizer/types";
@@ -36,21 +36,24 @@ export function OrganizerFlow({
   organizers,
   eventTitles,
   sampleCaption,
+  said = "",
 }: {
   places: KnownPlace[];
   organizers: OrganizerOption[];
   eventTitles: Record<string, string>;
   sampleCaption: string;
+  // A spoken line from Ask Muse, drafted as soon as the screen opens.
+  said?: string;
 }) {
   const fallbackOrganizer: OrganizerOption = { name: "Your club", handle: "your_club" };
   const [organizerHandle, setOrganizerHandle] = useState(organizers[0]?.handle ?? fallbackOrganizer.handle);
   const organizer = organizers.find((option) => option.handle === organizerHandle) ?? organizers[0] ?? fallbackOrganizer;
 
-  const [mode, setMode] = useState<InputMode>("photo");
+  const [mode, setMode] = useState<InputMode>(said ? "voice" : "photo");
   const [flyer, setFlyer] = useState<FlyerImage | null>(null);
   const [flyerNote, setFlyerNote] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-  const [spoken, setSpoken] = useState("");
+  const [spoken, setSpoken] = useState(said);
   const [reading, setReading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
 
@@ -107,6 +110,14 @@ export function OrganizerFlow({
       setReading(false);
     }
   }
+
+  const draftedSaid = useRef(false);
+  useEffect(() => {
+    if (!said || draftedSaid.current) return;
+    draftedSaid.current = true;
+    void draftIt();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [said]);
 
   function startOver() {
     setResult(null);

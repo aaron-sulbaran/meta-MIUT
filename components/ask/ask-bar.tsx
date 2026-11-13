@@ -15,7 +15,8 @@ import { FEED_FILTER_EVENT, type AskAction, type AskReply, type MuseRouteRespons
 // Ask Muse on top of the Events tab: type a request, or tap the mic and say it.
 // Speech goes to Muse Voice Transcribe, the words to Muse ask. Muse answers out
 // loud and on the page (event titles link to the event), carries out what was
-// asked (RSVP, interested, open, filter the list, plan my night), and asks a
+// asked (RSVP, interested, open, filter the list, plan my night, draft an event
+// they are hosting on the organizer screen), and asks a
 // follow-up when the request is unclear; after a spoken request the mic reopens
 // for the answer. Styling is a placeholder until the design lands (hub t-jvpd).
 
@@ -74,7 +75,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
   const title = (id: string | null) => (id ? (byId.get(id)?.title ?? "that event") : "that event");
 
   const perform = useCallback(
-    async (action: AskAction, reply: AskReply): Promise<{ note: string | null; planIds?: string[] }> => {
+    async (action: AskAction, reply: AskReply, question: string): Promise<{ note: string | null; planIds?: string[] }> => {
       const id = action.eventId;
       switch (action.type) {
         case "rsvp":
@@ -103,6 +104,9 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
           if (!action.filter) return { note: null };
           window.dispatchEvent(new CustomEvent(FEED_FILTER_EVENT, { detail: action.filter }));
           return { note: `Showing ${FILTER_LABELS[action.filter]}` };
+        case "create_event":
+          router.push(`/organizer?say=${encodeURIComponent(question)}`);
+          return { note: "Drafting your event" };
         case "plan_night": {
           if (!reply.plan) return { note: null };
           try {
@@ -154,7 +158,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
       speak(spoken, listenAgain ? () => startListeningRef.current() : undefined);
 
       for (const action of reply.actions) {
-        const outcome = await perform(action, reply);
+        const outcome = await perform(action, reply, text);
         if (!outcome.note) continue;
         setThread((current) =>
           current.map((exchange) =>
