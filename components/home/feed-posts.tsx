@@ -192,10 +192,38 @@ function Photos({ photos }: { photos: string[] }) {
   );
 }
 
+const FEED_KEY = "feed-state";
+type SavedFeed = { shown: Post[]; queue: Post[]; liked: string[] };
+
 export function FeedPosts() {
   const [shown, setShown] = useState(POSTS);
   const [queue, setQueue] = useState(MORE_POSTS);
   const [liked, setLiked] = useState<Set<string>>(() => new Set());
+  const [restored, setRestored] = useState(false);
+
+  // Likes, hidden posts and refreshes stick for this tab, like the real feed.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(FEED_KEY) ?? "null") as SavedFeed | null;
+        if (saved && Array.isArray(saved.shown) && Array.isArray(saved.queue) && Array.isArray(saved.liked)) {
+          setShown(saved.shown);
+          setQueue(saved.queue);
+          setLiked(new Set(saved.liked));
+        }
+      } catch {}
+      setRestored(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      const saved: SavedFeed = { shown, queue, liked: [...liked] };
+      sessionStorage.setItem(FEED_KEY, JSON.stringify(saved));
+    } catch {}
+  }, [restored, shown, queue, liked]);
 
   function toggleLike(id: string) {
     const next = new Set(liked);

@@ -4,29 +4,48 @@ import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { CampusEvent, RankedPick } from "@/lib/events/schema";
 import { isInWindow } from "@/lib/events/time";
 import { walkMinutes } from "@/lib/geo";
-import { compileCandidates } from "@/lib/muse/candidates";
+import { compileCandidates, eventText, eventTopics, scheduleClash } from "@/lib/muse/candidates";
 import { rankFixture } from "@/lib/muse/fixtures/rank";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 import { DEMO_USER_ID, getInterestMemory, type InterestMemory } from "@/lib/muse/memory";
-import { origin, type StudentContext } from "@/lib/muse/profile";
+import { minimumAge, origin, type StudentContext } from "@/lib/muse/profile";
 import type { LikelyEvent } from "@/lib/muse/types";
 
 // Student profile, interest memory, and events to the top 3 picks for today,
-// plus every event this week they are likely to care about. Candidates are
-// scored here; Muse only chooses among them and words the reasons. Walking
-// time is computed here, never taken from the model.
+// plus every event this week they are likely to care about. Muse weighs every
+// upcoming event against the student and rates how likely they are to go, which
+// orders the For you list, and picks the Top 3 from today's;
+// code only drops events they cannot attend and supplies the facts (walking
+// time, class clashes, topics), never a score. The code-scored pool is only the
+// recorded stand-in when Muse cannot answer.
+
+const FIELD_SIZE = 60;
 
 export const RankOutputSchema = z.object({
+  ratings: z.array(z.object({ eventId: z.string().min(1), relevance: z.number().min(0).max(100) })).max(FIELD_SIZE).default([]),
   picks: z.array(z.object({ eventId: z.string().min(1), reason: z.string().min(1) })).min(1).max(3),
 });
 
 export type RankOutput = z.infer<typeof RankOutputSchema>;
 
-export type PersonalizedEvents = { picks: RankedPick[]; likely: LikelyEvent[] };
+// ratings: Muse's 0 to 100 relevance per upcoming event; empty when the recorded stand-in answered.
+export type PersonalizedEvents = { picks: RankedPick[]; likely: LikelyEvent[]; ratings: Record<string, number> };
 
 export const RANK_STRUCTURED_OUTPUT = museStructuredOutput("event_picks", RankOutputSchema);
 
 const POOL_SIZE = 12;
+
+// Every upcoming event the student can attend, soonest first. No scoring: Muse judges these.
+function upcomingField(events: CampusEvent[], profile: StudentContext, now: Date): CampusEvent[] {
+  return events
+    .filter((event) => {
+      if (event.status !== "published" || Date.parse(event.end) <= now.getTime()) return false;
+      const ageLimit = minimumAge(eventText(event));
+      return ageLimit === null || profile.age === undefined || profile.age >= ageLimit;
+    })
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+    .slice(0, FIELD_SIZE);
+}
 
 // Today's likely events without a class clash first, then the clashing ones,
 // then anything else still on today so a new student still gets three picks.
@@ -81,8 +100,16 @@ function timeBucket(start: number, now: Date): string {
  * student is likely to care about first (best match first), then the rest,
  * soonest first.
  */
-export function forYouOrder(likely: LikelyEvent[], events: CampusEvent[], now: Date, skip: Set<string>): CampusEvent[] {
-  const scores = new Map(likely.map((candidate) => [candidate.eventId, candidate.score]));
+export function forYouOrder(
+  likely: LikelyEvent[],
+  events: CampusEvent[],
+  now: Date,
+  skip: Set<string>,
+  ratings: Record<string, number> = {},
+): CampusEvent[] {
+  // Muse's ratings when it answered; the code score only when it could not.
+  const museRated = Object.keys(ratings).length > 0;
+  const scores = museRated ? new Map(Object.entries(ratings)) : new Map(likely.map((candidate) => [candidate.eventId, candidate.score]));
   const score = (event: CampusEvent) => scores.get(event.id) ?? Number.NEGATIVE_INFINITY;
   return events
     .filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime() && !skip.has(event.id))
@@ -102,32 +129,34 @@ export async function personalizeEvents(
 ): Promise<MuseJobResult<PersonalizedEvents>> {
   const eventsById = new Map(events.map((event) => [event.id, event]));
   const likely = compileCandidates(profile, memory, events, now);
+  // The recorded stand-in when Muse cannot answer: the code-scored pool.
   const pool = picksPool(likely, events, profile, now);
-  const poolIds = new Set(pool.map((candidate) => candidate.eventId));
+  const field = upcomingField(events, profile, now);
+  const todayIds = new Set(field.filter((event) => isInWindow(event, "today", now)).map((event) => event.id));
+  const fieldIds = new Set(field.map((event) => event.id));
+  const from = origin(profile);
+  const follows = new Set(profile.follows);
 
-  const candidates = pool.flatMap((candidate) => {
-    const event = eventsById.get(candidate.eventId);
-    if (!event) return [];
-    return [
-      {
-        id: event.id,
-        title: event.title,
-        start: event.start,
-        end: event.end,
-        place: event.place.name,
-        walkMinutes: candidate.walkMinutes,
-        free: event.free,
-        food: event.food,
-        organizer: event.organizer.handle,
-        matched: candidate.matched,
-        clashesWith: candidate.clash,
-        score: candidate.score,
-      },
-    ];
-  });
+  const candidates = field.map((event) => ({
+    id: event.id,
+    title: event.title,
+    about: event.description.slice(0, 200),
+    topics: eventTopics(event),
+    today: todayIds.has(event.id),
+    start: event.start,
+    end: event.end,
+    place: event.place.name,
+    walkMinutes: walkMinutes(from, event.place),
+    free: event.free,
+    food: event.food ? (event.foodNote ?? true) : false,
+    organizer: event.organizer.handle,
+    followsOrganizer: follows.has(event.organizer.handle),
+    clashesWith: scheduleClash(event, profile.schedule),
+  }));
   const interestMemory = {
     topics: memory.topics.slice(0, 8).map(({ topic, score, evidence }) => ({ topic, score, evidence })),
     creators: memory.creators.slice(0, 5),
+    skips: memory.avoided ?? [],
   };
 
   // Keep the same Top 3 until something real changes: a new candidate or one leaving
@@ -144,7 +173,7 @@ export async function personalizeEvents(
   const result = await runMuseJob({
     request: {
       system:
-        'Pick the 3 best events for this student today. Return JSON only: {"picks":[{"eventId":"...","reason":"one short sentence"}]}. Use only ids from the candidates. The interest memory comes from how they use Instagram (videos they watch to the end, likes, comments, saves) and the events they marked interested, RSVPed to, went to, or dismissed. Weigh it most, events they went to above all. Then use what the student told us: age, class year, major, languages, communities they listed, diet, and the clubs they follow; then free, short walks from where they are now, and no clash with their classes. Never guess or use race, ethnicity, religion, or other protected traits. Each reason names the behavior or follow it comes from, in plain words.',
+        'You are the student\'s event agent. Weigh every upcoming candidate event against this student and decide how likely they are to go: rate each one from 0 (not for them) to 100 (they would not miss it), then pick the 3 on today (today: true) they are most likely to go to. Return JSON only: {"ratings":[{"eventId":"...","relevance":0-100}],"picks":[{"eventId":"...","reason":"one short sentence"}]}. Rate every candidate once; picks are the 3 highest rated among those on today, best first. Use only ids from the candidates. The interest memory comes from how they use Instagram (videos they watch to the end, likes, comments, saves) and the events they marked interested, RSVPed to, went to, or dismissed. Weigh it most, events they went to above all. skips are topics they hid with Not for me: rate events on those topics low unless the student listed that interest. Then use what the student told us: age, class year, major, languages, communities they listed, diet, and the clubs they follow; then free, short walks from where they are now, and no clash with their classes. Never guess or use race, ethnicity, religion, or other protected traits. Each reason names the behavior or follow it comes from, in plain words.',
       prompt: `Now: ${now.toISOString()}\nStudent: ${JSON.stringify(profile)}\nInterest memory: ${JSON.stringify(interestMemory)}\nCandidates: ${JSON.stringify(candidates)}`,
       structuredOutput: RANK_STRUCTURED_OUTPUT,
     },
@@ -152,17 +181,22 @@ export async function personalizeEvents(
     fixture: () => rankFixture(pool),
     accept: (output) => {
       const ids = output.picks.map((pick) => pick.eventId);
-      if (!ids.every((id) => poolIds.has(id))) return "Muse picked an event outside the candidates";
+      if (!ids.every((id) => fieldIds.has(id))) return "Muse picked an event outside the candidates";
+      if (!ids.every((id) => todayIds.has(id))) return "Muse picked an event that is not on today";
+      if (!output.ratings.every((rating) => fieldIds.has(rating.eventId))) return "Muse rated an event outside the candidates";
       return new Set(ids).size === ids.length ? null : "Muse picked the same event twice";
     },
   });
 
   if (result.error !== null) return result;
-  const picks = result.data.picks.flatMap((pick) => {
+  const relevance = new Map(result.data.ratings.map((rating) => [rating.eventId, rating.relevance]));
+  const rated = (eventId: string) => relevance.get(eventId) ?? Number.NEGATIVE_INFINITY;
+  const ordered = [...result.data.picks].sort((a, b) => rated(b.eventId) - rated(a.eventId));
+  const picks = ordered.flatMap((pick) => {
     const event = eventsById.get(pick.eventId);
     return event ? [{ eventId: pick.eventId, reason: pick.reason, walkMinutes: walkMinutes(origin(profile), event.place) }] : [];
   });
-  const personalized = { ...result, data: { picks, likely } };
+  const personalized = { ...result, data: { picks, likely, ratings: Object.fromEntries(relevance) } };
   if (result.source === "muse") picksCache().set(cacheKey, personalized);
   return personalized;
 }
@@ -194,7 +228,7 @@ export async function forYouFeed(
   const ranking = await personalizeEvents(profile, events, now, memory);
   const picks = ranking.data?.picks ?? [];
   const pickedIds = new Set(picks.map((pick) => pick.eventId));
-  const ordered = forYouOrder(compileCandidates(profile, memory, events, now, "upcoming"), events, now, pickedIds);
+  const ordered = forYouOrder(compileCandidates(profile, memory, events, now, "upcoming"), events, now, pickedIds, ranking.data?.ratings);
   const fill = ordered.slice(0, Math.max(0, 3 - picks.length));
   const reasons = new Map((ranking.data?.likely ?? []).map((candidate) => [candidate.eventId, candidate.reason]));
   const tiles = [

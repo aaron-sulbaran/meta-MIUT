@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/social/whos-going";
+import Link from "next/link";
+import { getFacebookHref } from "@/components/ui/header";
+import { ProfileAvatar } from "@/components/ui/tab-bar";
 import { COMMENT_MAX_LENGTH, type EventComment, type EventComments } from "@/lib/social/comment-types";
 
 // The event page's Comments section: what people are saying about the event
@@ -26,15 +29,38 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
   const [error, setError] = useState<string | null>(null);
   const [all, setAll] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // The thread being answered (its top comment) and who in it was tapped.
+  const [replyingTo, setReplyingTo] = useState<{ thread: string; to: EventComment } | null>(null);
+  const [replyText, setReplyText] = useState("");
+
+  function startReply(thread: EventComment, to: EventComment) {
+    setReplyingTo({ thread: thread.id, to });
+    setReplyText("");
+    setError(null);
+  }
+
+  // Coming back to a cached page still shows the latest comments, yours included.
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/social/events/${encodeURIComponent(initial.eventId)}/comments`, { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ data: EventComments | null }>)
+      .then((result) => {
+        if (live && result.data) setComments(result.data.comments);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [initial.eventId]);
 
   useEffect(() => {
     const tick = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(tick);
   }, []);
 
-  async function send(event: React.FormEvent) {
+  async function send(event: React.FormEvent, replyTo?: string) {
     event.preventDefault();
-    const body = text.trim();
+    const body = (replyTo ? replyText : text).trim();
     if (!body || sending) return;
     setSending(true);
     setError(null);
@@ -42,13 +68,20 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
       const response = await fetch(`/api/social/events/${encodeURIComponent(initial.eventId)}/comments`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: body }),
+        body: JSON.stringify({
+          text: body,
+          replyTo,
+          mention: replyTo && replyingTo && !replyingTo.to.mine ? replyingTo.to.name : undefined,
+        }),
       });
       const result = (await response.json()) as { data: EventComments | null; error: string | null };
       if (!response.ok || !result.data) throw new Error(result.error ?? "Could not post");
       setComments(result.data.comments);
       setNow(Date.now());
-      setText("");
+      if (replyTo) {
+        setReplyText("");
+        setReplyingTo(null);
+      } else setText("");
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Could not post");
     } finally {
@@ -64,7 +97,7 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
       <h2 id="comments-heading" className="font-display text-title font-bold">
         Comments{comments.length > 0 && <span className="ml-[6px] text-label font-semibold text-muted">{comments.length}</span>}
       </h2>
-      <form onSubmit={send} className="mt-[10px] flex items-center gap-2">
+      <form onSubmit={(event) => send(event)} className="mt-[10px] flex items-center gap-2">
         <input
           value={text}
           onChange={(event) => setText(event.target.value)}
@@ -81,7 +114,7 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
           {sending ? "Posting" : "Post"}
         </button>
       </form>
-      {error && <p className="mt-[6px] text-meta text-muted">{error}</p>}
+      {error && !replyingTo && <p className="mt-[6px] text-meta text-muted">{error}</p>}
       {comments.length === 0 ? (
         <p className="mt-[12px] text-body text-muted">No comments yet. Be the first to say how it is going.</p>
       ) : (
@@ -90,14 +123,45 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
             const replies = repliesTo(comment.id);
             return (
               <li key={comment.id}>
-                <CommentRow comment={comment} now={now} />
-                {replies.length > 0 && (
+                <CommentRow comment={comment} now={now} onReply={() => startReply(comment, comment)} />
+                {(replies.length > 0 || replyingTo?.thread === comment.id) && (
                   <ul className="mt-[8px] flex flex-col gap-[8px] pl-[42px]">
                     {replies.map((reply) => (
                       <li key={reply.id}>
-                        <CommentRow comment={reply} now={now} small />
+                        <CommentRow comment={reply} now={now} small onReply={() => startReply(comment, reply)} />
                       </li>
                     ))}
+                    {replyingTo?.thread === comment.id && (
+                      <li>
+                        <p className="flex items-center gap-[6px] text-meta text-muted">
+                          <span>
+                            Replying to <span className="font-semibold text-ink">{replyingTo.to.mine ? "yourself" : replyingTo.to.name}</span>
+                          </span>
+                          <button type="button" onClick={() => setReplyingTo(null)} className="font-semibold">
+                            Cancel
+                          </button>
+                        </p>
+                        <form onSubmit={(event) => send(event, comment.id)} className="mt-[6px] flex items-center gap-2">
+                          <input
+                            autoFocus
+                            value={replyText}
+                            onChange={(event) => setReplyText(event.target.value)}
+                            maxLength={COMMENT_MAX_LENGTH}
+                            placeholder={`Reply to ${replyingTo.to.mine ? "your comment" : replyingTo.to.name}...`}
+                            aria-label="Write a reply"
+                            className="min-w-0 flex-1 rounded-full bg-wash px-[14px] py-[8px] text-body outline-none"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!replyText.trim() || sending}
+                            className="shrink-0 rounded-full bg-primary px-[14px] py-[8px] text-meta font-semibold text-on-primary disabled:opacity-40"
+                          >
+                            {sending ? "Posting" : "Post"}
+                          </button>
+                        </form>
+                        {error && <p className="mt-[6px] text-meta text-muted">{error}</p>}
+                      </li>
+                    )}
                   </ul>
                 )}
               </li>
@@ -114,16 +178,51 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
   );
 }
 
-function CommentRow({ comment, now, small = false }: { comment: EventComment; now: number; small?: boolean }) {
+// A tapped name opens the Get Facebook page for that person's profile.
+function profileHref(name?: string) {
+  return name ? `${getFacebookHref("person")}&name=${encodeURIComponent(name)}` : getFacebookHref("profile");
+}
+
+function CommentRow({
+  comment,
+  now,
+  small = false,
+  onReply,
+}: {
+  comment: EventComment;
+  now: number;
+  small?: boolean;
+  onReply: () => void;
+}) {
   return (
     <div className="flex items-start gap-[10px]">
-      <Avatar person={{ id: comment.authorId, name: comment.name }} size={small ? 24 : 32} />
+      {comment.mine ? (
+        <ProfileAvatar size={small ? 24 : 32} />
+      ) : (
+        <Avatar person={{ id: comment.authorId, name: comment.name }} size={small ? 24 : 32} />
+      )}
       <div className="min-w-0">
         <div className="rounded-[16px] bg-wash px-[12px] py-[8px]">
-          <p className="text-meta font-semibold text-ink">{comment.mine ? "You" : comment.name}</p>
-          <p className="text-body">{comment.text}</p>
+          <Link href={profileHref(comment.mine ? undefined : comment.name)} className="block text-meta font-semibold text-ink">
+            {comment.mine ? "You" : comment.name}
+          </Link>
+          <p className="text-body">
+            {comment.mention && (
+              <>
+                <Link href={profileHref(comment.mention)} className="font-semibold text-link">
+                  {comment.mention}
+                </Link>{" "}
+              </>
+            )}
+            {comment.text}
+          </p>
         </div>
-        <p className="mt-[3px] pl-[12px] text-meta text-muted">{ago(comment.at, now)}</p>
+        <p className="mt-[3px] flex gap-[12px] pl-[12px] text-meta text-muted">
+          <span>{ago(comment.at, now)}</span>
+          <button type="button" onClick={onReply} aria-label={`Reply to ${comment.mine ? "your comment" : comment.name}`} className="font-semibold">
+            Reply
+          </button>
+        </p>
       </div>
     </div>
   );

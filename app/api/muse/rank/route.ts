@@ -14,7 +14,8 @@ const RankRequestSchema = z.object({
 });
 
 // Body may omit the profile and user; the demo student is used then.
-// `data` is the top 3; `likely` is every event this week they may care about.
+// `data` is the top 3; `likely` is every event this week they may care about;
+// `ratings` is Muse's 0 to 100 relevance for every upcoming event.
 export async function POST(request: Request) {
   const body = await readJsonBody(request, RankRequestSchema);
   if (body.error !== null) return Response.json({ data: null, error: body.error }, { status: 400 });
@@ -25,6 +26,6 @@ export async function POST(request: Request) {
   const profile = body.data.location ? { ...base, location: body.data.location } : base;
   const result = await personalizeEvents(profile, events, now, memory);
   if (result.error !== null) return Response.json(result, { status: 502 });
-  const { picks, likely } = result.data;
-  return Response.json({ ...result, data: picks, likely });
+  const { picks, likely, ratings } = result.data;
+  return Response.json({ ...result, data: picks, likely, ratings });
 }
