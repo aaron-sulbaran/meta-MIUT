@@ -207,6 +207,11 @@ export function withoutMuse<T>(reason: string, run: () => Promise<T>): Promise<T
   return museOff.run(reason, run);
 }
 
+/** True inside withoutMuse: a job must not join a live call already running. */
+export function museSwitchedOff(): boolean {
+  return museOff.getStore() !== undefined;
+}
+
 export async function callMuse(request: MuseRequest, options: MuseCallOptions = {}): Promise<MuseCallResult> {
   const offReason = museOff.getStore();
   if (offReason !== undefined) return { data: null, error: offReason, meta: null };
