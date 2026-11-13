@@ -145,7 +145,7 @@ export function StagedScreen({ label, children }: { label: string; children: Rea
   return (
     <div
       aria-label={label}
-      className="fixed inset-y-0 left-1/2 z-40 flex w-full max-w-[390px] -translate-x-1/2 flex-col overflow-hidden bg-white pt-[max(44px,env(safe-area-inset-top))] font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] text-black"
+      className="fixed inset-y-0 left-1/2 z-40 flex w-full max-w-[390px] -translate-x-1/2 flex-col overflow-hidden bg-white pt-[max(47px,env(safe-area-inset-top))] font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] text-black"
     >
       <style>{"@keyframes staged-sheet-up{from{transform:translateY(100%)}to{transform:none}}@keyframes staged-pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}"}</style>
       {children}
@@ -156,8 +156,12 @@ export function StagedScreen({ label, children }: { label: string; children: Rea
 
 /** Honest but quiet: these screens imitate another app for the demo. */
 export function StagedMark() {
+  // On a real phone (a top safe area) it sits at the right; inside the stage's drawn
+  // phone (no safe area) it centers in the status bar, between the time and the battery.
   return (
-    <span className="pointer-events-none absolute right-[8px] top-[max(14px,calc(env(safe-area-inset-top)-30px))] rounded-[6px] border border-dashed border-[#c7c7c7] bg-white/85 px-[6px] py-[1px] text-[10px] font-medium text-[#8e8e8e]">
+    <span
+      style={{ right: "max(8px, calc(50% - 57px - env(safe-area-inset-top, 0px) * 100))" }}
+      className="pointer-events-none absolute top-[max(14px,calc(env(safe-area-inset-top)-30px))] rounded-[6px] border border-dashed border-[#c7c7c7] bg-white/85 px-[6px] py-[1px] text-[10px] font-medium text-[#8e8e8e]">
       Staged for the demo
     </span>
   );
