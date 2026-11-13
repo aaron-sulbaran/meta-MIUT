@@ -282,7 +282,7 @@ export function Stage() {
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-wash text-ink">
       {beat.kind === "slide" ? (
         <section className="flex flex-1 flex-col justify-center gap-6 px-[8vw]">
-          <p className="font-display text-[clamp(16px,1.6vw,26px)] font-bold text-muted">
+          <p className="font-display text-[clamp(16px,1.6vw,26px)] font-bold tracking-[0.06em] text-muted uppercase">
             {ACT_LABELS[beat.act]}
           </p>
           <h1 className="font-display text-[clamp(44px,6vw,104px)] leading-[1.02] font-extrabold tracking-[-0.02em]">{beat.title}</h1>
@@ -313,7 +313,7 @@ export function Stage() {
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-5">
-            <p className="font-display text-[clamp(14px,1.4vw,22px)] font-bold text-muted">
+            <p className="font-display text-[clamp(14px,1.4vw,22px)] font-bold tracking-[0.06em] text-muted uppercase">
               {ACT_LABELS[beat.act]}
             </p>
             <span className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-4 py-1.5 font-display text-[clamp(16px,1.5vw,24px)] font-bold text-link">
