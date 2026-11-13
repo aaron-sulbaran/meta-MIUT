@@ -33,7 +33,7 @@ describe("demo personas on Who's going", () => {
     setGoing(event, "lisa", { going: true });
     const who = whoIsGoing(event, user3.id, user3.interests);
     expect(friendsNamesLine(who.friends.filter((friend) => ["Aaron", "Lisa"].includes(friend.name)))).toBe("Aaron and Lisa are going");
-    expect(goingFixture(who).line).toContain("Aaron");
+    expect(goingFixture(who).people.map((person) => person.id)).not.toContain(aaron.id);
     expect(who.goingCount).toBeGreaterThanOrEqual(2);
   });
 

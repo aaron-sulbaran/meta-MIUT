@@ -8,7 +8,8 @@ export const IG = {
   ink: "#000000",
   muted: "#737373",
   line: "#dbdbdb",
-  blue: "#0095f6",
+  // Instagram's current action blue, sampled from its own share sheet.
+  blue: "#4f5cf9",
   bubble: "#efefef",
   ring: "linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5)",
 } as const;
@@ -157,6 +158,92 @@ export function StagedMark() {
     <span className="pointer-events-none absolute right-[8px] top-[max(14px,calc(env(safe-area-inset-top)-30px))] rounded-[6px] border border-dashed border-[#c7c7c7] bg-white/85 px-[6px] py-[1px] text-[10px] font-medium text-[#8e8e8e]">
       Staged for the demo
     </span>
+  );
+}
+
+/** Outline glyphs for the sheet rows, drawn (no logo files). */
+export const SheetGlyphs = {
+  facebook: (
+    <svg viewBox="0 0 24 24" className="h-[24px] w-[24px]" aria-hidden {...stroke}>
+      <circle cx="12" cy="12" r="9.25" />
+      <path d="M13.4 21.2v-7.4h2.3l.4-2.7h-2.7V9.4c0-.8.4-1.4 1.5-1.4h1.3V5.7a15 15 0 0 0-2-.2c-2.1 0-3.4 1.2-3.4 3.5v2.1H8.5v2.7h2.3v7.4" />
+    </svg>
+  ),
+  globe: (
+    <svg viewBox="0 0 24 24" className="h-[24px] w-[24px]" aria-hidden {...stroke}>
+      <circle cx="12" cy="12" r="9.25" />
+      <path d="M2.75 12h18.5M12 2.75c2.4 2.5 3.6 5.6 3.6 9.25S14.4 18.75 12 21.25M12 2.75C9.6 5.25 8.4 8.35 8.4 12s1.2 6.75 3.6 9.25" />
+    </svg>
+  ),
+  people: (
+    <svg viewBox="0 0 24 24" className="h-[24px] w-[24px]" aria-hidden {...stroke}>
+      <circle cx="9" cy="8.5" r="3.5" />
+      <path d="M2.75 20c.6-3.4 3.1-5.5 6.25-5.5s5.65 2.1 6.25 5.5M15.5 5.2a3.5 3.5 0 0 1 0 6.6M17.5 14.8c2 .7 3.3 2.5 3.75 5.2" />
+    </svg>
+  ),
+};
+
+export type SheetRow = { glyph: ReactNode; lead?: ReactNode; detail: ReactNode };
+
+/**
+ * Instagram's cross-app prompt, drawn from its real "Always share reels on
+ * Facebook?" sheet: grabber, a bold two line question, outline-icon rows with a
+ * bold lead and grey detail, one wide blue button, one blue text button.
+ */
+export function CrossAppSheet({
+  titleId,
+  title,
+  rows,
+  action,
+  onAction,
+  decline,
+  onDecline,
+}: {
+  titleId: string;
+  title: ReactNode;
+  rows: SheetRow[];
+  action: string;
+  onAction: () => void;
+  decline: string;
+  onDecline: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-10 flex items-end bg-black/45" onClick={onDecline}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(click) => click.stopPropagation()}
+        className="w-full rounded-t-[28px] bg-white px-[30px] pb-[max(14px,env(safe-area-inset-bottom))] pt-[10px] motion-safe:animate-[staged-sheet-up_280ms_cubic-bezier(0.2,0.8,0.2,1)]"
+      >
+        <div className="mx-auto h-[3px] w-[34px] rounded-full bg-[#c7c7cc]" />
+        <h2 id={titleId} className="mt-[34px] max-w-[290px] text-[24px] font-extrabold leading-[28px] tracking-[-0.01em] [text-wrap:balance]">
+          {title}
+        </h2>
+        <ul className="mt-[26px] flex flex-col gap-[22px]">
+          {rows.map((row, index) => (
+            <li key={index} className="flex gap-[14px]">
+              <span className="mt-[1px] shrink-0">{row.glyph}</span>
+              <p className="text-[15px] leading-[19px] [text-wrap:pretty]">
+                {row.lead && <span className="block font-bold">{row.lead}</span>}
+                <span style={{ color: row.lead ? IG.muted : IG.ink }}>{row.detail}</span>
+              </p>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          onClick={onAction}
+          className="mt-[30px] h-[44px] w-full rounded-[12px] text-[15px] font-bold text-white"
+          style={{ background: IG.blue }}
+        >
+          {action}
+        </button>
+        <button type="button" onClick={onDecline} className="mt-[4px] h-[44px] w-full text-[15px] font-bold" style={{ color: IG.blue }}>
+          {decline}
+        </button>
+      </div>
+    </div>
   );
 }
 

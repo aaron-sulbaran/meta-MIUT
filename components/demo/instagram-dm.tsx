@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DrawnAvatar, IG, IgIcons, StagedScreen } from "@/components/demo/instagram";
 import { MuseMark } from "@/components/ui/icons";
+import { Poster } from "@/components/ui/poster";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { HANDOFF, handOff } from "@/lib/demo/staged";
 
@@ -12,7 +13,7 @@ import { HANDOFF, handOff } from "@/lib/demo/staged";
 // in Muse's own words, with a card that opens the event on Facebook (U2b).
 
 type Invite = { id: string; eventId: string; from: string; message: string; href: string | null; at: string };
-type EventSummary = { title: string; start: string; place: { name: string }; free: boolean; organizer: { name: string } };
+type EventSummary = { title: string; start: string; place: { name: string }; free: boolean; organizer: { name: string }; source?: { imagePath?: string } };
 
 const POLL_MS = 2000;
 
@@ -117,11 +118,15 @@ export function InstagramDm({ to }: { to: string }) {
                   className="overflow-hidden rounded-[16px] border border-[#efefef] bg-white text-left"
                   aria-label={`Open the event${event ? `: ${event.title}` : ""}`}
                 >
-                  <div className="flex h-[96px] items-end bg-[#0866ff] p-3">
-                    <p className="line-clamp-2 text-[17px] font-bold leading-[20px] text-white">{event?.title ?? "Facebook event"}</p>
-                  </div>
+                  {/* The same poster Lisa lands on, so the link preview and the event match; the title sits below, once. */}
+                  {invite && event ? (
+                    <Poster seed={invite.eventId} title="" imagePath={event.source?.imagePath} size="small" />
+                  ) : (
+                    <div aria-hidden className="aspect-[2/1] w-full bg-[#efefef]" />
+                  )}
                   <div className="px-3 py-2">
-                    <p className="text-[13px] font-semibold">{event ? when(event.start) : "Event invite"}</p>
+                    <p className="truncate text-[14px] font-semibold">{event?.title ?? "Facebook event"}</p>
+                    <p className="text-[13px]">{event ? when(event.start) : "Event invite"}</p>
                     <p className="truncate text-[13px]" style={{ color: IG.muted }}>
                       {event ? `${event.place.name} · ${event.free ? "Free" : "Paid"}` : "Facebook Events"}
                     </p>

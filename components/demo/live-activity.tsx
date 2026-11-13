@@ -78,7 +78,7 @@ export function LiveActivityLockScreen({
               </span>
               <span className="mt-3 flex items-center gap-2 text-[12px] font-semibold text-white/80" aria-hidden>
                 <span className="h-[10px] w-[10px] rounded-full bg-[#4da3ff] ring-4 ring-[#4da3ff]/25" />
-                <span className="h-[3px] flex-1 rounded-full bg-gradient-to-r from-[#4da3ff] to-white/40" />
+                <span className="h-[3px] flex-1 rounded-full bg-[#4da3ff]" />
                 <span className="rounded-full bg-white/15 px-2 py-[2px]">{bite.perk}</span>
                 <span className="h-[3px] flex-1 rounded-full bg-white/25" />
                 <Glyph d="M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10" className="h-[15px] w-[15px]" />
