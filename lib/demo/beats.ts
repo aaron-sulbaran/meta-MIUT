@@ -87,8 +87,8 @@ export function filmFiles(film: FilmName): { video: string; cues: string } {
 export type CastId = "organizer" | "user1" | "user2" | "user3";
 
 export const CAST: Record<CastId, { name: string; role: string }> = {
-  organizer: { name: "Jing", role: "Event organizer" },
-  user1: { name: "Jolyn", role: "Facebook Events power user" },
+  organizer: { name: "Jing", role: "Event Organizer" },
+  user1: { name: "Jolyn", role: "Facebook Events Power User" },
   user2: { name: "Lisa", role: "New to Facebook" },
   user3: { name: "Trish", role: "New to Facebook Events" },
 };
