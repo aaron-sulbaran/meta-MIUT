@@ -74,7 +74,7 @@ export function InstagramNewPost({
           onClick={() => {
             // On the /demo stage, Share is O1's tap: the prompt is O2, on this same screen.
             setAsking(true);
-            handOff("/demo/instagram/post", () => undefined);
+            handOff(HANDOFF.instagramPost(atIso), () => undefined);
           }}
           className="h-[44px] w-full rounded-[10px] text-[15px] font-semibold text-white"
           style={{ background: IG.blue }}
@@ -108,7 +108,7 @@ export function InstagramNewPost({
             </div>
             <button
               type="button"
-              onClick={() => handOff(atIso ? `${HANDOFF.organizer}&at=${encodeURIComponent(atIso)}` : HANDOFF.organizer, router.push)}
+              onClick={() => handOff(HANDOFF.organizerAt(atIso), router.push)}
               className="mt-5 h-[44px] w-full rounded-[10px] text-[15px] font-semibold text-white"
               style={{ background: IG.blue }}
             >

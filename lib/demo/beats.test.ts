@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BEATS } from "@/lib/demo/beats";
+import { BEATS, STORY_DUE_AFTER } from "@/lib/demo/beats";
 import { HANDOFF, LIVE_ACTIVITY_PATH, isStagedScreen } from "@/lib/demo/staged";
 
 const context = { storyEventId: "evt-story", now: new Date("2026-11-13T22:02:00Z") };
@@ -14,7 +14,7 @@ describe("demo beats", () => {
     const staged = BEATS.filter((candidate) => candidate.kind === "staged");
     expect(staged.length).toBeGreaterThan(0);
     for (const candidate of staged) {
-      const pathname = candidate.path!(context).split("?")[0]!;
+      const pathname = candidate.path!(context)!.split("?")[0]!;
       expect(isStagedScreen(pathname), candidate.id).toBe(true);
     }
   });
@@ -26,8 +26,21 @@ describe("demo beats", () => {
   });
 
   it("lands each handoff on the next beat's exact path, so the phone does not reload", () => {
-    expect(beat("O3").path!(context)).toBe(HANDOFF.organizer);
+    const iso = context.now.toISOString();
+    expect(beat("O1").path!(context)).toBe(HANDOFF.instagramPost(iso));
+    expect(beat("O2").path!(context)).toBe(HANDOFF.instagramPost(iso));
+    expect(beat("O3").path!(context)).toBe(HANDOFF.organizerAt(iso));
+    expect(HANDOFF.organizerAt(iso)).toBe(`/organizer?handoff=story&at=${encodeURIComponent(iso)}`);
+    expect(HANDOFF.instagramPost(null)).toBe("/demo/instagram/post");
     expect(beat("U2b").path!(context)).toBe(HANDOFF.lisaLanding("evt-story", "sample-student"));
     expect(beat("U3b").path!(context)).toBe(HANDOFF.curate);
+  });
+
+  it("never needs the story event before the organizer has published it", () => {
+    expect(BEATS[STORY_DUE_AFTER]!.id).toBe("O5");
+    for (const candidate of BEATS.slice(0, STORY_DUE_AFTER + 1)) {
+      if (candidate.path) expect(candidate.path({ storyEventId: null, now: context.now }), candidate.id).not.toBeNull();
+    }
+    expect(beat("U2b").path!({ storyEventId: null, now: context.now })).toBeNull();
   });
 });

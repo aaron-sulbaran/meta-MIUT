@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { StagedScreenView } from "@/components/demo/staged-screen";
-import { ACT_LABELS, BEATS, PERSONA_CAPTIONS, type Beat } from "@/lib/demo/beats";
+import { ACT_LABELS, BEATS, PERSONA_CAPTIONS, STORY_DUE_AFTER, type Beat } from "@/lib/demo/beats";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
 // The projected stage for the pitch. One beat at a time: a slide fills the
@@ -63,9 +63,11 @@ export function Stage() {
   const scale = useSyncExternalStore(subscribeToResize, phoneScale, () => 0.8);
   const [showList, setShowList] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [storyVersion, setStoryVersion] = useState(0);
-  // When this run started: beat times count from it, and a reset starts a new run.
+  // The run's clock: every beat's times count from it. It is stamped again when
+  // the first live beat opens (the stage may sit open long before the pitch),
+  // and a reset starts a new run.
   const [runStartedAt, setRunStartedAt] = useState(() => new Date());
+  const clockStamped = useRef(false);
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
   // Where the phone is now, as far as the stage knows (a handoff moves it too).
   const locationRef = useRef<string | null>(null);
@@ -75,8 +77,12 @@ export function Stage() {
 
   const beat: Beat = BEATS[index] ?? BEATS[0]!;
 
-  // Fetch the story event at the start and again after every reset.
+  // The story event is loaded (or quietly created) only once the organizer act
+  // is over or skipped. Earlier, Muse would see it at O3 as a repost and the
+  // organizer would update a listing instead of publishing a new event.
+  const storyDue = index > STORY_DUE_AFTER;
   useEffect(() => {
+    if (!storyDue || storyEventId) return;
     let cancelled = false;
     fetchStoryEvent().then((result) => {
       if (cancelled) return;
@@ -86,10 +92,15 @@ export function Stage() {
     return () => {
       cancelled = true;
     };
-  }, [storyVersion]);
+  }, [storyDue, storyEventId]);
+  const beatSrc = beat.path ? beat.path({ storyEventId, now: runStartedAt }) : null;
 
   const goTo = useCallback((next: number, fromChannel = false) => {
     const clamped = Math.max(0, Math.min(BEATS.length - 1, next));
+    if (!clockStamped.current && BEATS[clamped]?.kind !== "slide") {
+      clockStamped.current = true;
+      setRunStartedAt(new Date());
+    }
     setIndex(clamped);
     if (!fromChannel) channelRef.current?.postMessage({ type: "goto", index: clamped } satisfies StageMessage);
   }, []);
@@ -102,16 +113,15 @@ export function Stage() {
       setPersonaCookie(beat.persona);
       personaRef.current = beat.persona;
     }
-    if (!beat.path || !storyEventId) return;
-    const src = beat.path({ storyEventId, now: runStartedAt });
-    if (personaChanged || locationRef.current !== src) {
-      locationRef.current = src;
-      setFrame({ src, key: Date.now() });
+    if (!beatSrc) return;
+    if (personaChanged || locationRef.current !== beatSrc) {
+      locationRef.current = beatSrc;
+      setFrame({ src: beatSrc, key: Date.now() });
     }
-  }, [beat, storyEventId, runStartedAt]);
+  }, [beat, beatSrc]);
 
   // A staged beat's route may not be built yet: check once, use a placeholder until it is.
-  const stagedPath = beat.kind === "staged" && beat.path && storyEventId ? beat.path({ storyEventId, now: runStartedAt }) : null;
+  const stagedPath = beat.kind === "staged" ? beatSrc : null;
   useEffect(() => {
     if (!stagedPath || stagedPath in stagedReady) return;
     fetch(stagedPath, { method: "HEAD", cache: "no-store" })
@@ -141,11 +151,11 @@ export function Stage() {
       return;
     }
     setRunStartedAt(new Date());
+    clockStamped.current = false;
     personaRef.current = undefined;
     locationRef.current = null;
     setFrame(null);
     setStoryEventId(null);
-    setStoryVersion((version) => version + 1);
     setStatus(null);
     goTo(0);
   }, [goTo]);
