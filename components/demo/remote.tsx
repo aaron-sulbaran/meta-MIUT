@@ -83,7 +83,7 @@ export function StageRemote() {
       <header className="flex items-center justify-between px-[16px] pt-[max(14px,env(safe-area-inset-top))] pb-[10px]">
         <p className="font-display text-label font-bold">Demo remote</p>
         <p className="flex items-center gap-[6px] text-meta font-semibold text-muted" role="status">
-          <span aria-hidden className={`h-[8px] w-[8px] rounded-full ${connected ? "bg-[#31a24c]" : "bg-[#e41e3f]"}`} />
+          <span aria-hidden className={`h-[8px] w-[8px] rounded-full ${connected ? "bg-[#31a24c]" : "bg-badge"}`} />
           {connected ? (position ? `${position.index + 1} / ${BEATS.length}` : "Waiting for the stage") : "Not connected"}
         </p>
       </header>
@@ -91,7 +91,7 @@ export function StageRemote() {
       <main className="flex min-h-0 flex-1 flex-col justify-center gap-[8px] px-[20px]">
         {beat ? (
           <>
-            <p className="text-meta font-semibold tracking-[0.04em] text-muted uppercase">{ACT_LABELS[beat.act]}</p>
+            <p className="font-display text-label font-bold text-muted">{ACT_LABELS[beat.act]}</p>
             {beat.kind !== "slide" && (
               <p className="self-start rounded-full bg-primary-soft px-[10px] py-[3px] font-display text-[13px] font-bold text-link">
                 {PERSONA_CAPTIONS[beat.persona ?? "aaron"]}
