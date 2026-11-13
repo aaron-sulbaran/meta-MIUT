@@ -7,7 +7,7 @@ import { resetInterestMemory } from "@/lib/muse/memory";
 import { resetNearbyAlerts } from "@/lib/muse/nearby";
 import { resetComments } from "@/lib/social/comments";
 import { resetSocial } from "@/lib/social/going";
-import { deleteStatePrefixes } from "@/lib/store/state";
+import { deleteStatePrefixes, resetClaims } from "@/lib/store/state";
 
 // One reset for the whole demo, every persona at once: fresh seed events with
 // times relative to now, no alerts, nobody going or interested, no comments or
@@ -22,6 +22,8 @@ export const DEMO_STATE_PREFIXES = [
   "social-going:",
   "social-comments:",
   "social-hellos",
+  // Invites already sent (app/api/social/invites dedupe), so a rehearsal right after a reset sends again.
+  "claim:invite:",
 ] as const;
 
 export type DemoResetSummary = { events: number; clearedState: number };
@@ -42,6 +44,7 @@ export async function resetDemo(now = new Date()): Promise<StoreResult<DemoReset
   resetNearbyAlerts();
   resetSocial();
   resetComments();
+  resetClaims();
 
   return { data: { events: reseeded.data, clearedState: cleared.data }, error: null };
 }

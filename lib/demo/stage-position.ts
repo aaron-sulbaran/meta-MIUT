@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
-import { BEATS } from "@/lib/demo/beats";
+import { PHONE_CAST, decidePhoneMove, type PhoneMove } from "@/lib/demo/beat-context";
+import { BEATS, type CastId } from "@/lib/demo/beats";
 import { loadState, saveState } from "@/lib/store/state";
 
 // Where the /demo stage is: one small record (its beat) in the shared store, so
@@ -45,13 +46,81 @@ export function applyMove(current: StagePosition | null, move: StageMove, beatCo
   };
 }
 
-export async function readStagePosition(): Promise<StagePosition | null> {
+// The stage and every presenter phone poll this several times a second. Readers
+// on the same server instance share one store read for READ_SHARE_MS, so the
+// store sees a few reads a second however many screens are open.
+const READ_SHARE_MS = 50;
+const shared = globalThis as typeof globalThis & { __demoStageRead?: { at: number; value: Promise<StagePosition | null> } };
+
+async function readStored(): Promise<StagePosition | null> {
   return (await loadState(STATE_NAME, StagePositionSchema)) ?? memory.__demoStagePosition ?? null;
 }
 
-export async function moveStage(move: StageMove, now = new Date()): Promise<StagePosition> {
-  const next = applyMove(await readStagePosition(), move, BEATS.length, now);
+export async function readStagePosition(now = Date.now()): Promise<StagePosition | null> {
+  const recent = shared.__demoStageRead;
+  if (recent && now - recent.at < READ_SHARE_MS) return recent.value;
+  const value = readStored();
+  shared.__demoStageRead = { at: now, value };
+  return value;
+}
+
+async function savePosition(next: StagePosition): Promise<StagePosition> {
   memory.__demoStagePosition = next;
+  shared.__demoStageRead = { at: Date.now(), value: Promise.resolve(next) };
   await saveState(STATE_NAME, next);
   return next;
+}
+
+export async function moveStage(move: StageMove, now = new Date()): Promise<StagePosition> {
+  return savePosition(applyMove(await readStored(), move, BEATS.length, now));
+}
+
+// A presenter's own phone (/demo/phone/<slug>): it moves the stage only on its
+// own beats (lib/demo/beat-context.ts decidePhoneMove), and says which beat it
+// saw, so a repeated tap never moves the stage twice. The laptop and the remote
+// use moveStage, which always wins.
+export const PhoneMoveSchema = z.object({
+  action: z.enum(["next", "back"]),
+  from: z.enum(PHONE_CAST as [CastId, ...CastId[]]),
+  at: z.number().int().min(0),
+});
+
+export async function movePhone(
+  move: PhoneMove,
+  now = new Date(),
+): Promise<{ data: StagePosition; moved: true } | { data: StagePosition | null; moved: false; reason: string }> {
+  const current = await readStored();
+  const decision = decidePhoneMove(current?.index ?? 0, move);
+  if (!decision.ok) return { data: current, moved: false, reason: decision.reason };
+  return { data: await savePosition(applyMove(current, { action: "goto", index: decision.index }, BEATS.length, now)), moved: true };
+}
+
+// Which presenter phones are open: each phone's polls stamp it, at most every
+// PHONE_STAMP_MS per server instance, one small record per phone so phones never
+// overwrite each other. The console shows a phone as connected while its stamp is fresh.
+const PHONE_STAMP_MS = 3_000;
+export const PHONE_CONNECTED_MS = 10_000;
+const PhoneSeenSchema = z.object({ at: z.string() });
+const stamps = globalThis as typeof globalThis & { __demoPhoneSeen?: Partial<Record<CastId, string>> };
+const phoneState = (cast: CastId) => `demo-phone-seen:${cast}`;
+
+export async function stampPhone(cast: CastId, now = new Date()): Promise<void> {
+  const seen = (stamps.__demoPhoneSeen ??= {});
+  const last = seen[cast];
+  if (last && now.getTime() - Date.parse(last) < PHONE_STAMP_MS) return;
+  seen[cast] = now.toISOString();
+  await saveState(phoneState(cast), { at: seen[cast] });
+}
+
+/** When each presenter phone last checked in (ISO), or null if never. */
+export async function readPhonesSeen(): Promise<Record<CastId, string | null>> {
+  const entries = await Promise.all(
+    PHONE_CAST.map(async (cast) => {
+      const stored = await loadState(phoneState(cast), PhoneSeenSchema);
+      const local = stamps.__demoPhoneSeen?.[cast] ?? null;
+      const at = [stored?.at ?? null, local].filter((value): value is string => value !== null).sort().at(-1) ?? null;
+      return [cast, at] as const;
+    }),
+  );
+  return Object.fromEntries(entries) as Record<CastId, string | null>;
 }

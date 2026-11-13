@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useStageBeat } from "@/components/demo/phone-beat-sync";
 import { CrossAppSheet, DrawnAvatar, IG, IgIcons, SheetGlyphs, StagedScreen } from "@/components/demo/instagram";
 import { HANDOFF, handOff } from "@/lib/demo/staged";
 
@@ -45,6 +46,11 @@ export function InstagramNewPost({
   const router = useRouter();
   const [asking, setAsking] = useState(false);
   const [shared, setShared] = useState(false);
+  // Share tapped on another phone (a presenter's own, or the laptop's keys): show O2's sheet here too.
+  useStageBeat((id) => {
+    if (id === "O2") setAsking(true);
+    if (id === "O1") setAsking(false);
+  });
 
   return (
     <StagedScreen label="Staged Instagram new post">

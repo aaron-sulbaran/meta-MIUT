@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { handOff } from "@/lib/demo/staged";
 import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/demo/moments/brand-mark";
 import { SourceBadge } from "@/components/ui/card";
@@ -194,7 +195,12 @@ export function CurateFlow({ auto = false }: { auto?: boolean }) {
           <ol className="flex flex-col gap-[12px]">
             {phase.feed.picks.map(({ event, reason }, index) => (
               <li key={event.id} className="curate-rise" style={{ animationDelay: `${180 + index * 170}ms` }}>
-                <Link href={`/events/${encodeURIComponent(event.id)}`} className="block overflow-hidden rounded-card border border-hairline">
+                <Link
+                  href={`/events/${encodeURIComponent(event.id)}`}
+                  // In the /demo stage or a presenter's phone, opening a pick is the tap that moves the show on (U3d).
+                  onClick={() => handOff(`/events/${encodeURIComponent(event.id)}`, () => {})}
+                  className="block overflow-hidden rounded-card border border-hairline"
+                >
                   <div className="relative">
                     <Poster seed={event.id} title={event.title} kicker={event.organizer.name} imagePath={event.source.imagePath} size={index === 0 ? "large" : "small"} />
                     <span className="absolute top-[8px] left-[8px] flex h-[26px] min-w-[26px] items-center justify-center rounded-full bg-card px-[8px] font-display text-[13px] font-bold text-ink shadow-sm">

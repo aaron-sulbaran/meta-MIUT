@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { DemoConsole } from "@/components/alerts/demo-console";
+import { PhoneLinks } from "@/components/demo/phone-links";
 import { StageNotes } from "@/components/demo/presenter-notes";
 import { getEventStore } from "@/lib/events/store";
 
@@ -17,6 +18,9 @@ export default async function DemoPage() {
   return (
     <>
       <StageNotes />
+      <div className="px-3 pt-3">
+        <PhoneLinks />
+      </div>
       <DemoConsole events={options} backend={store.backend} />
     </>
   );

@@ -30,3 +30,37 @@ describe("the stage position", () => {
     expect(StageMoveSchema.safeParse({ action: "reset" }).success).toBe(false);
   });
 });
+
+describe("moves from a presenter's own phone", () => {
+  it("moves on its own beat once, refuses a repeat and anyone else, and the laptop always wins", async () => {
+    const { setStateClient } = await import("@/lib/store/state");
+    const { moveStage, movePhone } = await import("@/lib/demo/stage-position");
+    const { BEATS } = await import("@/lib/demo/beats");
+    setStateClient(null);
+    const o1 = BEATS.findIndex((beat) => beat.id === "O1");
+    await moveStage({ action: "goto", index: o1 }, NOW);
+    const tapped = await movePhone({ action: "next", from: "organizer", at: o1 }, new Date(NOW.getTime() + 1));
+    expect(tapped).toMatchObject({ moved: true, data: { index: o1 + 1 } });
+    // The same tap again (or the stage frame's copy of it) does nothing.
+    expect(await movePhone({ action: "next", from: "organizer", at: o1 }, new Date(NOW.getTime() + 2))).toMatchObject({ moved: false, data: { index: o1 + 1 } });
+    expect(await movePhone({ action: "next", from: "lisa", at: o1 + 1 })).toMatchObject({ moved: false });
+    expect((await moveStage({ action: "next" }, new Date(NOW.getTime() + 3))).index).toBe(o1 + 2);
+    setStateClient(undefined);
+  });
+});
+
+describe("the same invite sent twice", () => {
+  it("goes out once within the window, and again after it", async () => {
+    const { claimOnce, resetClaims, setStateClient } = await import("@/lib/store/state");
+    setStateClient(null);
+    resetClaims();
+    const key = "invite:sample-student:lisa:e1";
+    expect(await claimOnce(key, 180, 0)).toBe(true);
+    expect(await claimOnce(key, 180, 60_000)).toBe(false);
+    expect(await claimOnce("invite:sample-student:lisa:e2", 180, 60_000)).toBe(true);
+    expect(await claimOnce(key, 180, 181_000)).toBe(true);
+    resetClaims();
+    expect(await claimOnce(key, 180, 182_000)).toBe(true);
+    setStateClient(undefined);
+  });
+});

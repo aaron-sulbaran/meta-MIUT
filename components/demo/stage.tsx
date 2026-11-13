@@ -43,7 +43,7 @@ type MoveSource = "local" | "channel" | "remote";
 type StagePosition = { index: number; seq: number };
 
 const POSITION_URL = "/api/demo/stage";
-const POSITION_POLL_MS = 1_000;
+const POSITION_POLL_MS = 150;
 
 async function readPosition(): Promise<StagePosition | null> {
   try {
