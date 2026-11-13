@@ -28,8 +28,8 @@ export const USER3_CONNECTORS: ConnectorSource[] = [
     label: "Google Calendar",
     mark: "google-calendar",
     reading: "Checking your calendar",
-    found: "Free after your 5:00 PM class tonight",
-    items: ["Last class today ends at 5:00 PM", "Nothing planned tonight", "Problem set due Monday"],
+    found: "Free now, your last class ended at 3:00 PM",
+    items: ["Last class today ended at 3:00 PM", "Free the rest of today", "Problem set due Monday"],
   },
   {
     id: "email",
