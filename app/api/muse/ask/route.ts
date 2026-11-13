@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
   }
   const plan = result.data.actions.some((action) => action.type === "plan_night")
-    ? { from: origin(student), to: student.home }
+    ? { from: origin(student), to: student.home, note: body.data.question.slice(0, 300) }
     : null;
   return Response.json({ ...result, data: { ...result.data, plan } });
 }
