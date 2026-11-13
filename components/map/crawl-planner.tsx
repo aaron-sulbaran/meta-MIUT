@@ -308,6 +308,11 @@ export function CrawlPlanner({
           <div>
             <h2 className="font-display text-title font-bold">Where does your walk end?</h2>
             <p className="mt-[2px] text-meta text-muted">Muse picks free stops on the way from events you have not hidden.</p>
+            {plan && (
+              <button type="button" onClick={() => setStep("plan")} className="mt-1 text-meta font-semibold text-primary">
+                Keep your route to {plan.route.destination.name}
+              </button>
+            )}
           </div>
           <button type="button" onClick={close} aria-label="Close food crawl" className="-mr-1 flex h-8 w-8 items-center justify-center rounded-full text-muted">
             <CloseIcon className="h-[14px] w-[14px]" />
@@ -487,6 +492,14 @@ export function CrawlPlanner({
           <span className="shrink-0 text-meta text-muted">
             {route.destination.walkMinutes} min · {clock(route.destination.arriveAt)}
           </span>
+          <button
+            type="button"
+            onClick={() => setStep("choose")}
+            aria-label="Change where the walk ends"
+            className="shrink-0 rounded-full bg-button px-3 py-[5px] text-meta font-semibold text-ink"
+          >
+            Change
+          </button>
         </li>
         <li className="border-t border-hairline py-[8px]">
           {adding ? (
