@@ -41,6 +41,8 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
         organizerName: event.organizer.name,
         logoUrl: organizerLogo(event.organizer),
         chips: mapChips(event),
+        startIso: event.start,
+        endIso: event.end,
         weight: point.weight,
         pickRank: point.pickRank,
         reason: point.reason,
