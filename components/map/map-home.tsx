@@ -31,7 +31,7 @@ export async function MapHome({
   events: CampusEvent[];
   now: Date;
   /** "home": open with Muse's walk from class to home planned (?plan=home, the alert link). */
-  autoPlan?: "home" | null;
+  autoPlan?: "home" | "choose" | null;
   /** A set campus time (ISO) the map's walks plan from (?time=, for the demo). */
   planAt?: string | null;
   /** A walk Ask Muse planned (?plan=ask&note=&to=): open with it drawn. */
