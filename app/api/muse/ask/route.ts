@@ -1,7 +1,7 @@
 import { getEventStore } from "@/lib/events/store";
 import { readJsonBody } from "@/lib/http";
 import { AskInputSchema, askAboutEvents } from "@/lib/muse/ask";
-import { loadTurns, saveTurns } from "@/lib/muse/conversation";
+import { clearTurns, loadTurns, saveTurns } from "@/lib/muse/conversation";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { compileCandidates } from "@/lib/muse/candidates";
 import { DEMO_USER_ID, loadInterestMemory, saveSignals } from "@/lib/muse/memory";
@@ -18,7 +18,9 @@ export async function POST(request: Request) {
   const events = await getEventStore().listEvents();
   const memory = await loadInterestMemory(DEMO_USER_ID, now);
   const likely = compileCandidates(student, memory, events, now);
-  const result = await askAboutEvents(body.data, events, now, student, await loadTurns(DEMO_USER_ID), memory, likely);
+  if (body.data.fresh) await clearTurns(DEMO_USER_ID);
+  const history = body.data.fresh ? [] : await loadTurns(DEMO_USER_ID);
+  const result = await askAboutEvents(body.data, events, now, student, history, memory, likely);
   if (result.error !== null) return Response.json(result, { status: 502 });
 
   const at = now.toISOString();

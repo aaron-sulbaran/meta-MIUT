@@ -40,6 +40,12 @@ export async function saveTurns(userId: string, turns: Turn[]): Promise<void> {
   await saveState(turnsKey(userId), recentTurns(userId));
 }
 
+/** A new Ask Muse conversation: earlier turns no longer steer Muse. What it learned about the student stays. */
+export async function clearTurns(userId: string): Promise<void> {
+  store().delete(userId);
+  await saveState(turnsKey(userId), []);
+}
+
 export function resetConversations(): void {
   store().clear();
 }
