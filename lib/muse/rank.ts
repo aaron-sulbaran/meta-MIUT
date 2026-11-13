@@ -69,18 +69,27 @@ export function soonestFirst(likely: LikelyEvent[], events: CampusEvent[], now: 
   );
 }
 
+/** "0" while on, else "1" plus the campus date, so buckets sort on now, then day by day. */
+function timeBucket(start: number, now: Date): string {
+  if (start <= now.getTime()) return "0";
+  return `1${new Date(start).toLocaleDateString("en-CA", { timeZone: CAMPUS_TIME_ZONE })}`;
+}
+
 /**
- * For you under the Top 3: every upcoming event except `skip`. The ones Muse thinks the student
- * will like come first (best match, then soonest), then the rest by time.
+ * For you under the Top 3: every upcoming event except `skip`, by time and
+ * interest: on now first, then day by day; within each, the events the
+ * student is likely to care about first (best match first), then the rest,
+ * soonest first.
  */
 export function forYouOrder(likely: LikelyEvent[], events: CampusEvent[], now: Date, skip: Set<string>): CampusEvent[] {
   const scores = new Map(likely.map((candidate) => [candidate.eventId, candidate.score]));
+  const score = (event: CampusEvent) => scores.get(event.id) ?? Number.NEGATIVE_INFINITY;
   return events
     .filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime() && !skip.has(event.id))
     .sort(
       (a, b) =>
-        Number(scores.has(b.id)) - Number(scores.has(a.id)) ||
-        (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0) ||
+        timeBucket(Date.parse(a.start), now).localeCompare(timeBucket(Date.parse(b.start), now)) ||
+        score(b) - score(a) ||
         Date.parse(a.start) - Date.parse(b.start),
     );
 }
