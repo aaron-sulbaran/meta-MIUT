@@ -13,13 +13,14 @@ describe("who moved the stage", () => {
     expect(applyMove(at3, { action: "goto", index: 4 }, 16, NOW, "control").by).toBe("control");
   });
 
-  it("names the presenting stage tab from its own goto and keeps it through remote moves and deck steps", () => {
-    const byA = applyMove(null, { action: "goto", index: 0, tab: "tab-a" }, 16, NOW);
-    expect(byA.tab).toBe("tab-a");
-    const remote = applyMove(byA, { action: "next" }, 16, NOW);
-    expect(remote.tab).toBe("tab-a");
-    expect(applyDeckStep(remote, { action: "deck", at: 1, name: "muse", step: 0 }, NOW)?.tab).toBe("tab-a");
-    expect(applyMove(remote, { action: "goto", index: 2, tab: "tab-b" }, 16, NOW).tab).toBe("tab-b");
+  it("remembers the last control move, through a stage putting the record back and deck steps", () => {
+    const at0 = applyMove(null, { action: "goto", index: 0 }, 16, NOW);
+    expect(at0.control).toBeUndefined();
+    const remote = applyMove(at0, { action: "next" }, 16, NOW);
+    expect(remote.control).toEqual({ seq: remote.seq, from: 0, to: 1 });
+    const putBack = applyMove(remote, { action: "goto", index: 0, undo: 1 }, 16, NOW);
+    expect(putBack.control).toEqual(remote.control);
+    expect(applyDeckStep(putBack, { action: "deck", at: 0, name: "problem", step: 1 }, NOW)?.control).toEqual(remote.control);
   });
 
   it("keeps who moved when the deck step is reported", () => {

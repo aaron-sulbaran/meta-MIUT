@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { entersAtLastStep, followsAsBeatMove, undoesRemoteMove } from "./deck-entry";
+import { catchesUpOnRemoteStep, entersAtLastStep, followsAsBeatMove } from "./deck-entry";
 
 describe("entersAtLastStep", () => {
   it("enters at the last step on a single Back", () => {
@@ -35,14 +35,17 @@ describe("followsAsBeatMove", () => {
   });
 });
 
-describe("undoesRemoteMove", () => {
-  it("lets only the presenting stage put the record back", () => {
-    expect(undoesRemoteMove("tab-a", "tab-a")).toBe(true);
-    expect(undoesRemoteMove("tab-a", "tab-b")).toBe(false);
+describe("catchesUpOnRemoteStep", () => {
+  const control = { seq: 50, from: 0, to: 1 };
+  it("steps for a remote Next or Back another stage already put back", () => {
+    expect(catchesUpOnRemoteStep(control, 40, 0)).toBe(true);
+    expect(catchesUpOnRemoteStep({ seq: 50, from: 3, to: 2 }, 40, 3)).toBe(true);
   });
 
-  it("lets any stage do it before a stage has moved the show", () => {
-    expect(undoesRemoteMove(undefined, "tab-b")).toBe(true);
-    expect(undoesRemoteMove(null, "tab-b")).toBe(true);
+  it("never applies the same move twice, a move from another beat, or a jump", () => {
+    expect(catchesUpOnRemoteStep(control, 50, 0)).toBe(false);
+    expect(catchesUpOnRemoteStep(control, 40, 5)).toBe(false);
+    expect(catchesUpOnRemoteStep({ seq: 50, from: 0, to: 4 }, 40, 0)).toBe(false);
+    expect(catchesUpOnRemoteStep(undefined, 40, 0)).toBe(false);
   });
 });

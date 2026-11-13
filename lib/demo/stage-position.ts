@@ -35,10 +35,10 @@ export const StagePositionSchema = z.object({
   // follows applies it as a beat move) or "control" (the remote's Next and Back, a
   // presenter phone: a stage on a deck or film steps it first). Missing reads as "control".
   by: z.enum(["stage", "control"]).optional(),
-  // The stage tab that made the last stage move (the presenting stage). Only it puts the record
-  // back after it steps a deck for the remote, so a stage that only follows never hides that move
-  // from the presenting stage. Missing: any stage may.
-  tab: z.string().max(64).optional(),
+  // The last control move (the remote's Next or Back, a phone): its seq and the beats it went
+  // from and to. Kept after a stage puts the record back (it stepped a deck instead), so every
+  // other stage still sees that move once and steps its own deck too.
+  control: z.object({ seq: z.number().int(), from: z.number().int().min(0), to: z.number().int().min(0) }).optional(),
   // The step a deck beat is on (the stage reports it from the deck's "step"
   // message), so a phone can show that step's presenter notes. Belongs to beat
   // `index` only: any move drops it. Optional, so older records still parse.
@@ -64,7 +64,7 @@ export const StageMoveSchema = z.discriminatedUnion("action", [
   // `undo`: a stage putting the record back after it stepped a deck for the remote's move to
   // beat `undo`. Applied only while the record still sits on that move, so a late or second
   // stage's undo never pulls back a move made since.
-  z.object({ action: z.literal("goto"), index: z.number().int().min(0), undo: z.number().int().min(0).optional(), tab: z.string().min(1).max(64).optional() }),
+  z.object({ action: z.literal("goto"), index: z.number().int().min(0), undo: z.number().int().min(0).optional() }),
   z.object({ action: z.literal("next") }),
   z.object({ action: z.literal("back") }),
 ]);
@@ -135,7 +135,7 @@ export function applyDeckStep(current: StagePosition | null, report: DeckStep, n
     seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
     at: now.toISOString(),
     ...(current?.by ? { by: current.by } : {}),
-    ...(current?.tab ? { tab: current.tab } : {}),
+    ...(current?.control ? { control: current.control } : {}),
     deck: { name: report.name, step: report.step, ...(report.steps ? { steps: report.steps } : {}) },
     ...(current?.signal ? { signal: current.signal } : {}),
   };
@@ -153,9 +153,10 @@ function runFields(current: StagePosition | null, index: number, now: Date, move
 }
 const memory = globalThis as typeof globalThis & { __demoStagePosition?: StagePosition };
 
-/** The presenting stage tab after a move: a stage's own goto names it; anything else keeps it. */
-function tabOf(current: StagePosition | null, move: StageMove): string | undefined {
-  return (move.action === "goto" ? move.tab : undefined) ?? current?.tab;
+/** The control field after a move: a control move records itself; a stage move keeps the last one. */
+function controlAfter(current: StagePosition | null, by: MoveBy, index: number, seq: number) {
+  if (by === "control") return { control: { seq, from: current?.index ?? 0, to: index } };
+  return current?.control ? { control: current.control } : {};
 }
 
 /** The position after a move, clamped to the beats that exist. A deck step stays only while the beat does. */
@@ -169,13 +170,14 @@ export function applyMove(
   const from = current?.index ?? 0;
   const wanted = move.action === "goto" ? move.index : move.action === "next" ? from + 1 : from - 1;
   const index = Math.max(0, Math.min(beatCount - 1, wanted));
+  const seq = Math.max(now.getTime(), (current?.seq ?? 0) + 1);
   return {
     ...runFields(current, index, now, true),
     index,
-    seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
+    seq,
     at: now.toISOString(),
     by,
-    ...(tabOf(current, move) ? { tab: tabOf(current, move) } : {}),
+    ...controlAfter(current, by, index, seq),
     ...(current?.deck && current.index === index ? { deck: current.deck } : {}),
     ...(current?.signal && current.index === index ? { signal: current.signal } : {}),
   };

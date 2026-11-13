@@ -16,9 +16,13 @@ export function followsAsBeatMove(by: "stage" | "control" | undefined): boolean 
   return by === "stage";
 }
 
-// Whether this stage tab puts the record back after it stepped a deck for the remote's Next or
-// Back: only the presenting stage (the tab that made the last stage move), or any stage when no
-// tab has moved the show yet. A stage that only follows steps its own deck and writes nothing.
-export function undoesRemoteMove(presentingTab: string | null | undefined, thisTab: string): boolean {
-  return !presentingTab || presentingTab === thisTab;
+// A remote move this stage has not applied yet, already put back by another stage that stepped
+// its deck instead: true when it was one beat from where this stage is, so this stage steps its
+// own deck or film for it too. `seen` is the newest control seq this stage has applied.
+export function catchesUpOnRemoteStep(
+  control: { seq: number; from: number; to: number } | undefined,
+  seen: number,
+  here: number,
+): boolean {
+  return control !== undefined && control.seq > seen && control.from === here && Math.abs(control.to - control.from) === 1;
 }

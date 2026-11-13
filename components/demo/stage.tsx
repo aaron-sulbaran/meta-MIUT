@@ -9,7 +9,7 @@ import { PHONE_OUTER_HEIGHT, PHONE_OUTER_WIDTH, PhoneFrame } from "@/components/
 import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
-import { entersAtLastStep, followsAsBeatMove, undoesRemoteMove } from "@/lib/demo/deck-entry";
+import { catchesUpOnRemoteStep, entersAtLastStep, followsAsBeatMove } from "@/lib/demo/deck-entry";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
 import { beatCast, beatScreen, inFrameMessage, stageOnLoad, nextActStart } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
@@ -51,11 +51,9 @@ type StageMessage = { type: "goto"; index: number; fresh?: boolean } | { type: "
 type MoveSource = "local" | "channel" | "remote";
 // The shared stage record: where the show is, a deck's step, and what the presenter's phone heard.
 type StageSignal = { from: string; kind: "listening" | "said" | "failed"; on?: boolean; text?: string; at: string };
-type StagePosition = { index: number; seq: number; by?: "stage" | "control"; tab?: string; run?: string; at?: string; movedAt?: string; furthest?: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
+type StagePosition = { index: number; seq: number; by?: "stage" | "control"; control?: { seq: number; from: number; to: number }; run?: string; at?: string; movedAt?: string; furthest?: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
 
 const POSITION_URL = "/api/demo/stage";
-// This stage tab, so the shared record can name the presenting stage (lib/demo/deck-entry.ts).
-const TAB_ID = Math.random().toString(36).slice(2, 12);
 
 async function readPosition(): Promise<StagePosition | null> {
   try {
@@ -73,7 +71,7 @@ async function writePosition(index: number, undo?: number): Promise<StagePositio
     const response = await fetch(POSITION_URL, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "goto", index, tab: TAB_ID, ...(undo !== undefined ? { undo } : {}) }),
+      body: JSON.stringify({ action: "goto", index, ...(undo !== undefined ? { undo } : {}) }),
     });
     const body = (await response.json()) as { data: StagePosition | null };
     return body.data;
@@ -219,8 +217,8 @@ export function Stage() {
   const indexRef = useRef(0);
   // The run on screen (lib/demo/run.ts): a new id in the record means a fresh run started somewhere.
   const runRef = useRef<string | null>(null);
-  // The stage tab the record names as presenting (its last stage move), or null.
-  const presentingTabRef = useRef<string | null>(null);
+  // The newest control move (the remote, a phone) this stage has applied, by its seq.
+  const controlSeenRef = useRef(0);
   // startOver (below), for the store poll, which starts before it is defined.
   const startOverRef = useRef<() => void>(() => {});
   // The quiet fresh-run control on the first beat: shown until the show leaves it.
@@ -265,7 +263,7 @@ export function Stage() {
       if (!skipSteps && film && (step === 1 || step === -1) && (step === 1 ? film.next() : film.back())) {
         // A remote asked to move on: put the shared position back on this beat.
         // Only while the record still sits on that move, so a following stage never pulls the show back.
-        if (source === "remote" && undoesRemoteMove(presentingTabRef.current, TAB_ID)) {
+        if (source === "remote") {
           void writePosition(indexRef.current, clamped).then((position) => {
             if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
           });
@@ -313,6 +311,8 @@ export function Stage() {
     const start = async () => {
       const stored = await readPosition();
       runRef.current = stored?.run ?? null;
+      // Remote moves made before this stage opened are already part of where the show is.
+      controlSeenRef.current = stored?.control?.seq ?? 0;
       clearClientDemoState(stored?.run);
       if (stored && isStaleRun(stored)) setStaleNote(`This is an old run, last moved ${lastMoveLabel(stored)}.`);
       const onLoad = stageOnLoad(stored);
@@ -339,9 +339,16 @@ export function Stage() {
         }
         if (!stopped && position && position.seq > lastSeqRef.current) {
           lastSeqRef.current = position.seq;
-          presentingTabRef.current = position.tab ?? null;
+          const control = position.control;
+          const catchUp = catchesUpOnRemoteStep(control, controlSeenRef.current, indexRef.current);
+          if (control) controlSeenRef.current = Math.max(controlSeenRef.current, control.seq);
           // Another stage tab's move is followed as a beat move; the remote and phones step a deck first.
           if (position.index !== indexRef.current) goTo(position.index, "remote", followsAsBeatMove(position.by));
+          // The remote's step that another stage already put back: step this stage's deck or film too.
+          else if (catchUp && control && filmRef.current) {
+            if (control.to > control.from) filmRef.current.next();
+            else filmRef.current.back();
+          }
         }
         // What the presenter's own phone heard on their beat, mirrored into the stage's phone.
         const signal = position?.signal;
