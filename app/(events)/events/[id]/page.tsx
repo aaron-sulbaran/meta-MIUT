@@ -2,12 +2,15 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { ComponentType, ReactNode } from "react";
 import { EventActions } from "@/components/events/event-actions";
+import { WhosGoing } from "@/components/social/whos-going";
 import { posterKicker } from "@/components/events/event-card";
 import { SubPageHeader } from "@/components/ui/header";
 import { ClockIcon, FoodIcon, InstagramPostIcon, MapPinIcon, PeopleIcon, TicketIcon } from "@/components/ui/icons";
 import { Poster } from "@/components/ui/poster";
 import { getEventStore } from "@/lib/events/store";
 import { formatDateLine, formatEventTime } from "@/lib/events/time";
+import { whoIsGoing } from "@/lib/social/going";
+import { demoViewer } from "@/lib/social/viewer";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   await connection();
@@ -15,6 +18,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const event = await getEventStore().getEvent(id);
   if (!event) notFound();
   const now = new Date();
+  const viewer = demoViewer();
 
   return (
     <>
@@ -31,6 +35,10 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           <EventActions event={event} />
         </div>
       </section>
+
+      <Divider />
+
+      <WhosGoing initial={whoIsGoing(event, viewer.id, viewer.interests)} />
 
       <Divider />
 

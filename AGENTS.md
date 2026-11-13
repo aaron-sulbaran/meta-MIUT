@@ -2,12 +2,13 @@
 
 ```text
 Team hub rule (meta-hack26). Our agents coordinate only through the hub repo at ../hub (github.com/aaron-sulbaran/meta-hack26-hub). Its AGENTS.md is the contract. In every session, in any repo:
-1. Start with `../hub/hub sync`, then `../hub/hub status`. Sync again about every 15 minutes.
-2. Claim or add the item before building. Before editing, announce the files and branch: `hub note "Starting: <change>" --ref <t-id> --files <a,b> --branch <branch>`. Check `hub feed` first; never edit a file another agent has in flight without asking them.
-3. Work locally on your branch. Post a `hub note` at each real step and when you push or merge (commit, files), so others rebase. Ask, do not guess.
-4. Major decision: `hub propose`, tell your person, keep working elsewhere. Silence is never a yes. Never accept, reject, or pass anything.
-5. When kb/project-repo.md has a URL, clone it beside the hub. Claude Code only: `node ../hub/scripts/install-hooks.mjs <that clone>`.
-6. Finish with `hub done`, then `hub end`.
+1. Start with `../hub/hub sync`, then `../hub/hub status`. Sync about every 15 minutes.
+2. Claim or add the item before building. In the project clone, announce it: `../hub/hub pulse "<what and why>"`. Read `../hub/hub who` to avoid surprises, then go ahead.
+3. Push your branch early. Merge your own PR when checks are green; then pulse (docs/working-together.md).
+4. Commit only as your person, never as a bot or teammate; run `../hub/hub doctor` in each clone.
+5. Big call: record it with `hub propose` and keep building; nothing waits for sign-off.
+6. Clone the project repo (kb/project-repo.md) beside the hub, then `node ../hub/scripts/install-hooks.mjs <that clone>`.
+7. Finish with `hub done`, then `hub end`.
 ```
 
 `../hub` means the hub cloned beside this repo. Cloud agents whose machine is rebuilt each session clone the hub first, per the hub's `docs/standing-instruction.md`.
@@ -16,19 +17,19 @@ Team hub rule (meta-hack26). Our agents coordinate only through the hub repo at 
 
 - **Stage: sketch.** Three-day hackathon prototype. Speed over polish, but main always runs.
 - **Public repo.** No secrets, keys, tokens, emails, or phone numbers in code, docs, commits, or fixtures. Name an env var, never its value. Nothing private from the hub gets copied here.
-- **Autonomy.** The hub's `AGENTS.md` decides what you do alone and what needs a person. Major decisions (design direction, architecture, new services or heavy dependencies, scope) go through `hub propose`.
+- **Autonomy.** Build, push, and merge without waiting for anyone; record a big call with `hub propose` and keep building; if two changes collide, fix it on main once both are in.
 - **Never force-push.**
-- **One writer per file.** Announce the files you will touch on the hub before editing, and say when your change is pushed or merged. Never edit a file another agent has in flight; ask them first. Shared files (`lib/events/schema.ts`, `lib/events/store.ts`, `app/layout.tsx`, `package.json`) always get an announcement, even for one line.
+- **Pulse your files.** Announce the files you will touch on the hub before editing, and say when your change is pushed or merged, so others see it. Shared files (`lib/events/schema.ts`, `lib/events/store.ts`, `app/layout.tsx`, `package.json`) always get an announcement, even for one line.
 - **Main stays green.** Run `pnpm typecheck && pnpm test && pnpm lint && pnpm build` before every push. CI runs the same on every push to main and every pull request.
 - **Working together** (full version with a worked day: the hub's `docs/working-together.md`). Branches are short-lived, named `<id>/<lane>-<slug>` (for example `lisa/map-pins`); the lane word is how the hub knows your lane.
   1. Pulse when you start, switch branch, open a PR, merge, and at least every 15 minutes. Hooks do most of it (`node ../hub/scripts/install-hooks.mjs .` once per clone); say what you start with `../hub/hub pulse "<what and why>"`.
-  2. Before touching a file outside your lane or a shared file, read `../hub/hub who`. If someone's pulse lists it, ask them first.
+  2. Before touching a file outside your lane or a shared file, read `../hub/hub who` to avoid surprises, then go ahead.
   3. Push your branch early. A local-only branch is invisible to everyone.
   4. Rebase on main when `pulse` or `sync` says main changed your files, before you open or update a PR, and before you merge. Otherwise keep working.
   5. Open a PR when checks are green. Small; its description names the hub item.
-  6. Merge your own PR when checks are green after a rebase, every changed file is in your lane's folders, and `pulse` shows no overlap. Shared files or another lane's folder need that owner's or a person's yes first, on the PR or the hub. Use "Rebase and merge" or "Squash and merge". Never merge someone else's PR without their say. After merging: `../hub/hub pulse`, and `../hub/hub done` if the item is finished.
+  6. Merge your own PR as soon as checks are green, whatever files it touches; then pulse so others pull. Use "Rebase and merge" or "Squash and merge". `../hub/hub done` if the item is finished.
   7. Commits carry their author's own identity, never another teammate's or a bot's. `../hub/hub doctor` checks it; the pre-push hook enforces it.
-- **The event contract** in `lib/events/schema.ts` changes only after a hub proposal is accepted.
+- **The event contract.** Changing the event contract in `lib/events/schema.ts`? Record it with `hub propose` and pulse, so every lane sees it.
 - **No product name in code or paths.** Use `PRODUCT_NAME` from `lib/brand.ts`.
 - **No status or plans in this file.** They live on the hub board.
 - Plain language. No em dashes or emoji in code, docs, or UI strings.
@@ -101,7 +102,7 @@ Stay in your folders. Touching another lane's folder means a hub note to its own
 | Design, seed, pitch | `data/seed/`, `app/globals.css`, `components/ui/`, `app/layout.tsx` |
 | Integration | `lib/store/`, `lib/alerts/` (except `policy.ts` and `compose.ts`, who gets alerted and what it says, owned by the alert item), `lib/events/publish.ts`, `lib/attendance/`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/` |
 
-Shared, change with care and a hub note: `lib/events/schema.ts` (proposal required), `lib/events/store.ts`, `lib/brand.ts`, `package.json`.
+Shared, change with care and a hub note: `lib/events/schema.ts` (record with `hub propose`), `lib/events/store.ts`, `lib/brand.ts`, `package.json`.
 
 ## Muse layer
 
