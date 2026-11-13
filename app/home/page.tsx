@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { eventFacts, posterKicker } from "@/components/events/event-card";
 import { FeedPosts } from "@/components/home/feed-posts";
 import { SideMenu } from "@/components/home/side-menu";
+import { MapPreload } from "@/components/map/map-preload";
 import { FeedSeparator } from "@/components/ui/card";
 import { FbEventCard } from "@/components/ui/event-card";
 import { HeaderAction, HomeHeader, getFacebookHref } from "@/components/ui/header";
@@ -24,6 +25,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <MapPreload />
       <HomeHeader
         wordmark="facebook"
         menu={<SideMenu />}
