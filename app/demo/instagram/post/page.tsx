@@ -12,6 +12,7 @@ export default async function StagedInstagramPostPage({ searchParams }: { search
   return (
     <InstagramNewPost
       handle={STORY_POST.organizer.handle}
+      organizerName={STORY_POST.organizer.name}
       caption={storyCaption(now)}
       flyerSrc={flyerUrl(now)}
       atIso={at && Number.isFinite(Date.parse(at)) ? now.toISOString() : null}
