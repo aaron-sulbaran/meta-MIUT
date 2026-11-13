@@ -128,3 +128,13 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (record with `hu
 - Event images are `Poster` compositions seeded by event id. An event with `source.imagePath` (a local file under `public/flyers/`) shows its flyer in the same 2:1 frame instead. No hotlinks.
 - `server-only` is stubbed in tests by `vitest.config.ts`, and in scripts by `node --conditions=react-server`; `scripts/register-ts-paths.mjs` resolves `@/` for plain Node.
 - ESLint reads any function named `use...` as a React hook.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
