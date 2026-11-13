@@ -9,6 +9,7 @@ import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type CastId } from "@/lib/demo/beats";
 import { demoClock } from "@/lib/demo/clock";
+import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
 // The projected stage for the pitch, on Facebook's white page. One beat at a
@@ -43,7 +44,6 @@ type MoveSource = "local" | "channel" | "remote";
 type StagePosition = { index: number; seq: number };
 
 const POSITION_URL = "/api/demo/stage";
-const POSITION_POLL_MS = 75;
 
 async function readPosition(): Promise<StagePosition | null> {
   try {
@@ -256,24 +256,25 @@ export function Stage() {
 
   // A phone remote moves the show through the store: follow any move newer than
   // the last one seen. On load the stage first claims the record for its own beat.
+  // Polls on lib/demo/stage-poll.ts's schedule: fast while the skit moves, slow when quiet, never when hidden.
   useEffect(() => {
     let stopped = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    async function poll() {
-      const position = await readPosition();
-      if (!stopped && position && position.seq > lastSeqRef.current) {
-        lastSeqRef.current = position.seq;
-        if (position.index !== indexRef.current) goTo(position.index, "remote");
-      }
-      if (!stopped) timer = setTimeout(poll, POSITION_POLL_MS);
-    }
+    let poll: StagePoll | undefined;
     void writePosition(indexRef.current).then((position) => {
       if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
-      if (!stopped) void poll();
+      if (stopped) return;
+      poll = startStagePoll(async () => {
+        const position = await readPosition();
+        if (!stopped && position && position.seq > lastSeqRef.current) {
+          lastSeqRef.current = position.seq;
+          if (position.index !== indexRef.current) goTo(position.index, "remote");
+        }
+        return indexRef.current;
+      });
     });
     return () => {
       stopped = true;
-      if (timer) clearTimeout(timer);
+      poll?.stop();
     };
   }, [goTo]);
 
