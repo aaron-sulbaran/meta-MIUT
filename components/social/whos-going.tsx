@@ -250,8 +250,13 @@ export function WhosGoing({
     setHi({ names: found.names, state: "writing" });
     await new Promise((resolve) => setTimeout(resolve, WRITING_BEAT_MS));
     setHi({ names: found.names, state: "sent", message: found.message ?? undefined, source: found.source, ms: null });
-    const latest = await fetch(goingUrl, { cache: "no-store" }).then((response) => response.json() as Promise<Response>).catch(() => null);
-    if (latest?.data) setWho(latest.data);
+    // Then follow them saying yes, as the phone that sent it does.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const latest = await fetch(goingUrl, { cache: "no-store" }).then((response) => response.json() as Promise<Response>).catch(() => null);
+      if (latest?.data) setWho(latest.data);
+      if (latest?.data && found.to.every((id) => latest.data!.openToCompany.find((person) => person.id === id)?.hello === "accepted")) break;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
     return true;
   };
   const showSentRef = useRef(showSent);
