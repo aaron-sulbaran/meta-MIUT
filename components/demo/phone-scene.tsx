@@ -179,10 +179,31 @@ export function PhoneScene({ cast }: { cast: CastId }) {
     setFrame({ src: screen, key: Date.now() });
   }, [sceneBeat, screen, storyEventId, now]);
 
+  // What the screen heard (U1c: the mic opened or closed, the transcript came back): put it
+  // in the stage record, so the projected stage shows it live. The stage refuses it off this person's beat.
+  const signal = useCallback(
+    (kind: "listening" | "said", detail: { on?: boolean; text?: string }) => {
+      const at = indexRef.current;
+      if (at === null) return;
+      void fetch("/api/demo/stage", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "signal", from: cast, at, kind, ...detail }),
+      }).catch(() => {});
+    },
+    [cast],
+  );
+
   // A screen's real tap (Share, Post, the invite card...): it is already on the next screen; move the stage.
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.source !== iframeRef.current?.contentWindow) return;
+      const heard = event.data as { source?: unknown; type?: unknown; on?: unknown; text?: unknown } | null;
+      if (heard?.source === "demo-screen") {
+        if (heard.type === "listening" && typeof heard.on === "boolean") signal("listening", { on: heard.on });
+        if (heard.type === "said" && typeof heard.text === "string") signal("said", { text: heard.text.slice(0, 600) });
+        return;
+      }
       const data = event.data as { type?: unknown; path?: unknown } | null;
       if (data?.type !== "demo-handoff" || typeof data.path !== "string" || !data.path.startsWith("/")) return;
       locationRef.current = data.path;
@@ -190,7 +211,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [move]);
+  }, [move, signal]);
 
   return (
     // The real device clips, not a drawn frame: size by the visible viewport (100dvh, so Safari's
@@ -212,7 +233,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
               ref={iframeRef}
               src={frame.src}
               title={`${CAST[cast].name}: phone`}
-              allow="microphone; geolocation; autoplay"
+              allow="microphone; autoplay; geolocation"
               onLoad={() => iframeRef.current?.contentWindow?.postMessage({ type: "demo-beat", id: view.beat.id }, window.location.origin)}
               className="min-h-0 w-full flex-1 border-0 bg-card"
             />
@@ -229,7 +250,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
               aria-label="Back one beat"
               disabled={index === null || index === 0 || phoneView(index - 1, cast).kind !== "scene"}
               onClick={() => void move("back")}
-              className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-black/45 text-white backdrop-blur disabled:opacity-0"
+              className="flex h-[40px] w-[40px] items-center justify-center rounded-full bg-black/35 text-white backdrop-blur disabled:opacity-0"
             >
               <Chevron back />
             </button>
@@ -237,7 +258,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
               type="button"
               aria-label={view.lastOfAct && view.handsTo ? `Next: hand over to ${CAST[view.handsTo].name}` : "Next beat"}
               onClick={() => void move("next")}
-              className="flex h-[44px] min-w-[44px] items-center justify-center gap-[2px] rounded-full bg-black/45 px-[11px] font-display text-label font-bold text-white backdrop-blur"
+              className="flex h-[40px] min-w-[40px] items-center justify-center gap-[2px] rounded-full bg-black/35 px-[11px] font-display text-label font-bold text-white backdrop-blur"
             >
               {view.lastOfAct && view.handsTo ? <span className="pl-[4px]">{CAST[view.handsTo].name}</span> : null}
               <Chevron />

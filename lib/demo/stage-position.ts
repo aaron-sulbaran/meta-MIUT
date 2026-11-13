@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { PHONE_CAST, decidePhoneMove, type PhoneMove } from "@/lib/demo/beat-context";
+import { PHONE_CAST, beatCast, decidePhoneMove, type PhoneMove } from "@/lib/demo/beat-context";
 import { BEATS, type CastId } from "@/lib/demo/beats";
 import { loadState, saveState } from "@/lib/store/state";
 
@@ -26,6 +26,18 @@ export const StagePositionSchema = z.object({
   // message), so a phone can show that step's presenter notes. Belongs to beat
   // `index` only: any move drops it. Optional, so older records still parse.
   deck: z.object({ name: z.string().min(1).max(64), step: z.number().int().min(0), steps: z.number().int().min(1).optional() }).nullish(),
+  // The latest thing a presenter's phone heard on their beat (U1c: the mic opened
+  // or closed, or the transcript came back), so the stage can mirror it live.
+  // Belongs to beat `index` only: any move to another beat drops it.
+  signal: z
+    .object({
+      from: z.string(),
+      kind: z.enum(["listening", "said"]),
+      on: z.boolean().optional(),
+      text: z.string().max(600).optional(),
+      at: z.string(),
+    })
+    .nullish(),
 });
 export type StagePosition = z.infer<typeof StagePositionSchema>;
 
@@ -47,6 +59,51 @@ export const DeckStepSchema = z.object({
 });
 export type DeckStep = z.infer<typeof DeckStepSchema>;
 
+// A presenter phone reports what its screen heard: { action: "signal", from, at, kind, on?, text? }.
+// Only the person whose beat `at` is, while the stage is still on it.
+export const PhoneSignalSchema = z.object({
+  action: z.literal("signal"),
+  from: z.enum(PHONE_CAST as [CastId, ...CastId[]]),
+  at: z.number().int().min(0),
+  kind: z.enum(["listening", "said"]),
+  on: z.boolean().optional(),
+  text: z.string().max(600).optional(),
+});
+export type PhoneSignal = z.infer<typeof PhoneSignalSchema>;
+
+/** The position with the phone's signal recorded, or a reason it is refused. */
+export function applyPhoneSignal(
+  current: StagePosition | null,
+  report: PhoneSignal,
+  now: Date,
+): { ok: true; position: StagePosition } | { ok: false; reason: string } {
+  const index = current?.index ?? 0;
+  if (index !== report.at) return { ok: false, reason: "The stage has already moved" };
+  if (beatCast(BEATS[index]) !== report.from) return { ok: false, reason: "It is not your beat" };
+  return {
+    ok: true,
+    position: {
+      ...(current ?? { index, at: now.toISOString(), seq: 0 }),
+      seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
+      at: now.toISOString(),
+      signal: {
+        from: report.from,
+        kind: report.kind,
+        ...(report.on !== undefined ? { on: report.on } : {}),
+        ...(report.text !== undefined ? { text: report.text } : {}),
+        at: now.toISOString(),
+      },
+    },
+  };
+}
+
+export async function reportPhoneSignal(report: PhoneSignal, now = new Date()) {
+  const current = await readStored();
+  const result = applyPhoneSignal(current, report, now);
+  if (!result.ok) return { data: current, recorded: false as const, reason: result.reason };
+  return { data: await savePosition(result.position), recorded: true as const };
+}
+
 /** The position with the deck step recorded, or null when the stage is no longer on beat `at`. */
 export function applyDeckStep(current: StagePosition | null, report: DeckStep, now: Date): StagePosition | null {
   if ((current?.index ?? 0) !== report.at) return null;
@@ -55,6 +112,7 @@ export function applyDeckStep(current: StagePosition | null, report: DeckStep, n
     seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
     at: now.toISOString(),
     deck: { name: report.name, step: report.step, ...(report.steps ? { steps: report.steps } : {}) },
+    ...(current?.signal ? { signal: current.signal } : {}),
   };
 }
 
@@ -71,6 +129,7 @@ export function applyMove(current: StagePosition | null, move: StageMove, beatCo
     seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
     at: now.toISOString(),
     ...(current?.deck && current.index === index ? { deck: current.deck } : {}),
+    ...(current?.signal && current.index === index ? { signal: current.signal } : {}),
   };
 }
 

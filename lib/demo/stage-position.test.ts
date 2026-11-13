@@ -82,3 +82,24 @@ describe("the deck step in the stage record", () => {
     expect(DeckStepSchema.safeParse({ action: "deck", at: 0, name: "opening" }).success).toBe(false);
   });
 });
+
+describe("what a presenter's phone heard", () => {
+  it("records only from the person whose beat it is, keeps it with a deck step, and drops it on a move", async () => {
+    const { applyPhoneSignal, PhoneSignalSchema } = await import("@/lib/demo/stage-position");
+    const { BEATS } = await import("@/lib/demo/beats");
+    const u1c = BEATS.findIndex((beat) => beat.id === "U1c");
+    const onBeat = applyMove(null, { action: "goto", index: u1c }, BEATS.length, NOW);
+    const listening = applyPhoneSignal(onBeat, { action: "signal", from: "user1", at: u1c, kind: "listening", on: true }, new Date(NOW.getTime() + 1));
+    expect(listening).toMatchObject({ ok: true, position: { index: u1c, signal: { from: "user1", kind: "listening", on: true } } });
+    if (!listening.ok) return;
+    expect(listening.position.seq).toBeGreaterThan(onBeat.seq);
+    const said = applyPhoneSignal(listening.position, { action: "signal", from: "user1", at: u1c, kind: "said", text: "find one near Lisa" }, new Date(NOW.getTime() + 2));
+    expect(said).toMatchObject({ ok: true, position: { signal: { kind: "said", text: "find one near Lisa" } } });
+    expect(applyPhoneSignal(onBeat, { action: "signal", from: "user2", at: u1c, kind: "said", text: "x" }, NOW).ok).toBe(false);
+    expect(applyPhoneSignal(onBeat, { action: "signal", from: "user1", at: u1c - 1, kind: "said", text: "x" }, NOW).ok).toBe(false);
+    if (!said.ok) return;
+    expect(applyMove(said.position, { action: "goto", index: u1c }, BEATS.length, NOW).signal).toEqual(said.position.signal);
+    expect(applyMove(said.position, { action: "next" }, BEATS.length, NOW).signal).toBeUndefined();
+    expect(PhoneSignalSchema.safeParse({ action: "signal", from: "user1", at: 0, kind: "shouted" }).success).toBe(false);
+  });
+});
