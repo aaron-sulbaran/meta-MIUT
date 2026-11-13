@@ -16,8 +16,26 @@ describe("event comments", () => {
     const { comments } = eventComments(foodEvent, viewer.id, now);
     expect(comments.length).toBeGreaterThan(0);
     for (const comment of comments) expect(Date.parse(comment.at)).toBeLessThanOrEqual(now.getTime());
-    const times = comments.map((comment) => Date.parse(comment.at));
+    const times = comments.filter((comment) => !comment.replyTo).map((comment) => Date.parse(comment.at));
     expect(times).toEqual([...times].sort((a, b) => b - a));
+  });
+
+  it("threads replies under their comment, oldest first, from someone else first", () => {
+    const after = new Date(Date.parse(foodEvent.end) + 60 * 60_000);
+    const withReplies = events
+      .map((event) => eventComments(event, viewer.id, after).comments)
+      .find((comments) => comments.some((comment) => comment.replyTo));
+    expect(withReplies).toBeDefined();
+    const comments = withReplies as NonNullable<typeof withReplies>;
+    comments.forEach((comment, index) => {
+      if (!comment.replyTo) return;
+      const parentIndex = comments.findIndex((other) => other.id === comment.replyTo);
+      expect(parentIndex).toBeGreaterThanOrEqual(0);
+      expect(parentIndex).toBeLessThan(index);
+      const parent = comments[parentIndex] as (typeof comments)[number];
+      expect(Date.parse(comment.at)).toBeGreaterThan(Date.parse(parent.at));
+      if (comment.id.endsWith("-r0")) expect(comment.authorId).not.toBe(parent.authorId);
+    });
   });
 
   it("grows as the event goes on and is stable for the same time", () => {

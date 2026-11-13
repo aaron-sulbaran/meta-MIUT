@@ -11,6 +11,8 @@ export type EventComment = {
   at: string;
   /** Posted by the viewer. */
   mine: boolean;
+  /** The comment this one answers; replies show under it, oldest first. */
+  replyTo?: string;
 };
 
 export type EventComments = { eventId: string; comments: EventComment[] };

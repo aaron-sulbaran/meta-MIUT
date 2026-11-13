@@ -13,7 +13,7 @@ export { COMMENT_MAX_LENGTH, type EventComment, type EventComments } from "@/lib
 // that time has passed, so a live event reads live. Viewer comments are kept
 // in the process, and in the shared store (Redis) when it is configured.
 
-type Stored = { id: string; authorId: string; name: string; text: string; at: string };
+type Stored = { id: string; authorId: string; name: string; text: string; at: string; replyTo?: string };
 type CommentsState = { posted: Map<string, Stored[]> };
 
 const globalForComments = globalThis as unknown as { __commentsState?: CommentsState };
@@ -31,17 +31,54 @@ function hash(text: string): number {
 }
 
 type Phase = "before" | "during" | "after";
-type Sample = { phase: Phase; minutes: number; text: (event: CampusEvent) => string; food?: boolean };
+/** A reply minutes after the comment it answers, by its author ("op") or someone new. */
+type Reply = { minutes: number; by: "op" | "other"; text: (event: CampusEvent, op: string) => string };
+type Sample = { phase: Phase; minutes: number; text: (event: CampusEvent) => string; food?: boolean; replies?: Reply[] };
 
 const foodName = (event: CampusEvent) => (event.foodNote?.trim() || "food").toLowerCase();
 
 // Minutes are from the start (before, during) or the end (after).
 const SAMPLES: Sample[] = [
-  { phase: "before", minutes: -26 * 60, text: () => "Anyone else going? Would be fun to go as a group." },
-  { phase: "before", minutes: -3 * 60, text: () => "Is this open to students from other schools?" },
-  { phase: "before", minutes: -50, text: () => "Heading over in a bit, see some of you there." },
-  { phase: "before", minutes: -90, food: true, text: (event) => `Do they usually run out of ${foodName(event)} early?` },
-  { phase: "during", minutes: 10, text: () => "Just got here, still plenty of seats." },
+  {
+    phase: "before",
+    minutes: -26 * 60,
+    text: () => "Anyone else going? Would be fun to go as a group.",
+    replies: [
+      { minutes: 40, by: "other", text: (event, op) => `${op}, I'm in! Meet outside ${event.place.name} 10 minutes before?` },
+      { minutes: 55, by: "op", text: () => "Perfect, see you there." },
+    ],
+  },
+  {
+    phase: "before",
+    minutes: -3 * 60,
+    text: () => "Is this open to students from other schools?",
+    replies: [{ minutes: 20, by: "other", text: () => "It was last time. Bring your student ID just in case." }],
+  },
+  {
+    phase: "before",
+    minutes: -50,
+    text: () => "Heading over in a bit, see some of you there.",
+    replies: [
+      { minutes: 6, by: "other", text: (_event, op) => `Same, ${op}. Save me a seat?` },
+      { minutes: 9, by: "op", text: () => "Got you, front row by the aisle." },
+    ],
+  },
+  {
+    phase: "before",
+    minutes: -90,
+    food: true,
+    text: (event) => `Do they usually run out of ${foodName(event)} early?`,
+    replies: [{ minutes: 15, by: "other", text: () => "Last time it was gone in half an hour. Go early." }],
+  },
+  {
+    phase: "during",
+    minutes: 10,
+    text: () => "Just got here, still plenty of seats.",
+    replies: [
+      { minutes: 4, by: "other", text: (_event, op) => `On my way! Where are you sitting, ${op}?` },
+      { minutes: 6, by: "op", text: () => "Back row, by the window. Come say hi." },
+    ],
+  },
   { phase: "during", minutes: 25, food: true, text: (event) => `Still lots of ${foodName(event)} left, come by.` },
   { phase: "during", minutes: 40, text: () => "Pretty packed now, the line moves fast though." },
   { phase: "during", minutes: 55, food: true, text: (event) => `${foodName(event).replace(/^./, (c) => c.toUpperCase())} is almost gone.` },
@@ -63,7 +100,24 @@ function sampleComments(event: CampusEvent, now: Date): Stored[] {
     if (at > now.getTime()) return;
     const person = PEOPLE[roll % PEOPLE.length];
     if (!person) return;
-    comments.push({ id: `sample-${index}`, authorId: person.id, name: person.name, text: sample.text(event), at: new Date(at).toISOString() });
+    const id = `sample-${index}`;
+    comments.push({ id, authorId: person.id, name: person.name, text: sample.text(event), at: new Date(at).toISOString() });
+    // Someone else answers; never the same person twice in a row.
+    const other = PEOPLE[(roll + 1 + (roll >>> 8) % (PEOPLE.length - 1)) % PEOPLE.length] ?? person;
+    let replyAt = at;
+    sample.replies?.forEach((reply, step) => {
+      replyAt += reply.minutes * MINUTE;
+      if (replyAt > now.getTime()) return;
+      const author = reply.by === "op" ? person : other;
+      comments.push({
+        id: `${id}-r${step}`,
+        authorId: author.id,
+        name: author.name,
+        text: reply.text(event, person.name),
+        at: new Date(replyAt).toISOString(),
+        replyTo: id,
+      });
+    });
   });
   return comments;
 }
@@ -78,11 +132,17 @@ function posted(eventId: string): Stored[] {
   return list;
 }
 
-/** Everything said about the event so far, newest first. */
+/** Everything said about the event so far: comments newest first, each followed by its replies, oldest first. */
 export function eventComments(event: CampusEvent, viewerId: string, now = new Date()): EventComments {
-  const comments: EventComment[] = [...sampleComments(event, now), ...posted(event.id)]
-    .map((comment) => ({ ...comment, mine: comment.authorId === viewerId }))
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  const all: EventComment[] = [...sampleComments(event, now), ...posted(event.id)].map((comment) => ({
+    ...comment,
+    mine: comment.authorId === viewerId,
+  }));
+  const byTime = (a: EventComment, b: EventComment) => Date.parse(a.at) - Date.parse(b.at);
+  const comments = all
+    .filter((comment) => !comment.replyTo)
+    .sort((a, b) => byTime(b, a))
+    .flatMap((comment) => [comment, ...all.filter((reply) => reply.replyTo === comment.id).sort(byTime)]);
   return { eventId: event.id, comments };
 }
 
@@ -94,7 +154,7 @@ export function addComment(event: CampusEvent, viewer: { id: string; name: strin
 }
 
 const StoredSchema = z.array(
-  z.object({ id: z.string(), authorId: z.string(), name: z.string(), text: z.string(), at: z.string() }),
+  z.object({ id: z.string(), authorId: z.string(), name: z.string(), text: z.string(), at: z.string(), replyTo: z.string().optional() }),
 );
 const commentsName = (eventId: string) => `social-comments:${eventId}`;
 
