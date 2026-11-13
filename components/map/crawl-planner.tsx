@@ -115,14 +115,18 @@ function placeEnding(text: string, events: CrawlEvent[]): Ending | null {
   return venue ? { kind: "place", label: venue.knownName, to: { lat: venue.place.lat, lng: venue.place.lng } } : null;
 }
 
-/** The top map search result for a place the app does not know, or null. */
-async function searchPlace(text: string): Promise<Ending | null> {
+const NO_PLACE = "No place like that near campus. Try a friend's name, a building or an address.";
+
+/** Where a place the app does not know is: Muse reads the line (typos, "a taco shop"), the map finds the closest match. */
+async function searchPlace(text: string, near: Point): Promise<{ found: Ending | null; note: string | null }> {
   try {
-    const response = await fetch(`/api/map/search?q=${encodeURIComponent(text)}`);
-    const body = (await response.json()) as { data: { name: string; lat: number; lng: number } | null };
-    return body.data ? { kind: "place", label: body.data.name, to: { lat: body.data.lat, lng: body.data.lng } } : null;
+    const query = new URLSearchParams({ q: text, lat: String(near.lat), lng: String(near.lng) });
+    const response = await fetch(`/api/map/search?${query}`);
+    const body = (await response.json()) as { data: { name: string; lat: number; lng: number } | null; tooFar?: string | null };
+    if (body.data) return { found: { kind: "place", label: body.data.name, to: { lat: body.data.lat, lng: body.data.lng } }, note: null };
+    return { found: null, note: body.tooFar ?? NO_PLACE };
   } catch {
-    return null;
+    return { found: null, note: NO_PLACE };
   }
 }
 
@@ -227,7 +231,7 @@ export function CrawlPlanner({
 }) {
   const [step, setStep] = useState<"choose" | "loading" | "plan" | "error">(start ? "loading" : "choose");
   const [placeText, setPlaceText] = useState("");
-  const [placeMiss, setPlaceMiss] = useState(false);
+  const [placeNote, setPlaceNote] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [ending, setEnding] = useState<Ending | null>(null);
   const [mode, setMode] = useState<TravelMode>("walk");
@@ -292,7 +296,7 @@ export function CrawlPlanner({
         // Belt and braces until the planner reads `exclude`: drop hidden stops here too.
         const kept = { ...data, stops: data.stops.filter((stop) => !stop.eventId || !dismissed.includes(stop.eventId)) };
         let route = toRoute(studentSpot, kept, eventsById, target.kind);
-        if (kept.stops.length !== data.stops.length) route = retime(route, startMs);
+        if (kept.stops.length !== data.stops.length) route = retime(route, startMs, travel);
         showPlan({ route, pitch: data.pitch, invite: data.invite, startMs });
         setStep("plan");
         if (target.sendInvite && target.friendId && data.invite.eventId) {
@@ -325,9 +329,11 @@ export function CrawlPlanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start]);
 
+  // Same stops, new travel times: switching Walk and Transit does not ask Muse again.
   const changeMode = (next: TravelMode) => {
     setMode(next);
-    if (ending) void request(ending, next);
+    if (plan) showPlan({ ...plan, route: retime(plan.route, plan.startMs, next) });
+    else if (ending) void request(ending, next);
   };
 
   const edit = (route: Route) => {
@@ -405,15 +411,15 @@ export function CrawlPlanner({
               const text = placeText.trim();
               const target = friendEnding(text) ?? placeEnding(text, events);
               if (target) {
-                setPlaceMiss(false);
+                setPlaceNote(null);
                 choose(target);
                 return;
               }
               // Anything else: the top map search result, like typing it into Google Maps.
               setSearching(true);
-              void searchPlace(text).then((found) => {
+              void searchPlace(text, studentSpot).then(({ found, note }) => {
                 setSearching(false);
-                setPlaceMiss(found === null);
+                setPlaceNote(note);
                 if (found) choose(found);
               });
             }}
@@ -427,16 +433,14 @@ export function CrawlPlanner({
                 value={placeText}
                 onChange={(event) => {
                   setPlaceText(event.target.value);
-                  setPlaceMiss(false);
+                  setPlaceNote(null);
                 }}
                 autoComplete="off"
                 placeholder="Meet a friend? Other location?"
                 aria-label="Meet a friend or another location"
                 className="mt-1 w-full rounded-[10px] bg-wash px-3 py-[7px] text-meta outline-none"
               />
-              {placeMiss && (
-                <span className="mt-1 block text-meta text-muted">No place by that name near campus. Try a friend&apos;s name, a building or an address.</span>
-              )}
+              {placeNote && <span className="mt-1 block text-meta text-muted">{placeNote}</span>}
             </span>
             <button type="submit" className="mt-[22px] shrink-0 rounded-full bg-primary px-3 py-[6px] text-meta font-semibold text-on-primary disabled:opacity-40" disabled={!placeText.trim() || searching}>
               {searching ? "..." : "Go"}
@@ -579,7 +583,7 @@ export function CrawlPlanner({
               </div>
               <button
                 type="button"
-                onClick={() => edit(removeStop(route, index, plan.startMs))}
+                onClick={() => edit(removeStop(route, index, plan.startMs, mode))}
                 aria-label={`Remove ${stop.title}`}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-wash"
               >
@@ -600,7 +604,7 @@ export function CrawlPlanner({
             type="button"
             onClick={() => {
               setPlaceText("");
-              setPlaceMiss(false);
+              setPlaceNote(null);
               setStep("choose");
             }}
             aria-label="Change where the walk ends"
@@ -637,6 +641,7 @@ export function CrawlPlanner({
                               mode: "walk",
                             },
                             plan.startMs,
+                            mode,
                           ),
                         );
                         setAdding(false);
