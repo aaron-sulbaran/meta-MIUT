@@ -2,86 +2,103 @@
   {
     "id": "hook-caret",
     "title": "Black, a caret waiting",
-    "notes": "We started with a simple question."
+    "lead": "speaker",
+    "notes": "We asked 50 Gen Z students one question."
   },
   {
     "id": "hook-question",
     "title": "We asked 50 Gen Z students",
-    "notes": "We asked 50 Gen Z students: what would actually get you back on Facebook?"
+    "lead": "screen",
+    "notes": "Quiet. Let the question type out."
   },
   {
     "id": "hook-replies",
     "title": "The first replies",
-    "notes": "And, well... the responses were pretty brutal."
+    "lead": "screen",
+    "notes": "Quiet. Let them read the replies."
   },
   {
     "id": "hook-love",
     "title": "If the love of my life was only on Facebook",
-    "notes": "[Pause. Let the messages pop up one by one.]"
+    "lead": "screen",
+    "notes": "Quiet. Let the laugh land."
   },
   {
     "id": "hook-avalanche",
     "title": "The replies pile up",
-    "notes": "[Let them accelerate until they fill the screen. Next click: hard cut to black, silence.]"
+    "lead": "screen",
+    "notes": "Quiet while it fills. Click for the cut to black."
   },
   {
     "id": "exception",
     "title": "Hard cut: But there was one exception",
+    "lead": "speaker",
     "notes": "But there was one exception."
   },
   {
     "id": "marketplace",
     "title": "Marketplace",
-    "notes": "Facebook Marketplace. And that's when it clicked."
+    "lead": "screen",
+    "notes": "Let it land. Then: 'Facebook Marketplace. We go there to get things done.'"
   },
   {
     "id": "app-to-scroll",
     "title": "It's not just an app to scroll",
-    "notes": "As Gen Z ourselves, we don't go on Facebook to mindlessly scroll like we do on Instagram or TikTok. We go on Facebook to get something done. It's not just an app to scroll."
+    "lead": "screen",
+    "notes": "Quiet. Let them read."
   },
   {
     "id": "app-to-do",
     "title": "It's an app to DO",
-    "notes": "It's an app to DO. And that got us thinking: what else could Facebook help us do?"
+    "lead": "screen",
+    "notes": "Let it land. Then: 'So what else could Facebook help us do?'"
   },
   {
     "id": "flyers",
     "title": "Campus is full of free food and events",
-    "notes": "Every day, student organizations and departments are hosting events, giving away free food, and creating experiences we'd actually want to attend."
+    "lead": "speaker",
+    "notes": "Every day, clubs host events and give away free food. But it's scattered."
   },
   {
     "id": "overload",
     "title": "Scattered across emails, posts, and group chats",
-    "notes": "But all of this information is scattered across hundreds of emails, Instagram posts, and group chats."
+    "lead": "screen",
+    "notes": "Quiet. Let it pile up."
   },
   {
     "id": "buried",
     "title": "Freeze on the buried flyer",
+    "lead": "speaker",
     "notes": "And by the time we hear about something..."
   },
   {
     "id": "event-ended",
     "title": "EVENT ENDED",
-    "notes": "...it's already over."
+    "lead": "screen",
+    "notes": "'...it's already over.' Then quiet."
   },
   {
     "id": "cant-find-them",
     "title": "The opportunities exist. We just can't find them.",
-    "notes": "The opportunities exist. We just can't find them."
+    "lead": "screen",
+    "notes": "Quiet. Then: 'Marketplace made Facebook useful for finding things.'"
   },
   {
     "id": "next-deal",
     "title": "What if finding your next experience was as easy as finding your next deal?",
-    "notes": "Marketplace made Facebook useful for finding things. So we asked ourselves: what if finding your next experience was as easy as finding your next deal?"
+    "lead": "screen",
+    "notes": "Quiet. Let them read the question."
   },
   {
     "id": "muse-organizes",
     "title": "Muse turns posts into events",
-    "notes": "Introducing [product name]: a reimagined Facebook Events experience, powered by Muse AI. We turn the campus events already being shared into personalized, nearby opportunities."
+    "lead": "screen",
+    "notes": "Let it play. Then: 'Muse turns campus posts into personal, nearby plans.'"
   },
   {
     "id": "events-reimagined",
     "title": "Events, reimagined.",
-    "notes": "No more searching through hundreds of posts. No more missing out."
+    "lead": "speaker",
+    "notes": "Introducing [name]: Facebook Events, reimagined. No more missing out."
   }
 ]

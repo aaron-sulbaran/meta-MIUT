@@ -274,27 +274,30 @@
   color: #8a8f99;
 }
 
-.s2-band {
+/* The real Marketplace mark, never shown above its own 225 px. */
+.s2-mark {
   position: absolute;
   left: 0;
-  right: 0;
-  top: 340px;
-  height: 400px;
-  background: var(--blue);
-  clip-path: inset(50% 50% 50% 50% round 40px);
-  will-change: clip-path;
+  top: 0;
+  width: 225px;
+  height: 225px;
+  opacity: 0;
+  transform-origin: 50% 50%;
 }
 
 .s2-word {
+  position: absolute;
+  left: 0;
+  top: 0;
   font-family: var(--display);
   font-weight: 800;
-  font-size: 196px;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
+  font-size: 200px;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  white-space: nowrap;
   color: var(--white);
   opacity: 0;
-  line-height: 1;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
 .s2-pair {

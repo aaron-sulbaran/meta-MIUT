@@ -9,6 +9,8 @@
      deck to stage: {source: "demo-deck", type: "ready", steps}, {type: "step", index, steps},
                     {type: "end"} on next past the last step, {type: "start"} on back before the first.
    Keys, alone or embedded: ArrowRight, PageDown, Space go next; ArrowLeft, PageUp go back; M toggles sound.
+   Each step says who leads it: "screen" (the room watches, the presenter is quiet, effects
+   allowed) or "speaker" (the presenter talks, a calm picture, no effects).
    Review params: ?step=N opens at step N's rest, ?at=S freezes the timeline at S seconds,
    ?render=1 disables live behaviour (no drift, no idle) for frame capture. */
 (function () {
@@ -94,8 +96,11 @@
         });
         seg.fromTo(target, from, vars, at);
       },
-      /* Sound at a time inside the segment; ignored while seeking. */
+      /* Sound at a time inside the segment; ignored while seeking. Never under the
+         presenter's voice: a step led by the speaker plays no effects. */
+      lead: "screen",
       sfx(seg, name, opts, at) {
+        if (this.lead === "speaker") return;
         seg.call(sfx, [name, opts], Math.max(0.02, at || 0));
       },
       hush(seg, at) {
@@ -115,6 +120,7 @@
     let t = 0;
     steps.forEach((step) => {
       const seg = gsap.timeline();
+      ctx.lead = step.lead || "speaker";
       step.build(seg, ctx);
       const dur = Math.max(seg.duration(), 0.05);
       tl.add(seg, t);

@@ -59,6 +59,29 @@ const SHOTS = {
     await hideDev(page);
     await shot('walkhome');
   },
+  async replan(page, shot) {
+    await page.goto(base + '/?plan=home&auto=1&time=' + encodeURIComponent(AT), { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await hideDev(page);
+    let last = 0;
+    for (const ms of [6000, 9000, 12000, 16000, 22000]) {
+      await page.waitForTimeout(ms - last);
+      last = ms;
+      await shot(`replan-${ms}`);
+    }
+  },
+  async whosgoing(page, shot) {
+    const story = await (await page.request.get(base + '/api/demo/story?at=' + encodeURIComponent(AT))).json().catch(() => null);
+    const id = story?.data?.id ?? story?.data?.event?.id;
+    if (!id) throw new Error('no story id ' + JSON.stringify(story).slice(0, 200));
+    await page.goto(base + '/events/' + encodeURIComponent(id) + '?auto=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await hideDev(page);
+    let last = 0;
+    for (const ms of [4000, 8000, 14000]) {
+      await page.waitForTimeout(ms - last);
+      last = ms;
+      await shot(`whosgoing-${ms}`);
+    }
+  },
   async curate(page, shot) {
     await page.goto(base + '/curate');
     await page.waitForTimeout(3000);
