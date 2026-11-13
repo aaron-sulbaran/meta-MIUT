@@ -35,13 +35,11 @@ const UNDO_MS = 5000;
 
 type Point = { lat: number; lng: number };
 
-export type MapChip = "freeFood" | "now" | "today";
+export type MapChip = "free";
 
 const CHIPS: { id: "all" | MapChip; label: string }[] = [
   { id: "all", label: "For you" },
-  { id: "freeFood", label: "Free food" },
-  { id: "now", label: "Now" },
-  { id: "today", label: "Today" },
+  { id: "free", label: "Free" },
 ];
 
 export type MapCard = {
@@ -60,10 +58,25 @@ export type MapCard = {
   reason: string | null;
 };
 
+// Bring a card into place in the strip. A neighbor glides; a card further
+// away jumps straight there, so the strip never races past every card between.
 function scrollStripTo(strip: HTMLElement | null, eventId: string) {
   const card = strip?.querySelector<HTMLElement>(`[data-event-id="${CSS.escape(eventId)}"]`);
   if (!strip || !card) return;
-  strip.scrollTo({ left: card.offsetLeft - 12, behavior: "smooth" });
+  const left = card.offsetLeft - 12;
+  const far = Math.abs(left - strip.scrollLeft) > card.offsetWidth * 1.5;
+  strip.scrollTo({ left, behavior: far ? "instant" : "smooth" });
+}
+
+// The card the strip has settled on: the one whose left edge is closest to
+// the strip's left padding.
+function settledCardId(strip: HTMLElement): string | null {
+  let best: { id: string; distance: number } | null = null;
+  for (const element of strip.querySelectorAll<HTMLElement>("[data-event-id]")) {
+    const distance = Math.abs(element.offsetLeft - 12 - strip.scrollLeft);
+    if (!best || distance < best.distance) best = { id: element.dataset.eventId ?? "", distance };
+  }
+  return best?.id || null;
 }
 
 function directionsUrl(from: Point, to: Point): string {
@@ -348,6 +361,10 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
   const markerClassRef = useRef<typeof Marker | null>(null);
   const markersRef = useRef<Map<string, { marker: Marker; element: HTMLElement }>>(new Map());
   const interacted = useRef(false);
+  // True while the strip is moving because a bubble was tapped, so the scroll
+  // that follows does not pick a different card on its way.
+  const programmaticScroll = useRef(false);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const [chip, setChip] = useState<"all" | MapChip>("all");
@@ -452,6 +469,10 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
       if (markers.has(card.eventId)) continue;
       const element = markerElement(card, (id) => {
         interacted.current = true;
+        programmaticScroll.current = true;
+        // If the strip was already in place no scroll follows; never let the
+        // flag swallow the next real swipe.
+        setTimeout(() => (programmaticScroll.current = false), 400);
         setActiveId(id);
         scrollStripTo(stripRef.current, id);
       });
@@ -515,28 +536,38 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
     setLastDismissed(null);
   }, [dismissed, lastDismissed]);
 
-  // When the strip settles on a card, make it active.
-  useEffect(() => {
-    const strip = stripRef.current;
-    if (!strip) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        const id = visible?.target.getAttribute("data-event-id");
-        if (id) setActiveId(id);
-      },
-      { root: strip, threshold: [0.6, 0.9] },
-    );
-    strip.querySelectorAll("[data-event-id]").forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, [visibleCards]);
+  // When a swipe settles, the card in place becomes active. Cards the strip
+  // passes on the way are ignored, so the map moves once, not per card.
+  const onStripScroll = useCallback(() => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => {
+      const strip = stripRef.current;
+      if (!strip) return;
+      if (programmaticScroll.current) {
+        programmaticScroll.current = false;
+        return;
+      }
+      const id = settledCardId(strip);
+      if (id) setActiveId(id);
+    }, 140);
+  }, []);
+  useEffect(() => () => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+  }, []);
 
   // Fly to the active event once the student swipes or taps a bubble; the map
   // opens on the student, not on the first card.
   useEffect(() => {
     if (!activeId || !interacted.current) return;
     const card = visibleCards.find((item) => item.eventId === activeId);
-    if (card) mapRef.current?.easeTo({ center: [card.place.lng, card.place.lat], duration: 500 });
+    // One calm move: ease out over 700 ms instead of a quick snap.
+    if (card) {
+      mapRef.current?.easeTo({
+        center: [card.place.lng, card.place.lat],
+        duration: 700,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      });
+    }
   }, [activeId, visibleCards]);
 
   return (
@@ -564,6 +595,11 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
             onClick={() => {
               setChip(item.id);
               setLastDismissed(null);
+              // A new filter starts at its first card, highlighted.
+              setActiveId(null);
+              programmaticScroll.current = true;
+              setTimeout(() => (programmaticScroll.current = false), 400);
+              stripRef.current?.scrollTo({ left: 0, behavior: "instant" });
             }}
             className={`shrink-0 rounded-full px-[12px] py-[6px] text-meta font-semibold shadow-sm ${
               chip === item.id ? "bg-ink text-white" : "bg-card text-ink"
@@ -613,8 +649,15 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
 
       <ol
         ref={stripRef}
-        onPointerDown={() => (interacted.current = true)}
-        onWheel={() => (interacted.current = true)}
+        onScroll={onStripScroll}
+        onPointerDown={() => {
+          interacted.current = true;
+          programmaticScroll.current = false;
+        }}
+        onWheel={() => {
+          interacted.current = true;
+          programmaticScroll.current = false;
+        }}
         onKeyDown={() => (interacted.current = true)}
         aria-label="Events on the map"
         className="no-scrollbar absolute inset-x-0 z-10 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-3 px-3 pb-1"

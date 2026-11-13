@@ -1,7 +1,7 @@
 import { EventsMap, type MapCard, type MapChip } from "@/components/map/events-map";
 import { loadSeedStudent } from "@/lib/events/seed";
 import type { CampusEvent } from "@/lib/events/schema";
-import { formatDateLine, isInWindow } from "@/lib/events/time";
+import { formatDateLine } from "@/lib/events/time";
 import { eventCategory } from "@/lib/map/category";
 import { heatPoints } from "@/lib/map/heat";
 import { organizerLogo } from "@/lib/map/organizer-logos";
@@ -12,12 +12,10 @@ import { personalizeEvents } from "@/lib/muse/rank";
 // hands plain data to the client map.
 
 
-function mapChips(event: CampusEvent, now: Date): MapChip[] {
-  const chips: MapChip[] = [];
-  if (event.free && event.food) chips.push("freeFood");
-  if (isInWindow(event, "now", now)) chips.push("now");
-  if (isInWindow(event, "today", now)) chips.push("today");
-  return chips;
+// Free means free and open to all: a free event that needs an RSVP for a
+// limited number of seats is not on Free (d-r6zd), it still shows under For you.
+function mapChips(event: CampusEvent): MapChip[] {
+  return event.free && event.access.kind === "open" ? ["free"] : [];
 }
 
 export async function MapHome({ events, now }: { events: CampusEvent[]; now: Date }) {
@@ -40,7 +38,7 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
         category: eventCategory(event),
         organizerName: event.organizer.name,
         logoUrl: organizerLogo(event.organizer),
-        chips: mapChips(event, now),
+        chips: mapChips(event),
         weight: point.weight,
         pickRank: point.pickRank,
         reason: point.reason,
