@@ -95,7 +95,8 @@ export const PERSONA_CAPTIONS: Record<PersonaId | "aaron", string> = {
   organizer: castLine("organizer"),
 };
 
-const eventPath = ({ storyEventId }: BeatContext) => (storyEventId ? `/events/${encodeURIComponent(storyEventId)}` : null);
+const whosGoingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.whosGoing(storyEventId) : null);
+const lisaJoinedPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaJoined(storyEventId, "sample-student") : null);
 const lisaLandingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaLanding(storyEventId, "sample-student") : null);
 
 export const BEATS: Beat[] = [
@@ -181,7 +182,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Change of plans",
     caption: `He says it out loud: I'm meeting ${CAST.lisa.name}. Muse finds a spot between them and invites her.`,
-    path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
+    path: ({ now }) => HANDOFF.replanLisa(now.toISOString()),
   },
   {
     id: "U2a",
@@ -209,8 +210,8 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "She's in",
     caption: `No form, no password. And ${CAST.aaron.name} knows she's coming.`,
-    // The same landing as U2b, so it stays on her "you're going" screen.
-    path: lisaLandingPath,
+    // Her landing already joined, so the beat rests on the event even if U2b was not tapped.
+    path: lisaJoinedPath,
   },
   {
     id: "U3a",
@@ -238,7 +239,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Who's going?",
     caption: `${CAST.aaron.name} and ${CAST.lisa.name}. So they go too.`,
-    path: eventPath,
+    path: whosGoingPath,
   },
   {
     id: "P4",

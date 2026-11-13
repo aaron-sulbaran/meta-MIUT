@@ -11,11 +11,16 @@ import { HANDOFF, handOff } from "@/lib/demo/staged";
 // U2a: Lisa's Instagram thread with Aaron. The first two lines are the skit;
 // the invite is real: it shows up when Aaron's Muse sends it from the map,
 // in Muse's own words, with a card that opens the event on Facebook (U2b).
+// If no invite has arrived a moment after the screen opens (the re-plan beat
+// was skipped, or Muse did not send one), the thread settles on the story
+// event's invite anyway, so the beat never rests on "typing".
 
 type Invite = { id: string; eventId: string; from: string; message: string; href: string | null; at: string };
 type EventSummary = { title: string; start: string; place: { name: string }; free: boolean; organizer: { name: string }; source?: { imagePath?: string } };
 
 const POLL_MS = 2000;
+// How long the thread waits for Aaron's real invite before it shows the story event's.
+const SETTLE_MS = 1800;
 
 function when(iso: string): string {
   return new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: CAMPUS_TIME_ZONE });
@@ -41,9 +46,32 @@ export function InstagramDm({ to }: { to: string }) {
       if (!stopped) timer = setTimeout(poll, POLL_MS);
     }
     void poll();
+    const settle = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/demo/story", { cache: "no-store" });
+        const body = (await response.json()) as { data: (EventSummary & { id: string }) | null };
+        const story = body.data;
+        if (stopped || !story) return;
+        setInvite(
+          (current) =>
+            current ?? {
+              id: `story-${story.id}`,
+              eventId: story.id,
+              from: "Aaron",
+              message: `Found us something on the way: ${story.title} at ${story.place.name}. Want to come?`,
+              href: null,
+              // About when Aaron would have sent it: just after class, before the event.
+              at: new Date(Date.parse(story.start) - 20 * 60_000).toISOString(),
+            },
+        );
+      } catch {
+        // The thread keeps polling for the real invite.
+      }
+    }, SETTLE_MS);
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
+      clearTimeout(settle);
     };
   }, [to]);
 
@@ -104,7 +132,8 @@ export function InstagramDm({ to }: { to: string }) {
           <div className="flex flex-col gap-[6px] motion-safe:animate-[staged-pop_260ms_ease-out]">
             <p className="ml-[34px] flex items-center gap-1 text-[11px]" style={{ color: IG.muted }}>
               <MuseMark className="h-[12px] w-[12px] text-[#0866ff]" />
-              Sent by {invite.from}&apos;s Muse · {when(invite.at)}
+              {/* No clock time: the invite is stamped in real time, the show runs on the demo's afternoon. */}
+              Sent by {invite.from}&apos;s Muse
             </p>
             <div className="flex items-end gap-2">
               <DrawnAvatar name="Aaron" size={26} />
