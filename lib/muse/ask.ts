@@ -4,10 +4,11 @@ import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine, isInWindow } from "@/lib/events/time";
 import type { Turn } from "@/lib/muse/conversation";
+import type { InterestMemory } from "@/lib/muse/memory";
 import { askFixture } from "@/lib/muse/fixtures/ask";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 import type { StudentContext } from "@/lib/muse/profile";
-import { ASK_ACTIONS, FEED_FILTERS } from "@/lib/muse/types";
+import { ASK_ACTIONS, FEED_FILTERS, type LikelyEvent } from "@/lib/muse/types";
 
 // A request in words (typed or spoken) to an answer, the events it is about,
 // actions to carry out for the student, an optional follow-up question, and
@@ -35,13 +36,17 @@ export type AskOutput = z.infer<typeof AskOutputSchema>;
 export const ASK_STRUCTURED_OUTPUT = museStructuredOutput("event_answer", AskOutputSchema);
 
 const SYSTEM = [
-  "You are Muse inside a campus events app. A student types or speaks a request; spoken requests are transcribed, so read past small transcription errors.",
+  "You are Muse inside a campus events app, the student's personal guide to what's on. A student types or speaks a request; spoken requests are transcribed, so read past small transcription errors.",
+  "Each turn, work out what this student wants and give them everything that gets them there: the right events for them, the actions they asked for, and the next useful step.",
   'Return JSON only: {"answer":"one or two short sentences, spoken aloud","eventIds":["..."],"actions":[{"type":"...","eventId":"... or null","filter":"... or null"}],"followUp":"a question or null","learnedTopics":["..."]}.',
   "eventIds: events your answer is about, best first, at most 5, only ids from the list. Name each event by its title in the answer.",
   'actions: do what the student asks. "rsvp" (they say they are going or want to RSVP), "cancel_rsvp", "interested" (save or mark interested), "open" (show one event), "filter" with filter one of forYou, free, today, week (show a list), "plan_night" (plan my night, a food crawl, a route home past free food), "create_event" with eventId null (they describe an event they are hosting or ask to post, create, or publish one; Muse drafts it for them to check and publish). Only act on events from the list, and only when the student asked; never RSVP on your own guess.',
   "followUp: if the request is vague or could mean several things (which event, what time, what kind) and you cannot make a confident prediction from the conversation, the student and what is on, ask one short question that offers two or three concrete choices, and do not RSVP, mark interested, plan or create yet. Keep asking on each turn until it is clear; once the student answers, combine the answer with their earlier request and carry it out. When you can make a good prediction of what they want, answer with it and set followUp to null. When you ask, the answer is a short lead-in that does not repeat the question.",
   "learnedTopics: lowercase interests the student showed in this request, for example climbing or free food; empty if none.",
-  "Use the conversation so far for context. Use the student profile to predict what they mean and which events fit best; never mention it or why something suits them.",
+  "Personalize: you know the student (profile, interests they listed, clubs they follow, what they have been into lately, topics they skip, events they acted on) and each event's match for them (higher is a better fit, matched lists what fits). Choose and order events by that fit and by when they are; never offer events on topics they skip unless they ask.",
+  'Why: when the student asks why, asks what you recommend, or asks if they would like something, say in one or two sentences why they in particular would enjoy it, tied to what they like (for example "you are into climbing and film, and it is a short walk from your place"), not a summary of the event. Do not volunteer reasons otherwise.',
+  "Conversation: continue the thread. Resolve it, that one, why, and later from the conversation so far, and build on what the student already told you instead of starting over.",
+  "Safety: never say or imply that you watch what they view, like, save or comment on, and never quote that activity; talk about their interests instead. Never guess or mention ethnicity, race, religion, health, sexuality or other sensitive traits; use communities and languages only as the student listed them. Respect age limits such as 21+, and be honest about cost and distance.",
 ].join(" ");
 
 const WAITS_FOR_ANSWER = new Set(["rsvp", "cancel_rsvp", "interested", "plan_night", "create_event"]);
@@ -63,12 +68,28 @@ export async function askAboutEvents(
   now = new Date(),
   student?: StudentContext,
   history: Turn[] = [],
+  memory?: InterestMemory,
+  likely: LikelyEvent[] = [],
 ): Promise<MuseJobResult<AskOutput>> {
   const open = events.filter((event) => event.status === "published" && isInWindow(event, "week", now));
   const knownIds = new Set(open.map((event) => event.id));
   const about = student
-    ? { interests: student.interests, year: student.year, major: student.major, dietary: student.dietary }
+    ? {
+        firstName: student.name.split(" ")[0],
+        age: student.age,
+        year: student.year,
+        major: student.major,
+        minor: student.minor,
+        listedInterests: student.interests,
+        languages: student.languages,
+        communities: student.communities,
+        dietary: student.dietary,
+        follows: student.follows,
+        intoLately: memory?.topics.slice(0, 8).map((topic) => topic.topic),
+        skips: memory?.avoided,
+      }
     : null;
+  const fit = new Map(likely.map((candidate) => [candidate.eventId, candidate]));
   const summaries = open.map((event) => ({
     id: event.id,
     title: event.title,
@@ -77,13 +98,16 @@ export async function askAboutEvents(
     place: event.place.name,
     free: event.free,
     food: event.food,
+    match: fit.has(event.id)
+      ? { score: Math.round(fit.get(event.id)!.score * 10) / 10, matched: fit.get(event.id)!.matched, walkMinutes: fit.get(event.id)!.walkMinutes, clash: fit.get(event.id)!.clash }
+      : null,
   }));
   const said = history.map((turn) => `${turn.role === "student" ? "Student" : "Muse"}: ${turn.text}`).join("\n");
   const clock = now.toLocaleString("en-US", { timeZone: CAMPUS_TIME_ZONE, dateStyle: "full", timeStyle: "short" });
   const result = await runMuseJob({
     request: {
       system: SYSTEM,
-      prompt: `Now on campus: ${clock}\nStudent: ${JSON.stringify(about)}\nConversation so far:\n${said || "(none)"}\nRequest: ${input.question}\nEvents: ${JSON.stringify(summaries)}`,
+      prompt: `Now on campus: ${clock}\nStudent (private, never quote): ${JSON.stringify(about)}\nConversation so far:\n${said || "(none)"}\nRequest: ${input.question}\nEvents: ${JSON.stringify(summaries)}`,
       structuredOutput: ASK_STRUCTURED_OUTPUT,
     },
     outputSchema: AskOutputSchema,

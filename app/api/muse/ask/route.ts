@@ -3,7 +3,8 @@ import { readJsonBody } from "@/lib/http";
 import { AskInputSchema, askAboutEvents } from "@/lib/muse/ask";
 import { loadTurns, saveTurns } from "@/lib/muse/conversation";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
-import { DEMO_USER_ID, saveSignals } from "@/lib/muse/memory";
+import { compileCandidates } from "@/lib/muse/candidates";
+import { DEMO_USER_ID, loadInterestMemory, saveSignals } from "@/lib/muse/memory";
 import { origin } from "@/lib/muse/profile";
 
 // POST { question }: Muse answers with events, actions for the client to carry
@@ -15,7 +16,9 @@ export async function POST(request: Request) {
   const now = new Date();
   const student = loadDemoStudent();
   const events = await getEventStore().listEvents();
-  const result = await askAboutEvents(body.data, events, now, student, await loadTurns(DEMO_USER_ID));
+  const memory = await loadInterestMemory(DEMO_USER_ID, now);
+  const likely = compileCandidates(student, memory, events, now);
+  const result = await askAboutEvents(body.data, events, now, student, await loadTurns(DEMO_USER_ID), memory, likely);
   if (result.error !== null) return Response.json(result, { status: 502 });
 
   const at = now.toISOString();
