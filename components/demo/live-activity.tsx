@@ -7,7 +7,7 @@ import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { FreeBite } from "@/lib/demo/free-bite";
 import { handOff } from "@/lib/demo/staged";
 
-// U1a: a phone's lock screen with a Live Activity from Muse, the moment Aaron
+// U1a: a phone's lock screen with a Live Activity from Muse, the moment User 1 (Jolyn)
 // walks out of class. Drawn for the demo (no system logos, a gradient instead of
 // a photo; the app icon is Facebook's official logo); its words come from real data. One tap opens the map with the walk
 // home planned.
