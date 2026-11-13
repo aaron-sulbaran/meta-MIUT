@@ -46,7 +46,29 @@ function isStoryEvent(event: CampusEvent): boolean {
 
 // The story's ending: Trish knows nobody going, and the people open to company are
 // Lisa (she turns it on in her act) and Jolyn, seeded here as going and open.
-const STORY_COMPANY: [string, GoingEntry][] = [["sample-student", { open: true, note: "Going after class, happy to share a table" }]];
+const STORY_JOLYN = "sample-student";
+const STORY_LISA = "lisa";
+const STORY_JOLYN_NOTE = "Going after class, happy to share a table";
+const STORY_COMPANY: [string, GoingEntry][] = [[STORY_JOLYN, { open: true, note: STORY_JOLYN_NOTE }]];
+/** The two people the story's ending offers a stranger: Jolyn, and Lisa once she has joined. */
+export const STORY_COMPANY_IDS: readonly string[] = [STORY_JOLYN, STORY_LISA];
+
+/**
+ * The going list as the story's ending reads it, whatever the store holds (a stale seed, an
+ * invite that marked Jolyn going without company): Jolyn is going and open to company, and
+ * Lisa counts as open once she has joined, toggle or not (a laptop-only run may skip it).
+ * Read only; what each of them chose stays as saved.
+ */
+function companyAt(event: CampusEvent): Map<string, GoingEntry> {
+  const going = goingAt(event);
+  if (!isStoryEvent(event)) return going;
+  const company = new Map(going);
+  const jolyn = going.get(STORY_JOLYN);
+  company.set(STORY_JOLYN, { open: true, note: jolyn?.open && jolyn.note ? jolyn.note : STORY_JOLYN_NOTE });
+  const lisa = going.get(STORY_LISA);
+  if (lisa) company.set(STORY_LISA, { ...lisa, open: true });
+  return company;
+}
 
 /** FNV-1a with a final mix, so similar ids (evt-test-a, evt-test-b) still roll differently. */
 function hash(text: string): number {
@@ -97,8 +119,13 @@ function goingAt(event: CampusEvent): Map<string, GoingEntry> {
 const helloKey = (eventId: string, from: string, to: string) => `${eventId}|${from}|${to}`;
 
 export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests: string[], now = Date.now()): WhoIsGoing {
-  const going = goingAt(event);
+  const saved = goingAt(event);
+  const going = companyAt(event);
   const friendIds = new Set(FRIENDS[viewerId] ?? []);
+  // The story's ending: someone outside the pair with no friends going is offered exactly
+  // Jolyn and Lisa, however many others are looking for company there.
+  const storyEnding =
+    isStoryEvent(event) && !STORY_COMPANY_IDS.includes(viewerId) && ![...going.keys()].some((personId) => friendIds.has(personId));
   const mine = new Set(viewerInterests.map((interest) => interest.toLowerCase()));
   const friends: GoingPerson[] = [];
   const openToCompany: GoingPerson[] = [];
@@ -115,7 +142,7 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
     const base = { id: person.id, name: person.name, year: person.year, major: person.major, shared };
     if (friendIds.has(personId)) {
       friends.push({ ...base, instagram: person.instagram });
-    } else if (entry.open && shared.length > 0) {
+    } else if (storyEnding ? STORY_COMPANY_IDS.includes(personId) && entry.open : entry.open && shared.length > 0) {
       const sentAt = state().hellos.get(helloKey(event.id, viewerId, personId));
       const hello = sentAt === undefined ? undefined : now - sentAt >= ACCEPT_AFTER_MS ? ("accepted" as const) : ("pending" as const);
       const mutual = mutualFriends(viewerId, personId);
@@ -135,7 +162,8 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
   friends.sort((a, b) => hash(`${a.id}@${event.id}`) - hash(`${b.id}@${event.id}`));
   openToCompany.sort((a, b) => b.shared.length - a.shared.length || a.name.localeCompare(b.name));
   othersCount += Math.max(0, openToCompany.length - COMPANY_LIMIT);
-  const self = going.get(viewerId);
+  // What the viewer chose themselves; Jolyn is going on the story event even if the store lost it.
+  const self = saved.get(viewerId) ?? going.get(viewerId);
   const shownCompany = openToCompany.slice(0, COMPANY_LIMIT);
   return {
     eventId: event.id,
@@ -177,7 +205,7 @@ export function sayHello(
   message?: string,
   recorded = false,
 ): { error: string | null } {
-  const entry = goingAt(event).get(toId);
+  const entry = companyAt(event).get(toId);
   if (!entry?.open) return { error: "They are not looking for company at this event" };
   const key = helloKey(event.id, viewerId, toId);
   if (!state().hellos.has(key)) state().hellos.set(key, now);
