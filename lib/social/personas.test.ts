@@ -61,7 +61,7 @@ describe("demo personas on Who's going", () => {
     const story = { ...event, id: "evt-story-hello", organizer: { ...STORY_ORGANIZER } };
     setGoing(story, "lisa", { going: true, open: true });
     expect(sayHello(story, user3.id, "lisa", 1000, "Hi Lisa!").error).toBeNull();
-    expect(hellosTo("lisa")).toEqual([{ eventId: story.id, from: user3.id, message: "Hi Lisa!", at: 1000 }]);
+    expect(hellosTo("lisa")).toEqual([{ eventId: story.id, from: user3.id, message: "Hi Lisa!", at: 1000, answered: false }]);
     expect(helloFixture(story, [{ name: "Lisa" }, { name: "Jolyn" }]).message).toMatch(/^Hi Lisa and Jolyn!/);
   });
 });

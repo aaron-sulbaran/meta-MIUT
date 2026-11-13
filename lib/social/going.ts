@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
 import { STORY_ORGANIZER } from "@/lib/demo/story-data";
 import { eventTopics } from "@/lib/muse/candidates";
-import { EVERYONE, FRIENDS, OPEN_NOTES, PEOPLE, mutualFriends } from "@/lib/social/fixtures/people";
+import { EVERYONE, FRIENDS, OPEN_NOTES, PEOPLE, PERSONA_IDS, mutualFriends } from "@/lib/social/fixtures/people";
 import type { GoingPerson, WhoIsGoing } from "@/lib/social/types";
 import { loadState, saveState } from "@/lib/store/state";
 
@@ -24,7 +24,13 @@ export type GoingEntry = { open: boolean; note?: string };
 export const ACCEPT_AFTER_MS = 4000;
 
 /** Hellos by key, with when they were sent, and the line Muse wrote for each. */
-type SocialState = { going: Map<string, Map<string, GoingEntry>>; hellos: Map<string, number>; notes: Map<string, string> };
+type SocialState = {
+  going: Map<string, Map<string, GoingEntry>>;
+  hellos: Map<string, number>;
+  notes: Map<string, string>;
+  /** Hellos the demo's own people answered with Say hi back, by hello key, with when. */
+  yeses: Map<string, number>;
+};
 
 const globalForSocial = globalThis as unknown as { __socialState?: Partial<SocialState> };
 /**
@@ -36,6 +42,7 @@ function state(): SocialState {
   if (!(held.going instanceof Map)) held.going = new Map();
   if (!(held.hellos instanceof Map)) held.hellos = new Map();
   if (!(held.notes instanceof Map)) held.notes = new Map();
+  if (!(held.yeses instanceof Map)) held.yeses = new Map();
   return held as SocialState;
 }
 
@@ -143,8 +150,11 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
     if (friendIds.has(personId)) {
       friends.push({ ...base, instagram: person.instagram });
     } else if (storyEnding ? STORY_COMPANY_IDS.includes(personId) && entry.open : entry.open && shared.length > 0) {
-      const sentAt = state().hellos.get(helloKey(event.id, viewerId, personId));
-      const hello = sentAt === undefined ? undefined : now - sentAt >= ACCEPT_AFTER_MS ? ("accepted" as const) : ("pending" as const);
+      const key = helloKey(event.id, viewerId, personId);
+      const sentAt = state().hellos.get(key);
+      // Fixture students say yes by themselves; the demo's own people say yes from their phone (Say hi back).
+      const said = PERSONA_IDS.has(personId) ? state().yeses.has(key) : sentAt !== undefined && now - sentAt >= ACCEPT_AFTER_MS;
+      const hello = sentAt === undefined ? undefined : said ? ("accepted" as const) : ("pending" as const);
       const mutual = mutualFriends(viewerId, personId);
       openToCompany.push({
         ...base,
@@ -213,6 +223,14 @@ export function sayHello(
   return { error: null };
 }
 
+/** The person a hi was sent to says hi back: their yes, so both sides see the handles. */
+export function sayHelloBack(eventId: string, fromId: string, toId: string, now = Date.now()): { error: string | null } {
+  const key = helloKey(eventId, fromId, toId);
+  if (!state().hellos.has(key)) return { error: "No hi to answer" };
+  if (!state().yeses.has(key)) state().yeses.set(key, now);
+  return { error: null };
+}
+
 export type HelloSent = { to: string; message: string | null; recorded: boolean; at: number };
 
 /** The hellos this viewer sent at this event, oldest first (the page shows a hi sent from another screen). */
@@ -224,14 +242,14 @@ export function hellosFrom(eventId: string, viewerId: string): HelloSent[] {
     .sort((first, second) => first.at - second.at);
 }
 
-export type HelloReceived = { eventId: string; from: string; message: string | null; at: number };
+export type HelloReceived = { eventId: string; from: string; message: string | null; at: number; answered: boolean };
 
 /** The hellos someone has been sent, newest first (their phone shows "Trish said hi"). */
 export function hellosTo(personId: string): HelloReceived[] {
   return [...state().hellos.entries()]
     .map(([key, at]) => ({ key, at, parts: key.split("|") }))
     .filter(({ parts }) => parts[2] === personId)
-    .map(({ key, at, parts }) => ({ eventId: parts[0]!, from: parts[1]!, message: noteText(state().notes.get(key)), at }))
+    .map(({ key, at, parts }) => ({ eventId: parts[0]!, from: parts[1]!, message: noteText(state().notes.get(key)), at, answered: state().yeses.has(key) }))
     .sort((first, second) => second.at - first.at);
 }
 
@@ -240,10 +258,12 @@ const goingName = (eventId: string) => `social-going:${eventId}`;
 const HELLOS = "social-hellos";
 // Starts with "social-hellos", so the demo reset clears it with the hellos.
 const HELLO_NOTES = "social-hellos-notes";
+const HELLO_YESES = "social-hellos-yes";
 
 /** Going lists for these events and accepted hellos, as last saved in the shared store (Redis). */
 export async function loadSocial(eventIds: string[]): Promise<void> {
-  const [notes, hellos, ...lists] = await Promise.all([
+  const [yeses, notes, hellos, ...lists] = await Promise.all([
+    loadState(HELLO_YESES, z.array(z.tuple([z.string(), z.number()]))),
     loadState(HELLO_NOTES, z.array(z.tuple([z.string(), z.string()]))),
     // Hellos saved before the pending step were plain keys, already accepted.
     loadState(HELLOS, z.array(z.union([z.string(), z.tuple([z.string(), z.number()])]))),
@@ -251,6 +271,7 @@ export async function loadSocial(eventIds: string[]): Promise<void> {
   ]);
   if (hellos) state().hellos = new Map(hellos.map((hello) => (typeof hello === "string" ? [hello, 0] : hello)));
   if (notes) state().notes = new Map(notes);
+  if (yeses) state().yeses = new Map(yeses);
   eventIds.forEach((id, index) => {
     const entries = lists[index];
     if (entries) state().going.set(id, new Map(entries));
@@ -262,6 +283,7 @@ export async function saveSocial(event: CampusEvent): Promise<void> {
     saveState(goingName(event.id), [...goingAt(event).entries()]),
     saveState(HELLOS, [...state().hellos.entries()]),
     saveState(HELLO_NOTES, [...state().notes.entries()]),
+    saveState(HELLO_YESES, [...state().yeses.entries()]),
   ]);
 }
 

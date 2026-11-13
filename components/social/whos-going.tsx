@@ -34,6 +34,8 @@ type SentHello = { data: { to: string[]; names: string[]; message: string | null
 // How long "Muse is writing" shows when a hi sent from another screen of the same person arrives.
 const WRITING_BEAT_MS = 1400;
 const SENT_POLL_MS = 1500;
+// How often a page waiting on a yes checks for one.
+const YES_POLL_MS = 1200;
 const framed = () => typeof window !== "undefined" && window.self !== window.top;
 
 /** "Lisa", "Lisa and Jolyn", "Lisa, Jolyn and Maya". */
@@ -109,6 +111,7 @@ export function WhosGoing({
   autoSayHi = false,
   onJoin,
   onCompany,
+  autoSayYes = false,
 }: {
   initial: WhoIsGoing;
   rsvp?: boolean;
@@ -122,6 +125,8 @@ export function WhosGoing({
   onJoin?: () => Promise<boolean>;
   /** Told after Open to company is saved. */
   onCompany?: (open: boolean) => void;
+  /** Demo hook (?yes=1, beat U3f): once the hi is sent, Jolyn and Lisa say yes (a laptop-only run). */
+  autoSayYes?: boolean;
 }) {
   const [who, setWho] = useState(initial);
   const [seats, setSeats] = useState(initialSeats);
@@ -320,6 +325,49 @@ export function WhosGoing({
     });
   }, [sayHiWanted, hi, muse.state, who.openToCompany]);
 
+  // Someone said hi and is waiting on a yes: follow it, so a yes from Jolyn's or Lisa's phone shows in a second or two.
+  const waitingOnYes = who.openToCompany.some((person) => person.hello === "pending");
+  useEffect(() => {
+    if (!waitingOnYes) return;
+    const timer = setInterval(() => {
+      void fetch(goingUrl, { cache: "no-store" })
+        .then((response) => response.json() as Promise<Response>)
+        .then((latest) => {
+          if (latest.data) setWho(latest.data);
+        })
+        .catch(() => {});
+    }, YES_POLL_MS);
+    return () => clearInterval(timer);
+  }, [waitingOnYes, goingUrl]);
+
+  // The stage's Next after the hi (U3f, {type: "demo-say-yes"}) or a fresh ?yes=1: with no phones
+  // in the room, Jolyn and Lisa say yes here, recorded the same way as their Say hi back.
+  const [sayYesWanted, setSayYesWanted] = useState(autoSayYes);
+  const sayYesSent = useRef(false);
+  useEffect(() => {
+    if (!framed()) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      if ((event.data as { type?: unknown } | null)?.type === "demo-say-yes") setSayYesWanted(true);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  useEffect(() => {
+    if (!sayYesWanted || sayYesSent.current || hi?.state !== "sent") return;
+    sayYesSent.current = true;
+    void post<{ data: unknown; error: string | null }>("/api/social/hellos", { eventId: who.eventId, all: true }).then(() =>
+      fetch(goingUrl, { cache: "no-store" })
+        .then((response) => response.json() as Promise<Response>)
+        .then((latest) => {
+          if (latest.data) setWho(latest.data);
+        })
+        .catch(() => {}),
+    );
+  }, [sayYesWanted, hi, who.eventId, goingUrl]);
+  const greeted = who.openToCompany.filter((person) => person.hello);
+  const allSaidYes = greeted.length > 0 && greeted.every((person) => person.hello === "accepted");
+
   const namesLine = friendsNamesLine(who.friends);
   const companyCount = who.openToCompany.length;
   // Everyone going but the viewer's friends, the company list included (trish).
@@ -492,6 +540,11 @@ export function WhosGoing({
                         ) : hi.source === "fixture" ? (
                           <SourceBadge source="fixture" />
                         ) : null}
+                        {allSaidYes && (
+                          <p className="mt-[8px] font-display text-label font-bold text-primary">
+                            {joinNames(["You", ...greeted.map((person) => person.name)])} are going together.
+                          </p>
+                        )}
                       </>
                     )}
                   </div>

@@ -93,6 +93,8 @@ export const HANDOFF = {
   whosGoing: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1`,
   // U3e: the same page, Trish's hi said (by her phone, or by the page itself on the stage's Next).
   saidHi: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1&hi=1`,
+  // U3f: the same page, Jolyn and Lisa said yes (from their phones, or recorded on the stage's Next).
+  saidYes: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1&hi=1&yes=1`,
   // U2c to U2e: Lisa's landing on one step (the account sheet, the account ready, the event unlocked).
   lisaStep: (eventId: string, inviter: string, step: "account" | "ready" | "event") =>
     `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}&state=${step}`,

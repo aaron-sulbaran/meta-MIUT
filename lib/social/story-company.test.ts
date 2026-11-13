@@ -3,7 +3,7 @@ import { CAST } from "@/lib/demo/beats";
 import { STORY_FALLBACK_ID, STORY_ORGANIZER } from "@/lib/demo/story-data";
 import { withStoryCompany } from "@/lib/demo/story-fixtures";
 import { loadSeedEvents } from "@/lib/events/seed";
-import { hellosTo, resetSocial, sayHello, setGoing, whoIsGoing } from "@/lib/social/going";
+import { ACCEPT_AFTER_MS, hellosTo, resetSocial, sayHello, sayHelloBack, setGoing, whoIsGoing } from "@/lib/social/going";
 import { goingFixture } from "@/lib/social/muse-going";
 import { viewerFor } from "@/lib/social/viewer";
 
@@ -84,3 +84,25 @@ describe("withStoryCompany", () => {
     expect(withStoryCompany(pick, base, who)).toBe(pick);
   });
 });
+
+describe("Jolyn and Lisa say hi back", () => {
+  beforeEach(() => resetSocial());
+
+  it("stays waiting until each says hi back, then shows their yes", () => {
+    setGoing(story, "lisa", { going: true });
+    for (const id of PAIR) sayHello(story, trish.id, id, 1000, "Hi both!");
+    const later = 1000 + ACCEPT_AFTER_MS * 10;
+    const hellos = () => whoIsGoing(story, trish.id, trish.interests, later).openToCompany.map((person) => person.hello);
+    expect(hellos()).toEqual(["pending", "pending"]);
+    expect(sayHelloBack(story.id, trish.id, "lisa").error).toBeNull();
+    expect(hellos()).toEqual(["pending", "accepted"]);
+    expect(hellosTo("lisa")[0]?.answered).toBe(true);
+    expect(sayHelloBack(story.id, trish.id, "sample-student").error).toBeNull();
+    expect(hellos()).toEqual(["accepted", "accepted"]);
+  });
+
+  it("cannot answer a hi that was never sent", () => {
+    expect(sayHelloBack(story.id, trish.id, "lisa").error).not.toBeNull();
+  });
+});
+
