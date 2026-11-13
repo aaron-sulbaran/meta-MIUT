@@ -84,7 +84,7 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
               <Avatar person={{ id: comment.authorId, name: comment.name }} size={32} />
               <div className="min-w-0">
                 <div className="rounded-[16px] bg-wash px-[12px] py-[8px]">
-                  <p className="text-meta font-semibold text-ink">{comment.mine ? `${comment.name} (you)` : comment.name}</p>
+                  <p className="text-meta font-semibold text-ink">{comment.mine ? "You" : comment.name}</p>
                   <p className="text-body">{comment.text}</p>
                 </div>
                 <p className="mt-[3px] pl-[12px] text-meta text-muted">{ago(comment.at, now)}</p>
