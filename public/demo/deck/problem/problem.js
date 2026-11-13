@@ -8,7 +8,7 @@
 
   /* ---------- Before the pitch: the code to the live product ---------- */
   /* Only with openingQr in content.json: what the room sees while the laptop is plugged in. */
-  let CONTENT = { openingQr: false, tryLine: "", address: "" };
+  let CONTENT = { openingQr: false, standout: false, tryLine: "", address: "" };
   const S0 = { code: { x: 900, y: 210, size: 580 }, sprout: { x: 430, y: 560 }, say: { x: 390, y: 350 }, arrow: { x: 700, y: 540 } };
 
   function prepareScene0() {
@@ -392,12 +392,17 @@
       notes: "But there was one exception.",
       build(seg, ctx) {
         ctx.show(seg, "s2");
-        /* The hand-off: the noise cuts to black, the standout holds alone for a beat, then
-           lifts away as the exception arrives in its place. */
         seg.set("#s1", { autoAlpha: 1 }, 0);
         ctx.hush(seg, 0.01);
-        ctx.ft(seg, "#s1-veil", { opacity: 0.9 }, { opacity: 1, duration: 0.12, ease: "none" }, 0);
-        ctx.ft(seg, "#s1-r4", { opacity: 1, y: QUOTE_POS["#s1-r4"].y }, { opacity: 0, y: QUOTE_POS["#s1-r4"].y - 60, duration: 0.55, ease: "power2.in" }, 0.6);
+        if (CONTENT.standout) {
+          /* The hand-off: the noise cuts to black, the standout holds alone for a beat, then
+             lifts away as the exception arrives in its place. */
+          ctx.ft(seg, "#s1-veil", { opacity: 0.9 }, { opacity: 1, duration: 0.12, ease: "none" }, 0);
+          ctx.ft(seg, "#s1-r4", { opacity: 1, y: QUOTE_POS["#s1-r4"].y }, { opacity: 0, y: QUOTE_POS["#s1-r4"].y - 60, duration: 0.55, ease: "power2.in" }, 0.6);
+        } else {
+          /* Straight from the pile of replies: the whole hook fades to black, then the exception. */
+          ctx.ft(seg, "#s1-veil", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power1.in" }, 0);
+        }
         seg.set("#s1", { autoAlpha: 0 }, 1.2);
         ctx.ft(seg, "#s2-line", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 1.5, ease: "power2.out" }, 1.0);
       },
@@ -884,7 +889,9 @@
 
   Deck.load("./content.json", CONTENT).then((content) => {
     CONTENT = Object.assign(CONTENT, content);
-    const STEPS = [...(CONTENT.openingQr ? [TRY_IT] : []), ...SCENE1, ...SCENE2, ...SCENE3, ...SCENE4, ...SCENE5];
+    /* standout off (Aaron, pitch day): the avalanche goes straight to "But there was one exception." */
+    const hook = SCENE1.filter((step) => CONTENT.standout || step.id !== "hook-standout");
+    const STEPS = [...(CONTENT.openingQr ? [TRY_IT] : []), ...hook, ...SCENE2, ...SCENE3, ...SCENE4, ...SCENE5];
     Deck.start({
       id: "problem",
       steps: STEPS,
