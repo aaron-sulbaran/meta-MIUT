@@ -35,10 +35,10 @@ const UNDO_MS = 5000;
 
 type Point = { lat: number; lng: number };
 
-export type MapChip = "free";
+export type MapChip = "forYou" | "free";
 
-const CHIPS: { id: "all" | MapChip; label: string }[] = [
-  { id: "all", label: "For you" },
+const CHIPS: { id: MapChip; label: string }[] = [
+  { id: "forYou", label: "For you" },
   { id: "free", label: "Free" },
 ];
 
@@ -380,13 +380,13 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
-  const [chip, setChip] = useState<"all" | MapChip>("all");
+  const [chip, setChip] = useState<MapChip>("forYou");
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [lastDismissed, setLastDismissed] = useState<MapCard | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const visibleCards = useMemo(
-    () => cards.filter((card) => !dismissed.includes(card.eventId) && (chip === "all" || card.chips.includes(chip))),
+    () => cards.filter((card) => !dismissed.includes(card.eventId) && card.chips.includes(chip)),
     [cards, dismissed, chip],
   );
   const currentActive =
@@ -656,7 +656,9 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
           className="absolute inset-x-3 z-10 rounded-[18px] bg-card px-3 py-3 text-center text-body text-muted shadow-md"
           style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 12px)" }}
         >
-          {chip === "all" ? "You hid every event. New ones show up here as clubs post them." : "Nothing here right now. Try For you."}
+          {chip === "forYou"
+            ? "Nothing picked for you right now. Try Free to see everything free nearby."
+            : "Nothing free right now. New events show up here as clubs post them."}
         </p>
       )}
 

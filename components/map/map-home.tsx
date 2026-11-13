@@ -1,29 +1,35 @@
 import { EventsMap, type MapCard, type MapChip } from "@/components/map/events-map";
-import { loadSeedStudent } from "@/lib/events/seed";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
 import { eventCategory } from "@/lib/map/category";
 import { heatPoints } from "@/lib/map/heat";
 import { organizerLogo } from "@/lib/map/organizer-logos";
+import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
+import { DEMO_USER_ID, loadInterestMemory } from "@/lib/muse/memory";
 import { personalizeEvents } from "@/lib/muse/rank";
 
-// Server half of the map home: asks Muse for this student's picks (with their
-// interest memory, see personalizeEvents), orders the events by them, and
-// hands plain data to the client map.
+// Server half of the map home: asks Muse for this student's picks with the
+// same student and shared interest memory as the Top 3 on the list, orders the
+// events by them, and hands plain data to the client map.
 
-
-// Free means free and open to all: a free event that needs an RSVP for a
-// limited number of seats is not on Free (d-r6zd), it still shows under For you.
-function mapChips(event: CampusEvent): MapChip[] {
-  return event.free && event.access.kind === "open" ? ["free"] : [];
+// For you is only what Muse recommends, as on the list: the Top 3 plus every
+// event the student is likely to care about (t-rnbc). Free is free and open to
+// all, recommended or not; a free event that needs an RSVP for limited seats
+// is not on Free (d-r6zd).
+function mapChips(event: CampusEvent, recommended: Set<string>): MapChip[] {
+  const chips: MapChip[] = [];
+  if (recommended.has(event.id)) chips.push("forYou");
+  if (event.free && event.access.kind === "open") chips.push("free");
+  return chips;
 }
 
 export async function MapHome({ events, now }: { events: CampusEvent[]; now: Date }) {
-  const student = loadSeedStudent();
-  const ranking = await personalizeEvents(student, events, now);
+  const student = loadDemoStudent();
+  const ranking = await personalizeEvents(student, events, now, await loadInterestMemory(DEMO_USER_ID, now));
   const picks = ranking.error === null ? ranking.data.picks : [];
   const likely = ranking.error === null ? ranking.data.likely : undefined;
   const eventsById = new Map(events.map((event) => [event.id, event]));
+  const recommended = new Set([...picks.map((pick) => pick.eventId), ...(likely ?? []).map((item) => item.eventId)]);
 
   const cards: MapCard[] = heatPoints(events, picks, student.home, now, likely).flatMap((point) => {
     const event = eventsById.get(point.eventId);
@@ -38,7 +44,7 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
         category: eventCategory(event),
         organizerName: event.organizer.name,
         logoUrl: organizerLogo(event.organizer),
-        chips: mapChips(event),
+        chips: mapChips(event, recommended),
         weight: point.weight,
         pickRank: point.pickRank,
         reason: point.reason,
