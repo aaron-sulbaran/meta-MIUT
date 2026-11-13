@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { isOpenFree } from "@/lib/events/time";
+import { distanceMeters } from "@/lib/geo";
 import {
   MINUTE,
   orderLeg,
@@ -45,6 +46,13 @@ export type CrawlInput = z.infer<typeof CrawlInputSchema>;
 
 export const MAX_STOPS = 4;
 export const MAX_DETOUR_MINUTES = 20;
+// Stops stay in the area between where the student is and where they are going: the extra
+// distance off the straight line is at most 1 km, or 40% of the trip for a long one. A walk
+// inside MIT never reaches Harvard or BU.
+const AREA_MIN_EXTRA_METERS = 1000;
+const AREA_EXTRA_SHARE = 0.4;
+// Each leg, stops included, gets the student to the next place within an hour.
+export const MAX_LEG_MINUTES = 60;
 const LOOKAHEAD_MINUTES = 180;
 
 export const CrawlPickSchema = z.object({
@@ -70,7 +78,16 @@ const CrawlWordsSchema = CrawlPickSchema.omit({ stops: true });
 const CRAWL_WORDS_STRUCTURED_OUTPUT = museStructuredOutput("food_crawl_words", CrawlWordsSchema);
 
 
-// Free events on now or soon whose detour off the straight trip is small, closest first.
+export function inCrawlArea(from: Point, to: Point, place: Point): boolean {
+  const direct = distanceMeters(from, to);
+  const extra = distanceMeters(from, place) + distanceMeters(place, to) - direct;
+  return extra <= Math.max(AREA_MIN_EXTRA_METERS, AREA_EXTRA_SHARE * direct);
+}
+
+const legDeadline = (startMs: number, deadline: number | null) =>
+  Math.min(deadline ?? Infinity, startMs + MAX_LEG_MINUTES * MINUTE);
+
+// Free events on now or soon, inside the area of the trip, whose detour is small, closest first.
 export function crawlCandidates(
   input: { from: Point; to: Point },
   events: CampusEvent[],
@@ -83,6 +100,7 @@ export function crawlCandidates(
     .filter((event) => event.status === "published" && isOpenFree(event))
     .filter((event) => Date.parse(event.end) > now.getTime() + 10 * MINUTE)
     .filter((event) => Date.parse(event.start) <= now.getTime() + LOOKAHEAD_MINUTES * MINUTE)
+    .filter((event) => inCrawlArea(input.from, input.to, event.place))
     .map((event) => ({ event, detour: minutes(input.from, event.place) + minutes(event.place, input.to) - direct }))
     .filter(({ detour }) => detour <= MAX_DETOUR_MINUTES)
     .sort((a, b) => a.detour - b.detour)
@@ -188,7 +206,8 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
   ends.forEach((end, leg) => {
     for (const event of crawlCandidates({ from: legStart, to: end }, events, now, mode)) {
       if (legOf.has(event.id) || input.exclude?.includes(event.id)) continue;
-      if (orderLeg(legStart, end, [{ event, kind: "event" }], earliest, end.deadline, mode).stops.length === 0) continue;
+      const deadline = legDeadline(earliest, end.deadline);
+      if (orderLeg(legStart, end, [{ event, kind: "event" }], earliest, deadline, mode).stops.length === 0) continue;
       legOf.set(event.id, leg);
       candidates.push(event);
     }
@@ -250,7 +269,7 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
       const event = byId.get(stop.eventId);
       return event && legOf.get(event.id) === leg ? [{ event, kind: stop.kind }] : [];
     });
-    const ordered = orderLeg(here, end, picks, at, end.deadline, mode);
+    const ordered = orderLeg(here, end, picks, at, legDeadline(at, end.deadline), mode);
     stops.push(...ordered.stops);
     walk += ordered.walkMinutes;
     const fromLast = ordered.stops.at(-1) ?? null;
