@@ -30,15 +30,37 @@ function hash(text: string): number {
   return value;
 }
 
-type Phase = "before" | "during" | "after";
+type Phase = "posted" | "before" | "during" | "after";
 /** A reply minutes after the comment it answers, by its author ("op") or someone new. */
 type Reply = { minutes: number; by: "op" | "other"; text: (event: CampusEvent, op: string) => string };
 type Sample = { phase: Phase; minutes: number; text: (event: CampusEvent) => string; food?: boolean; replies?: Reply[] };
 
 const foodName = (event: CampusEvent) => (event.foodNote?.trim() || "food").toLowerCase();
 
-// Minutes are from the start (before, during) or the end (after).
+// Minutes are from when the event was posted (posted), the start (before, during) or the end (after).
+// Posted comments give events days away a conversation too.
 const SAMPLES: Sample[] = [
+  {
+    phase: "posted",
+    minutes: 2 * 60,
+    text: () => "Saving this. Who's in?",
+    replies: [
+      { minutes: 25, by: "other", text: (_event, op) => `Me! ${op}, want to walk over together?` },
+      { minutes: 40, by: "op", text: () => "Yes, let's do it." },
+    ],
+  },
+  {
+    phase: "posted",
+    minutes: 9 * 60,
+    text: () => "Is it fine to come for just part of it?",
+    replies: [{ minutes: 30, by: "other", text: () => "Totally, people come and go." }],
+  },
+  {
+    phase: "posted",
+    minutes: 20 * 60,
+    text: () => "First time going to one of these, any tips?",
+    replies: [{ minutes: 15, by: "other", text: () => "Get there a bit early, it fills up." }],
+  },
   {
     phase: "before",
     minutes: -26 * 60,
@@ -93,9 +115,10 @@ function sampleComments(event: CampusEvent, now: Date): Stored[] {
   SAMPLES.forEach((sample, index) => {
     if (sample.food && !event.food) return;
     const roll = hash(`${event.id}#${index}`);
-    if (roll % 3 === 0) return;
-    const base = sample.phase === "after" ? end : start;
+    if (roll % (sample.phase === "posted" ? 4 : 3) === 0) return;
+    const base = sample.phase === "after" ? end : sample.phase === "posted" ? Date.parse(event.createdAt) : start;
     const at = base + sample.minutes * MINUTE;
+    if (sample.phase === "posted" && (!Number.isFinite(at) || at >= start - 60 * MINUTE)) return;
     if (sample.phase === "during" && at >= end) return;
     if (at > now.getTime()) return;
     const person = PEOPLE[roll % PEOPLE.length];
