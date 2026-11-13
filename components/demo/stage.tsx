@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { StagedScreenView } from "@/components/demo/staged-screen";
-import { ACT_LABELS, BEATS, PERSONA_LABELS, type Beat } from "@/lib/demo/beats";
+import { ACT_LABELS, BEATS, PERSONA_CAPTIONS, type Beat } from "@/lib/demo/beats";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
 // The projected stage for the pitch. One beat at a time: a slide fills the
 // stage; an app beat shows the real app in a phone, playing that beat's
 // persona; a staged beat shows a screen from another app that hands off with
-// one tap. Keys: Right, Space or Page Down next; Left or Page Up back; Home
+// one tap (a staged page posts "demo-handoff" to move on without a reload;
+// until a staged route exists, a placeholder stands in). Keys: Right, Space or Page Down next; Left or Page Up back; Home
 // first; R reloads this beat; Shift+R resets the whole demo; H shows the beat
 // list; F full screen. A presenter window on the same browser follows along
 // through the "demo-stage" channel.
@@ -54,8 +55,8 @@ async function fetchStoryEvent(): Promise<{ id: string; error: null } | { id: nu
   }
 }
 
-function personaLabel(persona: PersonaId | null): string {
-  return PERSONA_LABELS[persona ?? "aaron"];
+function personaCaption(persona: PersonaId | null): string {
+  return PERSONA_CAPTIONS[persona ?? "aaron"];
 }
 
 export function Stage() {
@@ -66,8 +67,13 @@ export function Stage() {
   const [showList, setShowList] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [storyVersion, setStoryVersion] = useState(0);
-  const runStartedAt = useRef(new Date());
+  // When this run started: beat times count from it, and a reset starts a new run.
+  const [runStartedAt, setRunStartedAt] = useState(() => new Date());
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
+  // Where the phone is now, as far as the stage knows (a handoff moves it too).
+  const locationRef = useRef<string | null>(null);
+  // Staged routes checked so far: true when the route exists.
+  const [stagedReady, setStagedReady] = useState<Record<string, boolean>>({});
   const setupDone = useRef(new Set<string>());
   const channelRef = useRef<BroadcastChannel | null>(null);
 
@@ -100,11 +106,23 @@ export function Stage() {
       setPersonaCookie(beat.persona);
       personaRef.current = beat.persona;
     }
-    if (beat.kind !== "app" || !beat.path) return;
-    if (!storyEventId && beat.path.toString().includes("storyEventId")) return;
-    const src = beat.path({ storyEventId: storyEventId ?? "", now: runStartedAt.current });
-    setFrame((current) => (personaChanged || !current || current.src !== src ? { src, key: Date.now() } : current));
-  }, [beat, storyEventId]);
+    if (!beat.path || !storyEventId) return;
+    const src = beat.path({ storyEventId, now: runStartedAt });
+    if (personaChanged || locationRef.current !== src) {
+      locationRef.current = src;
+      setFrame({ src, key: Date.now() });
+    }
+  }, [beat, storyEventId, runStartedAt]);
+
+  // A staged beat's route may not be built yet: check once, use a placeholder until it is.
+  const stagedPath = beat.kind === "staged" && beat.path && storyEventId ? beat.path({ storyEventId, now: runStartedAt }) : null;
+  useEffect(() => {
+    if (!stagedPath || stagedPath in stagedReady) return;
+    fetch(stagedPath, { method: "HEAD", cache: "no-store" })
+      .then((response) => setStagedReady((ready) => ({ ...ready, [stagedPath]: response.ok })))
+      .catch(() => setStagedReady((ready) => ({ ...ready, [stagedPath]: false })));
+  }, [stagedPath, stagedReady]);
+  const showPlaceholder = beat.kind === "staged" && (!stagedPath || stagedReady[stagedPath] !== true);
 
   // Run a beat's setup once per run, after the phone has had time to load and poll.
   useEffect(() => {
@@ -120,14 +138,14 @@ export function Stage() {
             eventId: storyEventId,
             kind: "free_food_nearby",
             to: "sample-student",
-            href: `/?plan=home&time=${encodeURIComponent(runStartedAt.current.toISOString())}`,
+            href: `/?plan=home&time=${encodeURIComponent(runStartedAt.toISOString())}`,
           }),
         }).catch(() => null);
         setStatus(response?.ok ? null : "The class-ended alert did not send");
       }
     }, SETUP_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [beat, storyEventId]);
+  }, [beat, storyEventId, runStartedAt]);
 
   const resetDemo = useCallback(async () => {
     setStatus("Resetting the demo");
@@ -149,9 +167,10 @@ export function Stage() {
       setStatus("Reset failed; the demo data was not changed");
       return;
     }
-    runStartedAt.current = new Date();
+    setRunStartedAt(new Date());
     setupDone.current.clear();
     personaRef.current = undefined;
+    locationRef.current = null;
     setFrame(null);
     setStoryEventId(null);
     setStoryVersion((version) => version + 1);
@@ -170,6 +189,19 @@ export function Stage() {
     };
     return () => channel.close();
   }, [goTo, resetDemo]);
+
+  // A staged screen's last tap: the phone is already on the next path, so move on without reloading it.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as { type?: unknown; path?: unknown } | null;
+      if (data?.type !== "demo-handoff" || typeof data.path !== "string" || !data.path.startsWith("/")) return;
+      locationRef.current = data.path;
+      goTo(index + 1);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [goTo, index]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -219,13 +251,13 @@ export function Stage() {
             style={{ width: PHONE_WIDTH * scale + 20, height: PHONE_HEIGHT * scale + 20 }}
           >
             <div style={{ width: PHONE_WIDTH, height: PHONE_HEIGHT, transform: `scale(${scale})`, transformOrigin: "top left" }}>
-              {beat.kind === "staged" && beat.staged ? (
+              {showPlaceholder && beat.staged ? (
                 <StagedScreenView screen={beat.staged} onHandoff={() => goTo(index + 1)} />
               ) : frame ? (
                 <iframe
                   key={frame.key}
                   src={frame.src}
-                  title={`${personaLabel(beat.persona)}'s phone`}
+                  title={`${personaCaption(beat.persona)}: phone`}
                   allow="microphone; geolocation; autoplay"
                   className="h-full w-full border-0 bg-card"
                 />
@@ -240,7 +272,7 @@ export function Stage() {
             </p>
             <span className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-4 py-1.5 font-display text-[clamp(16px,1.5vw,24px)] font-bold text-link">
               <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary" />
-              {personaLabel(beat.persona)}&apos;s phone
+              {personaCaption(beat.persona)}
             </span>
             <h1 className="font-display text-[clamp(30px,3.4vw,60px)] leading-[1.05] font-extrabold tracking-[-0.01em]">{beat.title}</h1>
             <p className="max-w-[26ch] font-display text-[clamp(22px,2.3vw,40px)] leading-[1.2] font-bold text-muted">{beat.caption}</p>

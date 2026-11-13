@@ -2,25 +2,15 @@ import "server-only";
 import type { CampusEvent } from "@/lib/events/schema";
 import { getEventStore, type StoreResult } from "@/lib/events/store";
 import { knownPlacesFrom, resolvePlace } from "@/lib/organizer/place";
+import { STORY, STORY_FALLBACK_ID, STORY_ORGANIZER } from "@/lib/demo/story-data";
 
 // The one event the demo follows through all four people. The organizer makes
 // it live in the first act (Muse reads the flyer); any later beat that needs it
 // asks for it here. If the organizer act was skipped or the data was reset, the
 // same event is listed quietly (no alert) so the next beat still has it.
-// Its place sits between Aaron (Stata) and Lisa (Kendall Square), which is what
-// "find one closer to both of us" lands on.
+// The event itself is plain data in story-data.ts, shared with the staged screens.
 
-export const STORY_ORGANIZER = { name: "MIT Board Game Club", handle: "mit_boardgames" } as const;
-export const STORY_FALLBACK_ID = "evt-demo-story";
-
-const STORY = {
-  title: "Board Game Night",
-  description: "Drop in after class: free dumplings while they last, 40 board games, no experience needed. Open to everyone.",
-  placeName: "MIT Museum, 314 Main St",
-  startsInMinutes: 25,
-  durationMinutes: 120,
-  foodNote: "Dumplings",
-};
+export { STORY, STORY_FALLBACK_ID, STORY_ORGANIZER } from "@/lib/demo/story-data";
 
 const MINUTE_MS = 60_000;
 
