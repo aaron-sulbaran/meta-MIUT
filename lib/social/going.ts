@@ -14,15 +14,20 @@ export const COMPANY_LIMIT = 5;
 // marked Going and opted in to company: the top 5 by interests shared with
 // the viewer. Friends going never change how events rank. Friends see you are going; others see you only on events where you
 // opted in, and only your first name, year, major and shared interests. An
-// Instagram handle is shown to friends, or after a hello is accepted.
+// Instagram handle is shown to friends, or to both sides once a hello is
+// accepted. Fixture students opted in, so they accept a few seconds after a hi.
 
 export type GoingEntry = { open: boolean; note?: string };
 
-type SocialState = { going: Map<string, Map<string, GoingEntry>>; hellos: Set<string> };
+/** How long a fixture student takes to accept a hi, so the demo shows it pending first. */
+export const ACCEPT_AFTER_MS = 4000;
+
+/** Hellos by key, with when they were sent. */
+type SocialState = { going: Map<string, Map<string, GoingEntry>>; hellos: Map<string, number> };
 
 const globalForSocial = globalThis as unknown as { __socialState?: SocialState };
 function state(): SocialState {
-  globalForSocial.__socialState ??= { going: new Map(), hellos: new Set() };
+  globalForSocial.__socialState ??= { going: new Map(), hellos: new Map() };
   return globalForSocial.__socialState;
 }
 
@@ -71,7 +76,7 @@ function goingAt(event: CampusEvent): Map<string, GoingEntry> {
 
 const helloKey = (eventId: string, from: string, to: string) => `${eventId}|${from}|${to}`;
 
-export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests: string[]): WhoIsGoing {
+export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests: string[], now = Date.now()): WhoIsGoing {
   const going = goingAt(event);
   const friendIds = new Set(FRIENDS[viewerId] ?? []);
   const mine = new Set(viewerInterests.map((interest) => interest.toLowerCase()));
@@ -91,13 +96,15 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
     if (friendIds.has(personId)) {
       friends.push({ ...base, instagram: person.instagram });
     } else if (entry.open && shared.length > 0) {
-      const accepted = state().hellos.has(helloKey(event.id, viewerId, personId));
+      const sentAt = state().hellos.get(helloKey(event.id, viewerId, personId));
+      const hello = sentAt === undefined ? undefined : now - sentAt >= ACCEPT_AFTER_MS ? ("accepted" as const) : ("pending" as const);
       const mutual = mutualFriends(viewerId, personId);
       openToCompany.push({
         ...base,
         ...(mutual.length > 0 ? { mutual } : {}),
         note: entry.note,
-        ...(accepted ? { instagram: person.instagram, hello: "accepted" as const } : {}),
+        ...(hello ? { hello } : {}),
+        ...(hello === "accepted" ? { instagram: person.instagram } : {}),
       });
     } else {
       othersCount += 1;
@@ -128,12 +135,13 @@ export function setGoing(event: CampusEvent, viewerId: string, update: { going: 
 
 /**
  * The viewer says hi to a student who is open to company. Fixture students
- * opted in, so in the demo they say yes at once and handles are swapped.
+ * opted in, so they say yes ACCEPT_AFTER_MS later and handles are swapped.
  */
-export function sayHello(event: CampusEvent, viewerId: string, toId: string): { error: string | null } {
+export function sayHello(event: CampusEvent, viewerId: string, toId: string, now = Date.now()): { error: string | null } {
   const entry = goingAt(event).get(toId);
   if (!entry?.open) return { error: "They are not looking for company at this event" };
-  state().hellos.add(helloKey(event.id, viewerId, toId));
+  const key = helloKey(event.id, viewerId, toId);
+  if (!state().hellos.has(key)) state().hellos.set(key, now);
   return { error: null };
 }
 
@@ -144,10 +152,11 @@ const HELLOS = "social-hellos";
 /** Going lists for these events and accepted hellos, as last saved in the shared store (Redis). */
 export async function loadSocial(eventIds: string[]): Promise<void> {
   const [hellos, ...lists] = await Promise.all([
-    loadState(HELLOS, z.array(z.string())),
+    // Hellos saved before the pending step were plain keys, already accepted.
+    loadState(HELLOS, z.array(z.union([z.string(), z.tuple([z.string(), z.number()])]))),
     ...eventIds.map((id) => loadState(goingName(id), EntriesSchema)),
   ]);
-  if (hellos) state().hellos = new Set(hellos);
+  if (hellos) state().hellos = new Map(hellos.map((hello) => (typeof hello === "string" ? [hello, 0] : hello)));
   eventIds.forEach((id, index) => {
     const entries = lists[index];
     if (entries) state().going.set(id, new Map(entries));
@@ -157,7 +166,7 @@ export async function loadSocial(eventIds: string[]): Promise<void> {
 export async function saveSocial(event: CampusEvent): Promise<void> {
   await Promise.all([
     saveState(goingName(event.id), [...goingAt(event).entries()]),
-    saveState(HELLOS, [...state().hellos]),
+    saveState(HELLOS, [...state().hellos.entries()]),
   ]);
 }
 
