@@ -130,7 +130,7 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (record with `hu
 - Each job sends its zod output schema via `z.toJSONSchema` with `strict: false`; strict would need every key required and no open records, which extract breaks. `extractJsonObject` still parses leniently on the way back.
 - `callMuse` results carry `meta` (model, HTTP status, latency ms, token usage). Timeout is `MUSE_TIMEOUT_MS` (20 s) on the app path.
 - Each job (`extract`, `rank`, `ask`) has zod-validated output and a fixture in `lib/muse/fixtures/`. `runMuseJob` returns `{ data, error, source: "muse" | "fixture", fallbackReason }`. Missing key, failed call, or bad output all fall back to the fixture.
-- `rank` computes walking minutes itself; the model only picks ids and reasons. Ids the model invents are rejected.
+- `rank` sends Muse every upcoming event the student can attend (code drops only ended and age-restricted ones) with code-computed facts (walking minutes, class clashes, topics); Muse rates each 0 to 100, which orders For you, and picks the Top 3 from today's with reasons. Ids the model invents are rejected; the code-scored pool is the fallback.
 - Client components import response types from `lib/muse/types.ts`, never from the job files (they are `server-only`).
 
 ## Gotchas
