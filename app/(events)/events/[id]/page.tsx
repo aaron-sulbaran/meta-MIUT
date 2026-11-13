@@ -7,10 +7,11 @@ import { posterKicker } from "@/components/events/event-card";
 import { SubPageHeader } from "@/components/ui/header";
 import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon, TicketIcon } from "@/components/ui/icons";
 import { Poster } from "@/components/ui/poster";
+import { getAttendanceStore } from "@/lib/attendance/store";
 import { getEventStore } from "@/lib/events/store";
 import { formatDateLine, formatEventTime } from "@/lib/events/time";
 import { loadSocial, whoIsGoing } from "@/lib/social/going";
-import { demoViewer } from "@/lib/social/viewer";
+import { currentViewer } from "@/lib/social/viewer";
 
 export default async function EventPage({
   params,
@@ -25,10 +26,16 @@ export default async function EventPage({
   const event = await getEventStore().getEvent(id);
   if (!event) notFound();
   const now = new Date();
-  const viewer = demoViewer();
+  const viewer = await currentViewer();
   await loadSocial([event.id]);
   const who = whoIsGoing(event, viewer.id, viewer.interests);
   const rsvp = event.access.kind === "rsvp";
+  // Seats left on an RSVP event with a limit, from the attendance store (t-vp0w).
+  const attendance = rsvp ? await getAttendanceStore().summary(event, null) : null;
+  const seats =
+    attendance?.data && attendance.data.capacity !== null
+      ? { capacity: attendance.data.capacity, left: attendance.data.seatsLeft ?? 0 }
+      : null;
 
   return (
     <>
@@ -48,10 +55,9 @@ export default async function EventPage({
         </p>
       </section>
 
-      <Divider />
-
-      {/* One going button for every event (RSVP on RSVP events); no Interested (lisa). */}
-      <WhosGoing initial={who} rsvp={rsvp} capacity={rsvp ? event.access.capacity : undefined} showCompany={false} />
+      {/* One going button under the title, like Facebook's action row (RSVP on
+          RSVP events; no Interested, lisa), then Who's going. */}
+      <WhosGoing initial={who} rsvp={rsvp} seats={seats} />
 
       <Divider />
 
