@@ -12,11 +12,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useVoiceRecorder } from "@/components/ask/use-voice-recorder";
 import type { CrawlEvent } from "@/components/map/crawl-planner";
+import {
+  CLEAR_TABBAR,
+  CrawlActions,
+  EndRow,
+  HOME_PATH,
+  PERSON_PATH,
+  SHEET_CLASS,
+  SheetClose,
+  SheetHandle,
+  StartRow,
+  StopNumber,
+  StopRow,
+  clock,
+  routeSummary,
+} from "@/components/map/crawl-sheet";
 import { MuseFace } from "@/components/map/muse-menu";
 import { speakAsMuse, stopSpeaking } from "@/components/map/muse-voice";
-import { Avatar } from "@/components/social/whos-going";
 import { MetaAiMark } from "@/components/ui/meta-ai-mark";
-import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { USER3_CONNECTORS } from "@/lib/curate/connectors";
 import { HANDOFF, handOff } from "@/lib/demo/staged";
 import { walkMinutes } from "@/lib/geo";
@@ -25,6 +38,7 @@ import {
   googleDirectionsUrl,
   retime,
   type Point,
+  type TravelMode,
   type Route,
   type RouteStop,
 } from "@/lib/map/crawl-route";
@@ -60,7 +74,8 @@ type ApiPlan = {
 };
 
 type Said = { text: string; by: "voice" | "typed" };
-type Invite = { friend: FriendSpot; state: "sending" | "sent" | "error" };
+// eventId and message let a failed send be tried again from the sheet's invite button.
+type Invite = { friend: FriendSpot; state: "sending" | "sent" | "error"; eventId?: string; message?: string };
 // What the card shows after a request, kept for the run on the demo stage (lib/demo/said.ts):
 // the stage's frame and the presenter's phone restore it instead of asking again.
 type SaidView = {
@@ -103,6 +118,11 @@ const MIN_REVEAL_MS = 3000;
 const MIN_REPLAN_MS = 2400;
 const SLOW_MS = 10_000;
 const STOP_STAGGER_MS = 120;
+// Walk or transit: a freebie crawl is on foot, so there is no Drive (the planner's chips).
+const MODES: { id: TravelMode; label: string }[] = [
+  { id: "walk", label: "Walk" },
+  { id: "transit", label: "Transit" },
+];
 const MUSE_TOGGLE = "muse:toggle";
 const MUSE_STATE = "muse:state";
 // Tells the alert nudge to stay away while the card is up (components/demo/nearby-watcher-gate.tsx).
@@ -153,16 +173,6 @@ function handOverToFriend() {
   postToParent({ type: "pass" });
 }
 
-function clock(iso: string): string {
-  return new Date(iso)
-    .toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: CAMPUS_TIME_ZONE,
-    })
-    .replace(":00", "");
-}
-
 /** "Stata Center, 32-123" reads as "Stata Center". */
 function shortPlace(name: string): string {
   return name.split(",")[0]!.trim();
@@ -190,6 +200,14 @@ function toRoute(
     destination: plan.destination,
     totalWalkMinutes: plan.totalWalkMinutes,
   };
+}
+
+/** Leading with the promised stop can push a later one past its end: drop it, never show Muse's plan as late. */
+function dropLate(route: Route, startMs: number): Route {
+  const kept = route.stops.filter((stop) => !arrivesTooLate(stop));
+  return kept.length === route.stops.length
+    ? route
+    : retime({ ...route, stops: kept }, startMs);
 }
 
 /** The alert's promised stop leads the walk: moved to the front, or added first when Muse left it out. */
@@ -301,51 +319,6 @@ function SendGlyph({ className }: { className?: string }) {
   );
 }
 
-function CloseGlyph({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.2}
-      strokeLinecap="round"
-      aria-hidden
-      className={className}
-    >
-      <path d="M6 6l12 12M18 6 6 18" />
-    </svg>
-  );
-}
-
-function EndGlyph({
-  friend,
-  className,
-}: {
-  friend: boolean;
-  className?: string;
-}) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className={className}
-    >
-      <path
-        d={
-          friend
-            ? "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0"
-            : "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10"
-        }
-      />
-    </svg>
-  );
-}
-
 /** A level bar that moves with the real microphone while she talks (a second read of the same mic). */
 function useMicLevel(active: boolean): number[] {
   const [bars, setBars] = useState<number[]>(() => Array(18).fill(0.06));
@@ -391,45 +364,11 @@ function useMicLevel(active: boolean): number[] {
   return bars;
 }
 
-function StopRow({
-  stop,
-  index,
-  dim,
-  delay,
-}: {
-  stop: RouteStop;
-  index: number;
-  dim: boolean;
-  delay: number;
-}) {
-  const fact = [
-    `${stop.walkMinutes} min walk`,
-    stop.endsAt ? `until ${clock(stop.endsAt)}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return (
-    <li
-      className={`mc-rise flex h-[52px] items-center gap-[10px] transition-opacity duration-300 ${dim ? "opacity-40" : ""}`}
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary font-display text-[12px] font-bold text-on-primary">
-        {index + 1}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-display text-label font-bold">
-          {stop.title}
-        </span>
-        <span className="block truncate text-meta text-muted">{fact}</span>
-      </span>
-    </li>
-  );
-}
-
+/** A stop row still coming, in the sheet's row geometry, while Muse works. */
 function Placeholder({ index }: { index: number }) {
   return (
-    <li className="flex h-[52px] items-center gap-[10px]" aria-hidden>
-      <span className="h-[22px] w-[22px] shrink-0 rounded-full bg-wash" />
+    <li className="flex h-[51px] items-center gap-3 border-t border-hairline" aria-hidden>
+      <span className="h-6 w-6 shrink-0 rounded-full bg-wash" />
       <span className="flex min-w-0 flex-1 flex-col gap-[6px]">
         <span
           className="mc-wait block h-[11px] rounded-full bg-wash"
@@ -516,7 +455,15 @@ export function MuseConversation({
   } | null>(null);
   const [said, setSaid] = useState<Said | null>(null);
   const [invite, setInvite] = useState<Invite | null>(null);
+  // The walk home's own invite, for "Send to a friend" before any friend is named.
+  const [shareInvite, setShareInvite] = useState<ApiPlan["invite"] | null>(null);
+  const [shared, setShared] = useState(false);
   const [typing, setTyping] = useState(false);
+  // Walk or Transit, the planner's chips: same stops, new travel times. A new plan starts on Walk.
+  const [mode, setMode] = useState<TravelMode>("walk");
+  // The scrolling part of the card, and Muse's newest line in it (kept in view).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const newestRef = useRef<HTMLDivElement>(null);
   const [typed, setTyped] = useState("");
   const [mirrorListening, setMirrorListening] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -550,6 +497,7 @@ export function MuseConversation({
   const show = useCallback(
     (next: Route | null) => {
       routeRef.current = next;
+      setMode("walk");
       setRoute(next);
       setRouteKey((key) => key + 1);
       onRoute(next);
@@ -612,12 +560,16 @@ export function MuseConversation({
       });
       return;
     }
-    const home = leadWith(
-      toRoute(studentSpot, data, eventsById),
-      promisedStopId ? eventsById.get(promisedStopId) : undefined,
+    const home = dropLate(
+      leadWith(
+        toRoute(studentSpot, data, eventsById),
+        promisedStopId ? eventsById.get(promisedStopId) : undefined,
+        startMs,
+      ),
       startMs,
     );
     show(home);
+    setShareInvite(data.invite);
     // The real time Muse took, also when the /demo stage started the call early (lib/demo/head-start.ts).
     setLegs({ source: result.body?.source ?? "muse", planMs: result.body?.museMs ?? result.ms });
     setPhase({ kind: "ready" });
@@ -772,8 +724,14 @@ export function MuseConversation({
       const picked =
         story ??
         (candidate && between(candidate.place) ? candidate : undefined);
+      // Only when Muse really named another event: a second copy of the story event (same title
+      // and place, from a repeated publish) is the same event, not a different suggestion.
+      const sameEvent = (a: CrawlEvent, b: CrawlEvent) =>
+        a.eventId === b.eventId ||
+        (a.title.trim().toLowerCase() === b.title.trim().toLowerCase() &&
+          a.place.name === b.place.name);
       const museSuggested =
-        story && candidate && candidate.eventId !== story.eventId
+        story && candidate && !sameEvent(candidate, story)
           ? candidate.title
           : undefined;
       let planMs = 0;
@@ -836,7 +794,7 @@ export function MuseConversation({
       // The invite goes out before Muse says it did.
       let sent = false;
       if (stopId) {
-        setInvite({ friend, state: "sending" });
+        setInvite({ friend, state: "sending", eventId: stopId, message: inviteMessage });
         const response = await fetch("/api/social/invites", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -847,7 +805,7 @@ export function MuseConversation({
           }),
         }).catch(() => null);
         sent = Boolean(response?.ok);
-        setInvite({ friend, state: sent ? "sent" : "error" });
+        setInvite({ friend, state: sent ? "sent" : "error", eventId: stopId, message: inviteMessage });
       }
       await wait(Math.max(0, MIN_REPLAN_MS - (Date.now() - askStarted)));
       busyRef.current = false;
@@ -879,7 +837,7 @@ export function MuseConversation({
           legs: replanLegs,
           meet: picked ? { friend, title: picked.title } : null,
           friendEnd: picked ? null : friend,
-          invite: stopId ? { friend, state: sent ? "sent" : "error" } : null,
+          invite: stopId ? { friend, state: sent ? "sent" : "error", eventId: stopId, message: inviteMessage } : null,
           line: answer,
         },
       });
@@ -1106,6 +1064,22 @@ export function MuseConversation({
     [],
   );
 
+  // Muse's newest line stays in view: when her words and the answer outgrow the card, scroll
+  // just far enough to show the whole line (or its top, if it is taller than the card).
+  useEffect(() => {
+    const box = scrollRef.current;
+    const newest = newestRef.current;
+    if (!box || !newest) return;
+    const frame = requestAnimationFrame(() => {
+      const outer = box.getBoundingClientRect();
+      const inner = newest.getBoundingClientRect();
+      if (inner.height > outer.height) box.scrollTop += inner.top - outer.top;
+      else if (inner.bottom > outer.bottom) box.scrollTop += inner.bottom - outer.bottom + 8;
+      else if (inner.top < outer.top) box.scrollTop += inner.top - outer.top;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [line, said, phase, legs]);
+
   function submitTyped(formEvent: FormEvent) {
     formEvent.preventDefault();
     const text = typed;
@@ -1114,9 +1088,34 @@ export function MuseConversation({
     void ask(text, "typed");
   }
 
-  const museLine = listening
-    ? "Listening"
-    : phase.kind === "working"
+  // The sheet's invite button tries a failed send again.
+  const resendInvite = useCallback(async () => {
+    if (!invite?.eventId) return;
+    const { friend, eventId, message } = invite;
+    setInvite({ ...invite, state: "sending" });
+    const response = await fetch("/api/social/invites", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ to: friend.id, eventId, message: message ?? "" }),
+    }).catch(() => null);
+    setInvite({ friend, eventId, message, state: response?.ok ? "sent" : "error" });
+  }, [invite]);
+
+  // "Send to a friend" on the walk home, the planner's share sheet.
+  const share = async () => {
+    if (!shareInvite) return;
+    const url = shareInvite.path ? new URL(shareInvite.path, window.location.origin).toString() : undefined;
+    try {
+      if (navigator.share) await navigator.share({ text: shareInvite.message, url });
+      else await navigator.clipboard.writeText(url ? `${shareInvite.message} ${url}` : shareInvite.message);
+      setShared(true);
+    } catch {
+      // She closed the share sheet.
+    }
+  };
+
+  const museLine =
+    phase.kind === "working"
       ? slow
         ? "Still working, the live model is slow"
         : phase.line
@@ -1141,318 +1140,256 @@ export function MuseConversation({
             .join(" · ")
       : null;
   const end = route?.destination;
+  const shownRoute = route && mode !== "walk" ? retime(route, startMs, mode) : route;
+  const changeMode = (next: TravelMode) => {
+    setMode(next);
+    if (route) onRoute(next === "walk" ? route : retime(route, startMs, next));
+  };
+  const ready = phase.kind === "ready";
+  const showRoute = Boolean(route && end && !replanning && !(picks && !said));
+  // A first visit has no walk to act on: no actions row until Muse plans one.
+  const actions = opening !== "curate" || Boolean(route);
+  const micHint = listening
+    ? "Listening. Tap when you're done."
+    : phase.kind === "transcribing"
+      ? "Got it"
+      : working
+        ? "Muse is answering"
+        : "Tap to talk to Muse";
 
   return (
     <section
       aria-label="Muse"
       aria-hidden={!open || undefined}
-      className={`absolute inset-x-0 bottom-0 z-30 flex max-h-[60%] flex-col rounded-t-[20px] bg-card pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+10px)] shadow-[0_-6px_24px_rgba(0,0,0,0.14)] transition-transform duration-300 ease-out motion-reduce:transition-none ${open ? "" : "pointer-events-none translate-y-full"}`}
+      className={`${SHEET_CLASS} z-30 flex max-h-[78%] flex-col pt-2 transition-transform duration-300 ease-out motion-reduce:transition-none ${open ? "" : "pointer-events-none translate-y-full"}`}
     >
       <style>{CONVERSATION_CSS}</style>
+      <SheetHandle className="shrink-0" />
 
-      {/* Muse's line: always on top, never scrolls. */}
-      <div className="shrink-0 px-4 pt-3">
+      {/* The conversation and the stops scroll together; the mic and the actions below never move
+          (a long exchange on a 664 px phone once pushed the mic under the tab bar). */}
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      {/* Heading: her words, then Muse's line where the planner has its heading. */}
+      <div className="px-4">
         {said && (
-          <div className="mc-rise mb-[8px] flex flex-col items-end">
-            <p className="max-w-[86%] rounded-[18px] rounded-br-[6px] bg-wash px-[12px] py-[7px] text-body font-medium text-ink">
-              {said.text}
-            </p>
-            <p className="mt-[2px] flex items-center gap-[4px] text-meta text-muted">
+          <div className="mc-rise mb-[10px] flex items-end justify-end gap-[6px]">
+            <span className="mb-[3px] flex shrink-0 items-center gap-[3px] text-meta text-muted">
               {said.by === "voice" ? (
                 <MicGlyph className="h-[11px] w-[11px]" />
               ) : (
                 <KeyboardGlyph className="h-[12px] w-[12px]" />
               )}
               {said.by === "voice" ? "Said" : "Typed"}
+            </span>
+            <p className="max-w-[82%] rounded-[18px] rounded-br-[6px] bg-wash px-[12px] py-[7px] text-body font-medium text-ink">
+              {said.text}
             </p>
           </div>
         )}
-        <div className="flex items-start gap-[10px]">
+        {/* Sprout and Muse's line where the planner has its heading; the facts under it run to the edge. */}
+        <div ref={newestRef} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-start gap-x-[10px]">
           <span
-            className={`mt-[1px] shrink-0 rounded-full ${working ? "mc-thinking" : listening ? "mc-lean" : ""}`}
+            className={`rounded-full ${working ? "mc-thinking" : listening ? "mc-lean" : ""}`}
           >
-            <MuseFace size={32} />
+            <MuseFace size={28} />
           </span>
-          <div className="min-w-0 flex-1 pt-[5px]" aria-live="polite">
-            {listening ? (
-              <div className="flex items-center gap-[8px]">
-                <span className="font-display text-label font-bold">
-                  Listening
-                </span>
-                <span
-                  className="flex h-[22px] flex-1 items-center gap-[2px]"
-                  aria-hidden
-                >
-                  {(recorder.recording ? bars : Array(18).fill(0.06)).map(
-                    (level, index) => (
-                      <span
-                        key={index}
-                        className={`w-[3px] rounded-full bg-primary ${recorder.recording ? "" : "mc-idle-bar"}`}
-                        style={{
-                          height: `${Math.round(4 + level * 18)}px`,
-                          animationDelay: `${index * 60}ms`,
-                        }}
-                      />
-                    ),
-                  )}
-                </span>
-              </div>
-            ) : (
-              museLine && (
-                <p
-                  key={museLine}
-                  className={`mc-rise text-body ${working ? "font-display font-bold" : "font-medium"} text-ink`}
-                >
-                  {museLine}
-                </p>
-              )
-            )}
-            {stamp && (
-              <p className="mt-[2px] flex items-center gap-[4px] text-meta text-muted">
-                <MetaAiMark size={16} />
-                Live from Muse · {stamp}
-              </p>
+          <div className="min-w-0 pt-[3px]" aria-live="polite">
+            {museLine && (
+              <h2
+                key={museLine}
+                className={`mc-rise font-display text-title font-bold leading-[22px] ${working ? "text-ink/80" : ""}`}
+              >
+                {museLine}
+              </h2>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Close Muse"
-            className="-mt-[6px] -mr-[10px] flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full text-muted"
-          >
-            <CloseGlyph className="h-[16px] w-[16px]" />
-          </button>
+          <SheetClose label="Close Muse" onClick={() => setOpen(false)} className="-mr-1" />
+          <div className="col-span-2 col-start-2 min-w-0">
+            {ready && showRoute && route && end && !meet && (
+              <p className="mt-[3px] truncate text-meta font-semibold text-muted">
+                {routeSummary(shownRoute ?? route, friendEnd ? `${friendEnd.name} at ${shortPlace(friendEnd.placeName)}` : shortPlace(end.name))}
+              </p>
+            )}
+            {ready && legs && (
+              <p className="mt-[2px] flex items-center gap-[4px] truncate text-meta text-muted">
+                <MetaAiMark size={16} />
+                {stamp ? `Live from Muse · ${stamp}` : stamp === "" ? "Live from Muse" : "Recorded answer"}
+              </p>
+            )}
+            {ready && picks && !said && (
+              <p className="mt-[2px] truncate text-meta text-muted">From sample email, calendar, Instagram and Reels</p>
+            )}
+            {phase.kind === "failed" && phase.retry && (
+              <button type="button" onClick={phase.retry} className="mt-1 text-meta font-semibold text-primary">
+                Try again
+              </button>
+            )}
+          </div>
         </div>
-        {/* Status chips, only when true. */}
-        {phase.kind === "ready" &&
-          (invite || legs?.source === "fixture" || legs?.museSuggested || picks) && (
-            <div className="mt-[6px] flex flex-wrap gap-[6px] pl-[42px]">
-              {invite && (
-                // On the demo stage, tapping "Sent to Lisa" passes the show to her act (the stage and the presenter phone both listen).
-                <span
-                  role={invite.state === "sent" && isFramed() ? "button" : undefined}
-                  tabIndex={invite.state === "sent" && isFramed() ? 0 : undefined}
-                  onClick={invite.state === "sent" ? handOverToFriend : undefined}
-                  className="mc-rise flex items-center gap-[6px] rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-meta font-bold text-link">
-                  <Avatar
-                    person={{ id: invite.friend.id, name: invite.friend.name }}
-                    size={20}
-                  />
-                  {invite.state === "sent"
-                    ? `Sent to ${invite.friend.name}`
-                    : invite.state === "sending"
-                      ? `Sending to ${invite.friend.name}`
-                      : `Couldn't send to ${invite.friend.name}`}
-                </span>
-              )}
-              {legs?.museSuggested && (
-                <span className="rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
-                  Set for the demo · Muse suggested {legs.museSuggested}
-                </span>
-              )}
-              {picks && !said && (
-                <span className="rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
-                  Sample email, calendar, Instagram and Reels
-                </span>
-              )}
-              {legs?.source === "fixture" && (
-                <span className="flex items-center gap-[4px] rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
-                  <MetaAiMark size={16} />
-                  Recorded answer
-                </span>
-              )}
-            </div>
-          )}
-        {phase.kind === "failed" && phase.retry && (
-          <button
-            type="button"
-            onClick={phase.retry}
-            className="mt-[6px] ml-[42px] h-[32px] rounded-full bg-button px-[14px] font-display text-meta font-bold"
-          >
-            Try again
-          </button>
-        )}
       </div>
 
-      {/* Stops: the only part that scrolls. */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4">
+      {showRoute && shownRoute && (
+        <div role="tablist" aria-label="How you travel" className="mt-2 flex gap-[6px] px-4">
+          {MODES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={mode === item.id}
+              onClick={() => changeMode(item.id)}
+              className={`rounded-full px-[12px] py-[5px] text-meta font-semibold ${mode === item.id ? "bg-ink text-white" : "bg-wash text-ink"}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Stops, in the planner's own rows. */}
+      <ol className="mt-2 px-4">
         {replanning ? (
-          <ol className="mt-[4px]">
-            {[0, 1, 2].map((index) => (
-              <Placeholder key={index} index={index} />
-            ))}
-          </ol>
+          [0, 1, 2].map((index) => <Placeholder key={index} index={index} />)
         ) : picks && !route ? (
-          <ol className="mt-[4px]">
-            {picks.map((pick, index) => {
-              const path = HANDOFF.whosGoing(pick.eventId);
-              return (
-                <li
-                  key={pick.eventId}
-                  className="mc-rise"
-                  style={{ animationDelay: `${(index + 1) * STOP_STAGGER_MS}ms` }}
+          picks.map((pick, index) => {
+            const path = HANDOFF.whosGoing(pick.eventId);
+            return (
+              <li
+                key={pick.eventId}
+                className="mc-rise border-t border-hairline"
+                style={{ animationDelay: `${(index + 1) * STOP_STAGGER_MS}ms` }}
+              >
+                <Link
+                  href={path}
+                  onClick={(click) => {
+                    click.preventDefault();
+                    handOff(path, router.push);
+                  }}
+                  className="flex items-center gap-3 py-[8px]"
                 >
-                  <Link
-                    href={path}
-                    onClick={(click) => {
-                      click.preventDefault();
-                      handOff(path, router.push);
-                    }}
-                    className="flex min-h-[52px] items-center gap-[10px] py-[4px]"
-                  >
-                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary font-display text-[12px] font-bold text-on-primary">
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-display text-label font-bold">
-                        {pick.title}
-                      </span>
-                      <span className="block truncate text-meta text-muted">
-                        {pick.reason}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        ) : route && route.stops.length > 0 ? (
-          <ol key={routeKey} className="mt-[4px]">
-            {route.stops.map((stop, index) => (
+                  <StopNumber n={index + 1} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-label font-semibold">{pick.title}</span>
+                    <span className="block truncate text-meta text-muted">{pick.reason}</span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })
+        ) : showRoute && shownRoute && end ? (
+          <>
+            <StartRow leave={clock(new Date(startMs).toISOString())} />
+            {shownRoute.stops.map((stop, index) => (
               <StopRow
                 key={`${routeKey}-${stop.title}`}
                 stop={stop}
                 index={index}
-                dim={false}
-                delay={(index + 1) * STOP_STAGGER_MS}
+                until={stop.endsAt}
+                className="mc-rise"
+                style={{ animationDelay: `${(index + 1) * STOP_STAGGER_MS}ms` }}
               />
             ))}
-          </ol>
+            <EndRow
+              glyph={friendEnd || meet ? PERSON_PATH : HOME_PATH}
+              name={meet ? meet.title : friendEnd ? `${friendEnd.name} at ${shortPlace(friendEnd.placeName)}` : shortPlace(end.name)}
+              walkMinutes={meet ? shownRoute.totalWalkMinutes : shownRoute.destination.walkMinutes}
+              arriveAt={shownRoute.destination.arriveAt}
+            />
+          </>
         ) : null}
-        {end && !replanning && (
-          <div
-            className={`flex h-[44px] items-center gap-[10px] border-t border-hairline transition-opacity duration-300 ${replanning ? "opacity-40" : ""}`}
-          >
-            <span
-              className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-white ${meet ? "bg-primary" : "bg-ink"}`}
-            >
-              <EndGlyph
-                friend={friendEnd !== null || meet !== null}
-                className="h-[13px] w-[13px]"
-              />
-            </span>
-            {meet ? (
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-display text-label font-bold">
-                  {meet.title}
-                </span>
-                <span className="block truncate text-meta text-muted">
-                  {meet.friend.name} meets you there · {route.totalWalkMinutes}{" "}
-                  min walk · by {clock(end.arriveAt)}
-                </span>
-              </span>
-            ) : (
-              <>
-                <span className="min-w-0 flex-1 truncate text-label font-semibold">
-                  {friendEnd
-                    ? `${friendEnd.name} at ${shortPlace(friendEnd.placeName)}`
-                    : shortPlace(end.name)}
-                </span>
-                <span className="text-meta text-muted">
-                  {route.totalWalkMinutes} min · by {clock(end.arriveAt)}
-                </span>
-              </>
-            )}
-          </div>
-        )}
+      </ol>
+      {/* Small and out of the way: only when Muse named a different event than the demo's. */}
+      {ready && legs?.museSuggested && (
+        <p className="px-4 pb-1 text-meta text-muted">Set for the demo. Muse suggested {legs.museSuggested}.</p>
+      )}
       </div>
 
-      {/* Controls: pinned. */}
-      <div className="shrink-0 px-4 pt-[8px]">
+      {/* Her answer to Muse: the mic, its own row above the actions. */}
+      <div className={`flex shrink-0 items-center gap-3 border-t border-hairline px-4 pt-[8px] ${actions ? "pb-[8px]" : CLEAR_TABBAR}`}>
         {typing ? (
-          <form onSubmit={submitTyped} className="flex items-center gap-[8px]">
+          <form onSubmit={submitTyped} className="flex min-w-0 flex-1 items-center gap-2">
             <input
               autoFocus
               value={typed}
               onChange={(change) => setTyped(change.target.value)}
               placeholder="Ask Muse anything"
               aria-label="Ask Muse anything"
-              className="h-[44px] min-w-0 flex-1 rounded-full bg-wash px-[14px] text-body outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="h-[40px] min-w-0 flex-1 rounded-[10px] bg-wash px-3 text-label outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
             <button
               type="submit"
               disabled={!typed.trim()}
               aria-label="Send"
-              className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-primary text-on-primary disabled:opacity-40"
+              className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-primary text-on-primary disabled:opacity-40"
             >
-              <SendGlyph className="h-[18px] w-[18px]" />
+              <SendGlyph className="h-[17px] w-[17px]" />
             </button>
             <button
               type="button"
               onClick={() => setTyping(false)}
               aria-label="Talk instead"
-              className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-button text-ink"
+              className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-button text-ink"
             >
-              <MicGlyph className="h-[20px] w-[20px]" />
+              <MicGlyph className="h-[19px] w-[19px]" />
             </button>
           </form>
         ) : (
-          <div className="flex items-center gap-[10px]">
-            {route && !listening ? (
-              <a
-                href={googleDirectionsUrl(route)}
-                target="_blank"
-                rel="noreferrer"
-                className="flex h-[40px] flex-1 items-center justify-center rounded-[10px] bg-button font-display text-label font-bold text-ink"
-              >
-                Get directions
-              </a>
-            ) : (
-              <span className="flex-1 text-meta text-muted">
-                {listening ? "Tap the mic again when you're done" : ""}
-              </span>
-            )}
+          <>
             <button
               type="button"
               data-muse-mic
               onClick={toggleMic}
               disabled={working && !recorder.recording}
-              aria-label={
-                recorder.recording ? "Send what you said" : "Talk to Muse"
-              }
+              aria-label={recorder.recording ? "Send what you said" : "Talk to Muse"}
               aria-pressed={listening}
-              className="relative flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full bg-primary text-on-primary disabled:opacity-50"
+              className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-primary text-on-primary disabled:opacity-50"
             >
-              {listening && (
-                <span
-                  aria-hidden
-                  className="mc-ring absolute inset-0 rounded-full"
-                />
-              )}
-              {recorder.recording ? (
-                <SendGlyph className="h-[26px] w-[26px]" />
-              ) : (
-                <MicGlyph className="h-[28px] w-[28px]" />
-              )}
+              {listening && <span aria-hidden className="mc-ring absolute inset-0 rounded-full" />}
+              {recorder.recording ? <SendGlyph className="h-[24px] w-[24px]" /> : <MicGlyph className="h-[26px] w-[26px]" />}
             </button>
-            <div className="flex flex-1 justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  recorder.cancel();
-                  setTyping(true);
-                }}
-                disabled={working}
-                aria-label="Type instead"
-                className="flex h-[40px] items-center gap-[6px] rounded-[10px] bg-button px-[12px] font-display text-label font-bold text-ink disabled:opacity-50"
-              >
-                <KeyboardGlyph className="h-[16px] w-[16px]" />
-                Type
-              </button>
+            <div className="min-w-0 flex-1">
+              {listening ? (
+                <span className="flex h-[24px] items-center gap-[3px]" aria-hidden>
+                  {(recorder.recording ? bars : Array(18).fill(0.06)).map((level, index) => (
+                    <span
+                      key={index}
+                      className={`w-[3px] rounded-full bg-primary ${recorder.recording ? "" : "mc-idle-bar"}`}
+                      style={{ height: `${Math.round(4 + level * 20)}px`, animationDelay: `${index * 60}ms` }}
+                    />
+                  ))}
+                </span>
+              ) : null}
+              <p className={`truncate text-meta ${listening ? "font-semibold text-ink" : "text-muted"}`}>{micHint}</p>
             </div>
-          </div>
+            <button
+              type="button"
+              onClick={() => {
+                recorder.cancel();
+                setTyping(true);
+              }}
+              disabled={working}
+              aria-label="Type instead"
+              className="flex shrink-0 items-center gap-[5px] rounded-full bg-button px-3 py-[5px] text-meta font-semibold text-ink disabled:opacity-40"
+            >
+              <KeyboardGlyph className="h-[14px] w-[14px]" />
+              Type
+            </button>
+          </>
         )}
       </div>
+
+      {/* The planner's own bottom row: Get directions, and the invite. */}
+      {actions && (
+      <CrawlActions
+        directionsUrl={showRoute && shownRoute ? googleDirectionsUrl(shownRoute, mode) : null}
+        friendName={invite?.friend.name ?? null}
+        invited={invite?.state ?? "idle"}
+        onInvite={() => void resendInvite()}
+        // On the demo stage, the sent invite passes the show to the friend's act.
+        onSent={isFramed() ? handOverToFriend : undefined}
+        onShare={() => void share()}
+        shared={shared}
+      />
+      )}
     </section>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CloseIcon } from "@/components/ui/icons";
+import { CrawlActions, EndRow, Glyph, HOME_PATH, LOOP_PATH, PERSON_PATH, PIN_PATH, SHEET_CLASS, SheetClose, SheetHandle, StartRow, StopRow, clock } from "@/components/map/crawl-sheet";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { walkMinutes } from "@/lib/geo";
 import { crawlHeadline } from "@/lib/map/class-start";
@@ -10,7 +10,6 @@ import type { ScheduleBlock } from "@/lib/events/schema";
 import { CRAWL_PLACES } from "@/lib/muse/crawl-places";
 import { knownPlacesFrom, resolvePlace } from "@/lib/organizer/place";
 import {
-  arrivesTooLate,
   googleDirectionsUrl,
   insertStop,
   removeStop,
@@ -130,17 +129,6 @@ async function searchPlace(text: string, near: Point): Promise<{ found: Ending |
   }
 }
 
-const KIND_LABELS: Record<string, string> = {
-  main: "Main",
-  dessert: "Dessert",
-  drinks: "Drinks",
-  snack: "Snack",
-  merch: "Merch",
-  event: "Event",
-  plan: "Your stop",
-  added: "Added",
-};
-
 // Walk or transit: a freebie crawl is on foot, so there is no Drive (Lisa).
 const MODES: { id: TravelMode; label: string }[] = [
   { id: "walk", label: "Walk" },
@@ -179,24 +167,6 @@ export function campusTodayAt(hhmm: string, baseMs: number): number {
   return wall - (seen - wall);
 }
 
-
-// Small line glyphs for the sheet (no emoji in UI strings).
-function Glyph({ path, className = "h-[17px] w-[17px]" }: { path: string; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
-      <path d={path} />
-    </svg>
-  );
-}
-const HOME_PATH = "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10";
-const PERSON_PATH = "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0";
-const PIN_PATH = "M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21ZM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z";
-const LOOP_PATH = "M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5";
-
-// Times in campus time, like every other time in the app.
-function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: CAMPUS_TIME_ZONE });
-}
 
 function toRoute(from: Point, plan: ApiPlan, eventsById: Map<string, CrawlEvent>, endKind: Ending["kind"]): Route {
   const stops: RouteStop[] = plan.stops.map((stop) => {
@@ -372,12 +342,12 @@ export function CrawlPlanner({
     }
   };
 
-  const sheet = "absolute inset-x-0 bottom-0 z-20 rounded-t-[18px] bg-card shadow-[0_-6px_20px_rgba(0,0,0,0.12)]";
+  const sheet = SHEET_CLASS;
 
   if (step === "choose") {
     return (
       <div className={`${sheet} px-4 pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+16px)] pt-3`} role="dialog" aria-label="Plan a freebie crawl">
-        <div className="mx-auto mb-2 h-1 w-8 rounded-full bg-divider" />
+        <SheetHandle />
         <div className="flex items-start justify-between">
           <div>
             <h2 className="font-display text-title font-bold">Where does your walk end?</h2>
@@ -388,9 +358,7 @@ export function CrawlPlanner({
               </button>
             )}
           </div>
-          <button type="button" onClick={close} aria-label="Close freebie crawl" className="-mr-1 flex h-8 w-8 items-center justify-center rounded-full text-muted">
-            <CloseIcon className="h-[14px] w-[14px]" />
-          </button>
+          <SheetClose label="Close freebie crawl" onClick={close} className="-mr-1" />
         </div>
         <div className="mt-3 flex flex-col divide-y divide-hairline">
           <button type="button" onClick={() => choose({ kind: "home", label: HOME.name, to: HOME })} className="flex items-center gap-3 py-3 text-left">
@@ -502,9 +470,7 @@ export function CrawlPlanner({
           <p className={`text-label font-semibold ${step === "loading" ? "motion-safe:animate-pulse" : ""}`}>
             {step === "loading" ? "Muse is planning your walk..." : "Muse could not plan a walk right now."}
           </p>
-          <button type="button" onClick={close} aria-label="Close freebie crawl" className="flex h-8 w-8 items-center justify-center rounded-full text-muted">
-            <CloseIcon className="h-[14px] w-[14px]" />
-          </button>
+          <SheetClose label="Close freebie crawl" onClick={close} />
         </div>
         {step === "error" && (
           <button type="button" onClick={() => setStep("choose")} className="mt-2 text-meta font-semibold text-primary">
@@ -520,7 +486,7 @@ export function CrawlPlanner({
 
   return (
     <div className={`${sheet} flex max-h-[62%] flex-col pt-2`} role="dialog" aria-label="Your freebie crawl">
-      <div className="mx-auto mb-2 h-1 w-8 shrink-0 rounded-full bg-divider" />
+      <SheetHandle className="shrink-0" />
       <div className="flex shrink-0 items-start justify-between px-4">
         <div className="min-w-0">
           {/* One line from the student's day, not Muse's longer pitch (Lisa). */}
@@ -537,9 +503,7 @@ export function CrawlPlanner({
             {clock(route.destination.arriveAt)}
           </p>
         </div>
-        <button type="button" onClick={close} aria-label="Close freebie crawl" className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted">
-          <CloseIcon className="h-[14px] w-[14px]" />
-        </button>
+        <SheetClose label="Close freebie crawl" onClick={close} className="-mr-1 shrink-0" />
       </div>
 
       <div role="tablist" aria-label="How you travel" className="mt-2 flex shrink-0 gap-[6px] px-4">
@@ -558,48 +522,25 @@ export function CrawlPlanner({
       </div>
 
       <ol className="mt-2 min-h-0 flex-1 overflow-y-auto px-4">
-        <li className="flex items-center gap-3 py-[7px]">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
-            <span className="h-3 w-3 rounded-full border-2 border-white bg-primary shadow-[0_0_0_4px_rgba(8,102,255,0.18)]" />
-          </span>
-          <span className="text-meta font-semibold">Your location · leave {leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
-        </li>
+        <StartRow leave={leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"} />
         {route.stops.map((stop, index) => {
           const event = stop.eventId ? eventsById.get(stop.eventId) : undefined;
-          const late = arrivesTooLate(stop);
           return (
-            <li key={`${stop.eventId ?? stop.title}-${index}`} className="flex items-center gap-3 border-t border-hairline py-[8px]">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1e6b33] text-[11px] font-bold text-white">{index + 1}</span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-label font-semibold">
-                  <span className="mr-1 text-meta font-semibold text-[#1e6b33]">{KIND_LABELS[stop.kind] ?? "Stop"}</span>
-                  {stop.title}
-                </p>
-                <p className="truncate text-meta text-muted">
-                  {stop.walkMinutes} min {stop.mode === "walk" ? "walk" : stop.mode} · arrive {clock(stop.arriveAt)}
-                  {event ? ` · until ${clock(event.endIso)}` : ""} · {stop.placeName}
-                </p>
-                {late && <p className="text-meta font-semibold text-badge">Ends before you get there</p>}
-              </div>
-              <button
-                type="button"
-                onClick={() => edit(removeStop(route, index, plan.startMs, mode))}
-                aria-label={`Remove ${stop.title}`}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-wash"
-              >
-                <CloseIcon className="h-[12px] w-[12px]" />
-              </button>
-            </li>
+            <StopRow
+              key={`${stop.eventId ?? stop.title}-${index}`}
+              stop={stop}
+              index={index}
+              until={event?.endIso}
+              onRemove={() => edit(removeStop(route, index, plan.startMs, mode))}
+            />
           );
         })}
-        <li className="flex items-center gap-3 border-t border-hairline py-[8px]">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white" aria-hidden>
-            <Glyph path={ending?.kind === "home" ? HOME_PATH : ending?.kind === "friend" ? PERSON_PATH : ending?.kind === "wander" ? LOOP_PATH : PIN_PATH} className="h-[13px] w-[13px]" />
-          </span>
-          <span className="min-w-0 flex-1 truncate text-label font-semibold">{route.destination.name}</span>
-          <span className="shrink-0 text-meta text-muted">
-            {route.destination.walkMinutes} min · {clock(route.destination.arriveAt)}
-          </span>
+        <EndRow
+          glyph={ending?.kind === "home" ? HOME_PATH : ending?.kind === "friend" ? PERSON_PATH : ending?.kind === "wander" ? LOOP_PATH : PIN_PATH}
+          name={route.destination.name}
+          walkMinutes={route.destination.walkMinutes}
+          arriveAt={route.destination.arriveAt}
+        >
           <button
             type="button"
             onClick={() => {
@@ -612,7 +553,7 @@ export function CrawlPlanner({
           >
             Change
           </button>
-        </li>
+        </EndRow>
         <li className="border-t border-hairline py-[8px]">
           {adding ? (
             addable.length === 0 ? (
@@ -663,37 +604,14 @@ export function CrawlPlanner({
         </li>
       </ol>
 
-      <div className="flex shrink-0 gap-2 border-t border-hairline px-4 pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+14px)] pt-3">
-        <a
-          href={googleDirectionsUrl(route, mode)}
-          target="_blank"
-          rel="noreferrer"
-          className="flex-1 rounded-[10px] bg-primary py-[9px] text-center text-label font-semibold text-on-primary"
-        >
-          Get directions
-        </a>
-        {ending?.friendId && ending.friendName && plan.invite.eventId ? (
-          <button
-            type="button"
-            aria-live="polite"
-            disabled={invited === "sending" || invited === "sent"}
-            onClick={() => ending.friendId && plan.invite.eventId && void deliverInvite(ending.friendId, plan.invite.eventId, plan.invite.message)}
-            className={`flex-1 rounded-[10px] py-[9px] text-label font-semibold ${invited === "sent" ? "bg-primary-soft text-link" : "bg-wash"}`}
-          >
-            {invited === "sent"
-              ? `Invite sent to ${ending.friendName}`
-              : invited === "sending"
-                ? "Sending..."
-                : invited === "error"
-                  ? "Try sending again"
-                  : `Send to ${ending.friendName}`}
-          </button>
-        ) : (
-          <button type="button" onClick={() => void share()} className="flex-1 rounded-[10px] bg-wash py-[9px] text-label font-semibold">
-            {shared ? "Invite ready" : "Send to a friend"}
-          </button>
-        )}
-      </div>
+      <CrawlActions
+        directionsUrl={googleDirectionsUrl(route, mode)}
+        friendName={ending?.friendId && ending.friendName && plan.invite.eventId ? ending.friendName : null}
+        invited={invited}
+        onInvite={() => ending?.friendId && plan.invite.eventId && void deliverInvite(ending.friendId, plan.invite.eventId, plan.invite.message)}
+        onShare={() => void share()}
+        shared={shared}
+      />
     </div>
   );
 }
