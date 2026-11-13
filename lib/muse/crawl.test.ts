@@ -105,7 +105,7 @@ describe("food crawl stops that cannot fit", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("leaves out a stop that would make the student late for a place they named", async () => {
-    const late = event("late", 42.3601, -71.0942, { title: "Late pizza", start: at(100), end: at(200), foodNote: "Pizza" });
+    const late = event("late", 42.3601, -71.0942, { title: "Late pizza", start: at(150), end: at(250), foodNote: "Pizza" });
     const result = await planCrawl({ from, to, note: "harvard then baker at 7" }, [late], NOW);
     expect(result.data!.stops.some((stop) => stop.eventId === "late")).toBe(false);
   });
