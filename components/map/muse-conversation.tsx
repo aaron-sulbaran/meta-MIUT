@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useVoiceRecorder } from "@/components/ask/use-voice-recorder";
 import type { CrawlEvent } from "@/components/map/crawl-planner";
 import { MuseFace } from "@/components/map/muse-menu";
@@ -8,22 +15,31 @@ import { speakAsMuse, stopSpeaking } from "@/components/map/muse-voice";
 import { Avatar } from "@/components/social/whos-going";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { walkMinutes } from "@/lib/geo";
-import type { Point, Route, RouteStop } from "@/lib/map/crawl-route";
+import {
+  arrivesTooLate,
+  googleDirectionsUrl,
+  retime,
+  type Point,
+  type Route,
+  type RouteStop,
+} from "@/lib/map/crawl-route";
 import { friendNamedIn, type FriendSpot } from "@/lib/map/friend-spots";
 import type { AskReply, MuseRouteResponse } from "@/lib/muse/types";
 
-// Muse on the map, as a conversation (the "free bite" alert path, /?plan=home).
-// Muse plans the walk home where you can see it working, then says what it
-// found in a sentence or two. The mic is the main control: tap to talk, the
-// words go to Muse Voice Transcribe and then to Muse ask, and a request like
-// "I'm meeting Lisa, find something for both of us and send it to her" re-plans
-// the walk toward the friend, replaces the plan, and sends the invite.
-// Every line is built from the real answers; every stamp is the real call.
+// The Muse card on the map, as one conversation that never unmounts (hub
+// kb/design-spec-muse-crawl and kb/design-spec-muse-voice). It opens on the
+// "free bite" alert path (/?plan=home): Muse finds free food on the way home
+// where you can see it, then says one sentence about it. The mic is the main
+// control: tap to talk, tap again to send (end of speech also sends when it
+// hears it first); the clip goes to Muse Voice Transcribe, her words show as
+// a bubble, Muse ask re-plans toward a friend she names, the plan is replaced
+// and the invite sent. Every sentence comes from the real answers; every stamp
+// from the real call's source and time.
 //
 // Stage contract (only when framed by the /demo stage or a phone wrapper):
 //   screen to parent: {source: "demo-screen", type: "listening", on} and {source: "demo-screen", type: "said", text}
 //   parent to screen: {source: "demo-stage", type: "heard", text}, {type: "listening", on}, {type: "reveal"},
-//                     and the older {type: "demo-ask", line} (typed fallback).
+//                     and the older {type: "demo-ask", line} (typed).
 
 type Source = "muse" | "fixture";
 type ApiStop = Omit<RouteStop, "startsAt" | "endsAt">;
@@ -35,33 +51,54 @@ type ApiPlan = {
   invite: { eventId: string | null; message: string; path: string | null };
 };
 
-type Stamp = { source: Source; ms: number };
-type Said = { text: string; by: "voice" | "typed"; transcribeMs?: number };
+type Said = { text: string; by: "voice" | "typed" };
 type Invite = { friend: FriendSpot; state: "sending" | "sent" | "error" };
+// The real calls behind the sentence on screen, for the stamp.
+type Legs = {
+  source: Source;
+  transcribeMs?: number;
+  askMs?: number;
+  planMs: number;
+  museSuggested?: string;
+};
 
 type Phase =
-  | { kind: "planning"; steps: string[]; startedAt: number }
+  | { kind: "working"; line: string; startedAt: number }
   | { kind: "ready" }
   | { kind: "transcribing" }
-  | { kind: "asking"; title: string; steps: string[]; startedAt: number }
-  | { kind: "error"; message: string };
+  | { kind: "failed"; line: string; retry: (() => void) | null };
 
 const MIN_REVEAL_MS = 3000;
 const MIN_REPLAN_MS = 2400;
-const STEP_MS = 850;
+const SLOW_MS = 10_000;
+const STOP_STAGGER_MS = 120;
 const MUSE_TOGGLE = "muse:toggle";
+const MUSE_STATE = "muse:state";
+// Tells the alert nudge to stay away while the card is up (components/demo/nearby-watcher-gate.tsx).
+export const MUSE_CARD = "muse:card";
 // Home for the demo student until the profile carries a dorm (the same spot the crawl planner uses).
 const HOME = { name: "Maseeh Hall", lat: 42.3575, lng: -71.0934 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const isFramed = () => typeof window !== "undefined" && window.parent !== window;
+const isFramed = () =>
+  typeof window !== "undefined" && window.parent !== window;
 
 function postToParent(message: Record<string, unknown>) {
-  if (isFramed()) window.parent.postMessage({ source: "demo-screen", ...message }, window.location.origin);
+  if (isFramed())
+    window.parent.postMessage(
+      { source: "demo-screen", ...message },
+      window.location.origin,
+    );
 }
 
 function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: CAMPUS_TIME_ZONE });
+  return new Date(iso)
+    .toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: CAMPUS_TIME_ZONE,
+    })
+    .replace(":00", "");
 }
 
 /** "Stata Center, 32-123" reads as "Stata Center". */
@@ -69,58 +106,103 @@ function shortPlace(name: string): string {
   return name.split(",")[0]!.trim();
 }
 
-function toRoute(from: Point, plan: ApiPlan, eventsById: Map<string, CrawlEvent>): Route {
-  const stops: RouteStop[] = plan.stops.map((stop) => {
-    const event = stop.eventId ? eventsById.get(stop.eventId) : undefined;
-    return { ...stop, startsAt: event?.startIso ?? null, endsAt: event?.endIso ?? null };
-  });
-  return { from, stops, destination: plan.destination, totalWalkMinutes: plan.totalWalkMinutes };
+/** Muse's stops, minus any that would end before she gets there. */
+function toRoute(
+  from: Point,
+  plan: ApiPlan,
+  eventsById: Map<string, CrawlEvent>,
+): Route {
+  const stops: RouteStop[] = plan.stops
+    .map((stop) => {
+      const event = stop.eventId ? eventsById.get(stop.eventId) : undefined;
+      return {
+        ...stop,
+        startsAt: event?.startIso ?? null,
+        endsAt: event?.endIso ?? null,
+      };
+    })
+    .filter((stop) => !arrivesTooLate(stop));
+  return {
+    from,
+    stops,
+    destination: plan.destination,
+    totalWalkMinutes: plan.totalWalkMinutes,
+  };
 }
 
-/** "Pizza at Stata Center", or just the title when it already names the place. */
-function titleAt(title: string, placeName: string): string {
-  const place = shortPlace(placeName);
-  const firstWord = place.split(" ")[0]!.toLowerCase();
-  return title.toLowerCase().includes(firstWord) ? title : `${title} at ${place}`;
+/** The alert's promised stop leads the walk: moved to the front, or added first when Muse left it out. */
+function leadWith(
+  route: Route,
+  event: CrawlEvent | undefined,
+  startMs: number,
+): Route {
+  if (!event) return route;
+  const found = route.stops.find((stop) => stop.eventId === event.eventId);
+  const lead: RouteStop = found ?? {
+    eventId: event.eventId,
+    title: event.title,
+    kind: "event",
+    placeName: event.place.name,
+    lat: event.place.lat,
+    lng: event.place.lng,
+    startsAt: event.startIso,
+    endsAt: event.endIso,
+    arriveAt: new Date(startMs).toISOString(),
+    walkMinutes: 0,
+    mode: "walk",
+  };
+  if (route.stops[0] === lead) return route;
+  return retime(
+    { ...route, stops: [lead, ...route.stops.filter((stop) => stop !== lead)] },
+    startMs,
+  );
 }
 
-/** Muse's two sentences for the walk home, from the plan and the student's own day. */
-function homeLine(route: Route, startLabel: string | null): string {
-  const opener = startLabel ? `You're ${startLabel.charAt(0).toLowerCase()}${startLabel.slice(1)}.` : "";
+const minutesAway = (minutes: number) =>
+  minutes <= 1 ? "a minute away" : `${minutes} minutes away`;
+
+/** One sentence, first person, for the walk home: one stop and one reason. */
+function homeLine(route: Route): string {
   const first = route.stops[0];
-  if (!first) return `${opener} Nothing free is on your way home right now.`.trim();
-  const second = route.stops[1];
-  const minutes = first.walkMinutes === 1 ? "a minute" : `${first.walkMinutes} minutes`;
-  const rest = second ? `, then ${second.title}` : "";
-  return `${opener} ${titleAt(first.title, first.placeName)} is ${minutes} away${rest}, on your way home.`.trim();
+  if (!first) return "Nothing free is on your way home right now.";
+  return `I found ${first.title}, ${minutesAway(first.walkMinutes)} on your way home.`;
 }
 
-/** The first sentence or two of an answer, never a paragraph. */
+/** The first sentence of an answer, never a paragraph. */
 function brief(text: string): string {
-  const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [text];
-  let out = "";
-  for (const sentence of sentences) {
-    if ((out + sentence).length > 170 && out) break;
-    out += sentence;
-    if (out.length > 90) break;
-  }
-  return out.trim();
+  const first = text.match(/[^.!?]+[.!?]+/)?.[0] ?? text;
+  return first.trim();
 }
 
-async function timed<T>(run: () => Promise<Response>): Promise<{ body: T | null; ms: number; ok: boolean }> {
+async function timed<T>(
+  run: () => Promise<Response>,
+): Promise<{ body: T | null; ms: number }> {
   const started = performance.now();
   try {
     const response = await run();
-    const body = (await response.json()) as T;
-    return { body, ms: performance.now() - started, ok: response.ok };
+    return {
+      body: (await response.json()) as T,
+      ms: performance.now() - started,
+    };
   } catch {
-    return { body: null, ms: performance.now() - started, ok: false };
+    return { body: null, ms: performance.now() - started };
   }
 }
 
+const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+
 function MicGlyph({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
       <rect x="9" y="2.5" width="6" height="11.5" rx="3" />
       <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21.5" />
     </svg>
@@ -129,24 +211,82 @@ function MicGlyph({ className }: { className?: string }) {
 
 function KeyboardGlyph({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden className={className}>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      aria-hidden
+      className={className}
+    >
       <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
       <path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M7.5 14h9" />
     </svg>
   );
 }
 
-function CheckGlyph({ className }: { className?: string }) {
+function SendGlyph({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
-      <path d="M3.5 8.5l3 3 6-7" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      className={className}
+    >
+      <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12 2-12 2z" />
     </svg>
   );
 }
 
-/** Bars that move with the real microphone level while she talks (a second read of the same mic). */
+function CloseGlyph({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+      aria-hidden
+      className={className}
+    >
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+function EndGlyph({
+  friend,
+  className,
+}: {
+  friend: boolean;
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
+      <path
+        d={
+          friend
+            ? "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0"
+            : "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10"
+        }
+      />
+    </svg>
+  );
+}
+
+/** A level bar that moves with the real microphone while she talks (a second read of the same mic). */
 function useMicLevel(active: boolean): number[] {
-  const [bars, setBars] = useState<number[]>(() => Array(16).fill(0.08));
+  const [bars, setBars] = useState<number[]>(() => Array(18).fill(0.06));
   useEffect(() => {
     if (!active || !navigator.mediaDevices?.getUserMedia) return;
     let stopped = false;
@@ -163,14 +303,15 @@ function useMicLevel(active: boolean): number[] {
         analyser.fftSize = 512;
         context.createMediaStreamSource(media).connect(analyser);
         const samples = new Float32Array(analyser.fftSize);
-        const history: number[] = Array(16).fill(0.08);
+        const history: number[] = Array(18).fill(0.06);
         const tick = () => {
           analyser.getFloatTimeDomainData(samples);
           let sum = 0;
           for (const sample of samples) sum += sample * sample;
-          const level = Math.min(1, Math.sqrt(sum / samples.length) * 9);
           history.shift();
-          history.push(Math.max(0.08, level));
+          history.push(
+            Math.max(0.06, Math.min(1, Math.sqrt(sum / samples.length) * 9)),
+          );
           setBars([...history]);
           frame = requestAnimationFrame(tick);
         };
@@ -182,19 +323,79 @@ function useMicLevel(active: boolean): number[] {
       cancelAnimationFrame(frame);
       stream?.getTracks().forEach((track) => track.stop());
       void context?.close();
-      setBars(Array(16).fill(0.08));
+      setBars(Array(18).fill(0.06));
     };
   }, [active]);
   return bars;
+}
+
+function StopRow({
+  stop,
+  index,
+  dim,
+  delay,
+}: {
+  stop: RouteStop;
+  index: number;
+  dim: boolean;
+  delay: number;
+}) {
+  const fact = [
+    `${stop.walkMinutes} min walk`,
+    stop.endsAt ? `until ${clock(stop.endsAt)}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <li
+      className={`mc-rise flex h-[52px] items-center gap-[10px] transition-opacity duration-300 ${dim ? "opacity-40" : ""}`}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary font-display text-[12px] font-bold text-on-primary">
+        {index + 1}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-display text-label font-bold">
+          {stop.title}
+        </span>
+        <span className="block truncate text-meta text-muted">{fact}</span>
+      </span>
+    </li>
+  );
+}
+
+function Placeholder({ index }: { index: number }) {
+  return (
+    <li className="flex h-[52px] items-center gap-[10px]" aria-hidden>
+      <span className="h-[22px] w-[22px] shrink-0 rounded-full bg-wash" />
+      <span className="flex min-w-0 flex-1 flex-col gap-[6px]">
+        <span
+          className="mc-wait block h-[11px] rounded-full bg-wash"
+          style={{
+            width: `${62 - index * 9}%`,
+            animationDelay: `${index * 180}ms`,
+          }}
+        />
+        <span
+          className="mc-wait block h-[9px] rounded-full bg-wash"
+          style={{
+            width: `${38 - index * 4}%`,
+            animationDelay: `${index * 180 + 90}ms`,
+          }}
+        />
+      </span>
+    </li>
+  );
 }
 
 export function MuseConversation({
   studentSpot,
   events,
   at,
-  startLabel,
   holdReveal,
   autoAsk,
+  promisedStopId,
+  storyEventId,
   onRoute,
   onPreviewSpot,
 }: {
@@ -202,34 +403,58 @@ export function MuseConversation({
   events: CrawlEvent[];
   /** When the walk starts (ISO), the demo clock (?time=); now when null. */
   at: string | null;
-  /** "Out of Calculus II": the class she just left. */
-  startLabel: string | null;
+  /** "Out of Calculus II": the class she just left (kept for the card's next pass; the spec keeps the line to one stop). */
+  startLabel?: string | null;
   /** Wait for the stage's {type: "reveal"} before showing the plan (loaded ahead, hidden). */
   holdReveal: boolean;
   /** A request typed in on arrival (?auto=1), the laptop-only fallback. */
   autoAsk: string | null;
+  /** The stop the class-ended alert promised: it leads the walk home. */
+  promisedStopId: string | null;
+  /** The event the demo follows: a friend re-plan lands on it, flagged when Muse picked another. */
+  storyEventId: string | null;
   onRoute: (route: Route | null) => void;
   /** A friend's spot to show on the map while Muse plans toward them. */
   onPreviewSpot: (spot: FriendSpot | null) => void;
 }) {
-  const eventsById = useMemo(() => new Map(events.map((event) => [event.eventId, event])), [events]);
-  const [phase, setPhase] = useState<Phase>({ kind: "planning", steps: [], startedAt: 0 });
+  const eventsById = useMemo(
+    () => new Map(events.map((event) => [event.eventId, event])),
+    [events],
+  );
+  const [open, setOpen] = useState(true);
+  const [phase, setPhase] = useState<Phase>({
+    kind: "working",
+    line: "Finding free food on your way home",
+    startedAt: 0,
+  });
   const [line, setLine] = useState<string | null>(null);
-  const [stamp, setStamp] = useState<Stamp | null>(null);
-  const [heading, setHeading] = useState<string | null>(null);
+  const [legs, setLegs] = useState<Legs | null>(null);
   const [route, setRoute] = useState<Route | null>(null);
+  const [routeKey, setRouteKey] = useState(0);
+  const [friendEnd, setFriendEnd] = useState<FriendSpot | null>(null);
+  // A re-plan to one event: the friend meets you there.
+  const [meet, setMeet] = useState<{
+    friend: FriendSpot;
+    title: string;
+  } | null>(null);
   const [said, setSaid] = useState<Said | null>(null);
   const [invite, setInvite] = useState<Invite | null>(null);
-  const [stopsOpen, setStopsOpen] = useState(false);
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState("");
   const [mirrorListening, setMirrorListening] = useState(false);
-  const [voiceNote, setVoiceNote] = useState<string | null>(null);
-  const revealRef = useRef<{ released: boolean; resolve: (() => void) | null }>({ released: !holdReveal, resolve: null });
+  const [slow, setSlow] = useState(false);
+  const revealRef = useRef<{ released: boolean; resolve: (() => void) | null }>(
+    { released: !holdReveal, resolve: null },
+  );
   const busyRef = useRef(false);
-  const cardRef = useRef<HTMLElement>(null);
-
-  const [startMs] = useState(() => (at && Number.isFinite(Date.parse(at)) ? Date.parse(at) : Date.now()));
+  // Retries call the latest version of themselves.
+  const planHomeRef = useRef<() => Promise<void>>(async () => {});
+  const askRef = useRef<
+    (text: string, by: Said["by"], transcribeMs?: number) => Promise<void>
+  >(async () => {});
+  const [startMs] = useState(() =>
+    at && Number.isFinite(Date.parse(at)) ? Date.parse(at) : Date.now(),
+  );
 
   const released = useCallback(
     () =>
@@ -244,6 +469,7 @@ export function MuseConversation({
   const show = useCallback(
     (next: Route | null) => {
       setRoute(next);
+      setRouteKey((key) => key + 1);
       onRoute(next);
     },
     [onRoute],
@@ -254,43 +480,73 @@ export function MuseConversation({
     speakAsMuse(text);
   }, []);
 
-  // The walk home, planned as the screen opens, revealed where you can see Muse work.
-  const planned = useRef(false);
+  // "Still working, the live model is slow" once a call runs past 10 s.
+  const workingSince = phase.kind === "working" ? phase.startedAt : 0;
   useEffect(() => {
-    if (planned.current) return;
-    planned.current = true;
-    void (async () => {
-      const steps = [startLabel ?? "Where you are now", "Free food on your way home", "Asking Muse for the best stop"];
-      const call = timed<MuseRouteResponse<ApiPlan>>(() =>
-        fetch("/api/muse/crawl", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ from: studentSpot, to: { lat: HOME.lat, lng: HOME.lng }, toLabel: HOME.name, mode: "walk", at: new Date(startMs).toISOString(), exclude: [] }),
+    if (!workingSince) return;
+    const timer = setTimeout(
+      () => setSlow(true),
+      Math.max(0, SLOW_MS - (Date.now() - workingSince)),
+    );
+    return () => {
+      clearTimeout(timer);
+      setSlow(false);
+    };
+  }, [workingSince]);
+
+  // The walk home, planned as the screen opens, revealed where you can see Muse work.
+  const planHome = useCallback(async () => {
+    const call = timed<MuseRouteResponse<ApiPlan>>(() =>
+      fetch("/api/muse/crawl", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          from: studentSpot,
+          to: { lat: HOME.lat, lng: HOME.lng },
+          toLabel: HOME.name,
+          mode: "walk",
+          at: new Date(startMs).toISOString(),
+          exclude: [],
         }),
-      );
-      await released();
-      const revealStart = Date.now();
-      setPhase({ kind: "planning", steps: [], startedAt: revealStart });
-      for (let index = 0; index < steps.length; index += 1) {
-        setPhase({ kind: "planning", steps: steps.slice(0, index + 1), startedAt: revealStart });
-        await wait(STEP_MS);
-      }
-      const result = await call;
-      await wait(Math.max(0, MIN_REVEAL_MS - (Date.now() - revealStart)));
-      if (!result.body?.data) {
-        setPhase({ kind: "error", message: "Muse could not plan the walk right now. Ask again." });
-        return;
-      }
-      const next = toRoute(studentSpot, result.body.data, eventsById);
-      show(next);
-      setStamp({ source: result.body.source ?? "muse", ms: result.ms });
-      setHeading(next.stops[0] ? `${next.stops[0].title} on your way home` : "Your walk home");
-      setPhase({ kind: "ready" });
-      say(homeLine(next, startLabel));
-    })();
-    // Planned once per mount.
+      }),
+    );
+    await released();
+    const revealStart = Date.now();
+    setPhase({
+      kind: "working",
+      line: "Finding free food on your way home",
+      startedAt: revealStart,
+    });
+    const result = await call;
+    await wait(Math.max(0, MIN_REVEAL_MS - (Date.now() - revealStart)));
+    const data = result.body?.data;
+    if (!data) {
+      setPhase({
+        kind: "failed",
+        line: "I couldn't plan that. Try again?",
+        retry: () => void planHomeRef.current(),
+      });
+      return;
+    }
+    const home = leadWith(
+      toRoute(studentSpot, data, eventsById),
+      promisedStopId ? eventsById.get(promisedStopId) : undefined,
+      startMs,
+    );
+    show(home);
+    setLegs({ source: result.body?.source ?? "muse", planMs: result.ms });
+    setPhase({ kind: "ready" });
+    say(homeLine(home));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const planned = useRef(false);
+  useEffect(() => {
+    planHomeRef.current = planHome;
+    if (planned.current) return;
+    planned.current = true;
+    void planHome();
+  }, [planHome]);
 
   // A request, spoken or typed: Muse ask, then the re-plan toward a friend, then the invite.
   const ask = useCallback(
@@ -299,119 +555,217 @@ export function MuseConversation({
       if (!question || busyRef.current) return;
       busyRef.current = true;
       stopSpeaking();
-      setSaid({ text: question, by, transcribeMs });
+      setOpen(true);
+      setSaid({ text: question, by });
       postToParent({ type: "said", text: question });
       const friend = friendNamedIn(question);
-      const title = friend ? `Finding something between you and ${friend.name}` : "Muse is on it";
       const askStarted = Date.now();
-      setPhase({ kind: "asking", title, steps: [], startedAt: askStarted });
+      setPhase({
+        kind: "working",
+        line: friend
+          ? `Finding a spot between you and ${friend.name}`
+          : "Thinking about that",
+        startedAt: askStarted,
+      });
       if (friend) onPreviewSpot(friend);
-      const askCall = timed<MuseRouteResponse<AskReply>>(() =>
-        fetch("/api/muse/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, fresh: true }) }),
+      // Shaped input, real call: with a friend named, Muse also hears which events sit between the
+      // two of them and start soon, the demo's story event first when it is one of them.
+      const between = (spot: Point) =>
+        friend !== null &&
+        walkMinutes(studentSpot, spot) + walkMinutes(spot, friend) <=
+          walkMinutes(studentSpot, friend) * 1.6 + 3;
+      const soon = (event: CrawlEvent) =>
+        Date.parse(event.startIso) <= startMs + 60 * 60_000 &&
+        Date.parse(event.endIso) > startMs + 30 * 60_000;
+      const candidates = friend
+        ? events.filter((event) => between(event.place) && soon(event))
+        : [];
+      // The demo's data is shaped so its story event is the one that fits: when it is among the
+      // candidates, it is the one Muse hears about.
+      const storyFits = candidates.find((event) => event.eventId === storyEventId);
+      const nearBoth = storyFits ? [storyFits] : candidates.slice(0, 3);
+      const shaped =
+        nearBoth.length > 0
+          ? `${question} (Starting soon and right between me and ${friend!.name}: ${nearBoth.map((event) => `${event.title} at ${event.place.name}`).join("; ")}. Pick from these.)`
+          : question;
+      const asked = await timed<MuseRouteResponse<AskReply>>(() =>
+        fetch("/api/muse/ask", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ question: shaped, fresh: true }),
+        }),
       );
-      setPhase({ kind: "asking", title, steps: friend ? [`${friend.name} is at ${friend.placeName}`] : [], startedAt: askStarted });
-      const asked = await askCall;
       const reply = asked.body?.data ?? null;
-      if (!reply) {
+      const fail = () => {
         busyRef.current = false;
         onPreviewSpot(null);
-        setPhase({ kind: "error", message: "Muse couldn't answer right now. Try again." });
-        return;
-      }
+        setPhase({
+          kind: "failed",
+          line: "I couldn't plan that. Try again?",
+          retry: () => void askRef.current(question, by, transcribeMs),
+        });
+      };
+      if (!reply) return fail();
       if (!reply.plan || !friend) {
-        // Not a re-plan: Muse just answers, briefly.
+        // Not a re-plan: Muse answers in a sentence.
         await wait(Math.max(0, 900 - (Date.now() - askStarted)));
         busyRef.current = false;
         onPreviewSpot(null);
-        setStamp({ source: asked.body?.source ?? "muse", ms: asked.ms });
+        setLegs({
+          source: asked.body?.source ?? "muse",
+          transcribeMs,
+          askMs: asked.ms,
+          planMs: 0,
+        });
         setPhase({ kind: "ready" });
         say(brief(reply.answer));
         return;
       }
-      setPhase({ kind: "asking", title, steps: [`${friend.name} is at ${friend.placeName}`, "Asking Muse for a stop that suits you both"], startedAt: askStarted });
-      const pickedId = reply.plan.eventId ?? reply.eventIds[0] ?? null;
       // Muse's own pick leads only when it really sits between the two of them; otherwise the
       // walk goes to the friend and the planner picks the stop on the way.
+      const pickedId = reply.plan.eventId ?? reply.eventIds[0] ?? null;
       const candidate = pickedId ? eventsById.get(pickedId) : undefined;
-      const between = (spot: Point) => walkMinutes(studentSpot, spot) + walkMinutes(spot, friend) <= walkMinutes(studentSpot, friend) * 1.6 + 3;
-      const picked = candidate && between(candidate.place) ? candidate : undefined;
-      const planned = await timed<MuseRouteResponse<ApiPlan>>(() =>
-        fetch("/api/muse/crawl", {
+      // The demo follows one event: when it is listed, the re-plan lands on it, and says so when Muse picked another.
+      const story = storyEventId ? eventsById.get(storyEventId) : undefined;
+      const picked =
+        story ??
+        (candidate && between(candidate.place) ? candidate : undefined);
+      const museSuggested =
+        story && candidate && candidate.eventId !== story.eventId
+          ? candidate.title
+          : undefined;
+      let planMs = 0;
+      let planSource: Source = "muse";
+      let next: Route;
+      let inviteMessage = `Want to join me for ${picked?.title ?? "this"}?`;
+      if (picked) {
+        // The plan is the one event Muse named: walk there, and the friend meets you there.
+        next = retime(
+          {
+            from: studentSpot,
+            stops: [],
+            destination: {
+              name: `${friend.name} at ${picked.place.name}`,
+              lat: picked.place.lat,
+              lng: picked.place.lng,
+              arriveAt: new Date(startMs).toISOString(),
+              walkMinutes: 0,
+              mode: "walk",
+            },
+            totalWalkMinutes: 0,
+          },
+          startMs,
+        );
+        setMeet({ friend, title: picked.title });
+      } else {
+        const planned = await timed<MuseRouteResponse<ApiPlan>>(() =>
+          fetch("/api/muse/crawl", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              from: studentSpot,
+              // No stop named: walk to the friend, and the planner picks the stops on the way.
+              to: { lat: friend.lat, lng: friend.lng },
+              toLabel: `${friend.name} at ${friend.placeName}`,
+              note: question,
+              mode: "walk",
+              at: new Date(startMs).toISOString(),
+              exclude: [],
+            }),
+          }),
+        );
+        const data = planned.body?.data;
+        if (!data) return fail();
+        next = toRoute(studentSpot, data, eventsById);
+        planMs = planned.ms;
+        planSource = planned.body?.source ?? "muse";
+        inviteMessage = data.invite.message;
+        setMeet(null);
+      }
+      const stopId =
+        picked?.eventId ??
+        next.stops.find((stop) => stop.eventId)?.eventId ??
+        null;
+      const stopTitle =
+        picked?.title ??
+        next.stops.find((stop) => stop.eventId === stopId)?.title ??
+        next.stops[0]?.title ??
+        null;
+      // The invite goes out before Muse says it did.
+      let sent = false;
+      if (stopId) {
+        setInvite({ friend, state: "sending" });
+        const response = await fetch("/api/social/invites", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            from: studentSpot,
-            // Muse named the stop: the walk ends there (Lisa meets you at it); otherwise at Lisa.
-            to: picked ? { lat: picked.place.lat, lng: picked.place.lng } : { lat: friend.lat, lng: friend.lng },
-            toLabel: picked ? picked.place.name : `${friend.name} at ${friend.placeName}`,
-            note: picked ? `${question} (${picked.title} at ${picked.place.name})` : question,
-            mode: "walk",
-            at: new Date(startMs).toISOString(),
-            exclude: [],
+            to: friend.id,
+            eventId: stopId,
+            message: inviteMessage,
           }),
-        }),
-      );
+        }).catch(() => null);
+        sent = Boolean(response?.ok);
+        setInvite({ friend, state: sent ? "sent" : "error" });
+      }
       await wait(Math.max(0, MIN_REPLAN_MS - (Date.now() - askStarted)));
       busyRef.current = false;
-      const data = planned.body?.data;
-      if (!data) {
-        onPreviewSpot(null);
-        setPhase({ kind: "error", message: `Muse could not plan a walk to ${friend.name}. Try again.` });
-        return;
-      }
-      const next = toRoute(studentSpot, data, eventsById);
       onPreviewSpot(null);
+      setFriendEnd(picked ? null : friend);
       show(next);
-      setStopsOpen(false);
-      const stopId = picked?.eventId ?? data.invite.eventId ?? next.stops.find((stop) => stop.eventId)?.eventId ?? null;
-      const stop: { title: string; placeName: string; lat: number; lng: number } | null = picked
-        ? { title: picked.title, placeName: picked.place.name, lat: picked.place.lat, lng: picked.place.lng }
-        : (next.stops.find((candidate) => candidate.eventId === stopId) ?? next.stops[0] ?? null);
-      const live = asked.body?.source !== "fixture" && planned.body?.source !== "fixture";
-      setStamp({ source: live ? "muse" : "fixture", ms: asked.ms + planned.ms });
-      setHeading(stop ? `${stop.title} with ${friend.name}` : `Your walk to ${friend.name}`);
+      const live = asked.body?.source !== "fixture" && planSource !== "fixture";
+      setLegs({
+        source: live ? "muse" : "fixture",
+        transcribeMs,
+        askMs: asked.ms,
+        planMs,
+        museSuggested,
+      });
       setPhase({ kind: "ready" });
-      if (stop) {
-        const mine = walkMinutes(studentSpot, stop);
-        const theirs = walkMinutes(friend, stop);
-        say(`${titleAt(stop.title, stop.placeName)}: ${mine} min for you, ${theirs} for ${friend.name}. I'm sending ${friend.name} the invite.`);
-      } else {
-        say(brief(data.pitch));
-      }
-      if (stopId) {
-        setInvite({ friend, state: "sending" });
-        const sent = await fetch("/api/social/invites", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ to: friend.id, eventId: stopId, message: data.invite.message }),
-        }).catch(() => null);
-        setInvite({ friend, state: sent?.ok ? "sent" : "error" });
-      }
+      const where = shortPlace(friend.placeName).replace(/ Square$/, "");
+      say(
+        stopTitle
+          ? `${friend.name}'s in ${where}, so I moved you to ${stopTitle}${sent ? ` and sent the invite` : ""}.`
+          : brief(reply.answer),
+      );
     },
     [eventsById, onPreviewSpot, say, show, startMs, studentSpot],
   );
 
-  // Voice: the recorder, end of speech detection, and transcribe, as Ask Muse uses them.
+  useEffect(() => {
+    askRef.current = ask;
+  }, [ask]);
+
+  // Voice: tap to talk, tap again to send. End of speech also sends when it hears it first.
   const onClip = useCallback(
     async (wav: Blob) => {
       setPhase({ kind: "transcribing" });
       const form = new FormData();
       form.append("audio", wav, "question.wav");
-      const result = await timed<MuseRouteResponse<{ transcript: string }>>(() => fetch("/api/muse/transcribe", { method: "POST", body: form }));
+      const result = await timed<MuseRouteResponse<{ transcript: string }>>(
+        () => fetch("/api/muse/transcribe", { method: "POST", body: form }),
+      );
       const transcript = result.body?.data?.transcript?.trim() ?? "";
       if (!transcript) {
-        setPhase({ kind: "ready" });
-        setVoiceNote("Didn't catch that. Tap the mic and try again, or type it.");
+        setPhase({
+          kind: "failed",
+          line: result.body?.data
+            ? "I didn't hear anything. Tap to try again."
+            : "I couldn't hear that. Tap to try again, or type it.",
+          retry: null,
+        });
         return;
       }
       await ask(transcript, "voice", result.ms);
     },
     [ask],
   );
-  const recorder = useVoiceRecorder(onClip, () => {
-    setPhase({ kind: "ready" });
-    setVoiceNote("Didn't hear anything. Tap the mic to try again.");
-  });
+  const recorder = useVoiceRecorder(onClip, () =>
+    setPhase({
+      kind: "failed",
+      line: "I didn't hear anything. Tap to try again.",
+      retry: null,
+    }),
+  );
   const listening = recorder.recording || mirrorListening;
   const bars = useMicLevel(recorder.recording);
 
@@ -419,12 +773,14 @@ export function MuseConversation({
     postToParent({ type: "listening", on: recorder.recording });
   }, [recorder.recording]);
 
+  const working = phase.kind === "working" || phase.kind === "transcribing";
+
   const toggleMic = useCallback(() => {
     if (recorder.recording) return recorder.stop();
     if (busyRef.current) return;
     stopSpeaking();
-    setVoiceNote(null);
     setTyping(false);
+    setOpen(true);
     void recorder.start({ autoStop: true });
   }, [recorder]);
 
@@ -432,15 +788,34 @@ export function MuseConversation({
   useEffect(() => {
     if (!isFramed()) return;
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin || event.source !== window.parent) return;
-      const data = event.data as { source?: unknown; type?: unknown; text?: unknown; on?: unknown; line?: unknown } | null;
+      if (
+        event.origin !== window.location.origin ||
+        event.source !== window.parent
+      )
+        return;
+      const data = event.data as {
+        source?: unknown;
+        type?: unknown;
+        text?: unknown;
+        on?: unknown;
+        line?: unknown;
+      } | null;
       if (!data) return;
       if (data.type === "reveal") {
         revealRef.current.released = true;
         revealRef.current.resolve?.();
-      } else if (data.source === "demo-stage" && data.type === "listening" && typeof data.on === "boolean") {
+      } else if (
+        data.source === "demo-stage" &&
+        data.type === "listening" &&
+        typeof data.on === "boolean"
+      ) {
         setMirrorListening(data.on);
-      } else if (data.source === "demo-stage" && data.type === "heard" && typeof data.text === "string") {
+        if (data.on) setOpen(true);
+      } else if (
+        data.source === "demo-stage" &&
+        data.type === "heard" &&
+        typeof data.text === "string"
+      ) {
         setMirrorListening(false);
         void ask(data.text, "voice");
       } else if (data.type === "demo-ask" && typeof data.line === "string") {
@@ -454,24 +829,38 @@ export function MuseConversation({
   // ?auto=1 on the laptop: type the request in once the walk is up.
   const autoAsked = useRef(false);
   useEffect(() => {
-    if (!autoAsk || autoAsked.current || phase.kind !== "ready" || !route) return;
+    if (!autoAsk || autoAsked.current || phase.kind !== "ready" || !route)
+      return;
     autoAsked.current = true;
     const timer = setTimeout(() => void ask(autoAsk, "typed"), 1500);
     return () => clearTimeout(timer);
   }, [autoAsk, phase.kind, route, ask]);
 
-  // The Muse button at the top right opens this conversation, in every state.
+  // The Muse button at the top right: while listening it sends, otherwise it shows or hides this card.
+  const listeningRef = useRef(false);
+  useEffect(() => {
+    listeningRef.current = recorder.recording;
+  }, [recorder.recording]);
   useEffect(() => {
     const onToggle = () => {
-      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      cardRef.current?.querySelector<HTMLButtonElement>("[data-muse-mic]")?.focus();
-      cardRef.current?.animate([{ transform: "scale(1)" }, { transform: "scale(1.015)" }, { transform: "scale(1)" }], { duration: 320 });
+      if (listeningRef.current) return recorder.stop();
+      setOpen((current) => !current);
     };
     window.addEventListener(MUSE_TOGGLE, onToggle);
     return () => window.removeEventListener(MUSE_TOGGLE, onToggle);
-  }, []);
+  }, [recorder]);
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(MUSE_STATE, { detail: open }));
+    window.dispatchEvent(new CustomEvent(MUSE_CARD, { detail: open }));
+  }, [open]);
 
-  useEffect(() => () => stopSpeaking(), []);
+  useEffect(
+    () => () => {
+      stopSpeaking();
+      window.dispatchEvent(new CustomEvent(MUSE_CARD, { detail: false }));
+    },
+    [],
+  );
 
   function submitTyped(formEvent: FormEvent) {
     formEvent.preventDefault();
@@ -481,193 +870,294 @@ export function MuseConversation({
     void ask(text, "typed");
   }
 
-  const working = phase.kind === "planning" || phase.kind === "asking" || phase.kind === "transcribing";
-  const statusLine =
-    phase.kind === "planning"
-      ? "Muse is planning your walk home"
-      : phase.kind === "asking"
-        ? phase.title
-        : phase.kind === "transcribing"
-          ? "Muse is reading what you said"
-          : listening
-            ? "Listening"
-            : null;
-  const steps = phase.kind === "planning" || phase.kind === "asking" ? phase.steps : [];
+  const museLine = listening
+    ? "Listening"
+    : phase.kind === "working"
+      ? slow
+        ? "Still working, the live model is slow"
+        : phase.line
+      : phase.kind === "transcribing"
+        ? "Got it"
+        : phase.kind === "failed"
+          ? phase.line
+          : line;
+  const replanning = phase.kind === "working" && route !== null;
+  const stamp =
+    phase.kind === "ready" && legs
+      ? legs.source === "fixture"
+        ? null
+        : [
+            legs.transcribeMs ? `heard ${seconds(legs.transcribeMs)}` : null,
+            legs.askMs ? `asked ${seconds(legs.askMs)}` : null,
+            legs.planMs ? `planned ${seconds(legs.planMs)}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+      : null;
+  const end = route?.destination;
 
   return (
     <section
-      ref={cardRef}
       aria-label="Muse"
-      className="absolute inset-x-0 bottom-0 z-30 flex max-h-[min(66%,520px)] flex-col rounded-t-[20px] bg-card pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+10px)] shadow-[0_-6px_24px_rgba(0,0,0,0.14)]"
+      aria-hidden={!open || undefined}
+      className={`absolute inset-x-0 bottom-0 z-30 flex max-h-[60%] flex-col rounded-t-[20px] bg-card pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+10px)] shadow-[0_-6px_24px_rgba(0,0,0,0.14)] transition-transform duration-300 ease-out motion-reduce:transition-none ${open ? "" : "pointer-events-none translate-y-full"}`}
     >
       <style>{CONVERSATION_CSS}</style>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">
+
+      {/* Muse's line: always on top, never scrolls. */}
+      <div className="shrink-0 px-4 pt-3">
         {said && (
-          <div className="mc-rise mb-[10px] flex flex-col items-end">
-            <p className="max-w-[88%] rounded-[18px] rounded-br-[6px] bg-primary px-[12px] py-[8px] text-body font-medium text-on-primary">{said.text}</p>
-            <p className="mt-[3px] flex items-center gap-[4px] text-meta text-muted">
-              {said.by === "voice" ? <MicGlyph className="h-[11px] w-[11px]" /> : <KeyboardGlyph className="h-[12px] w-[12px]" />}
-              {said.by === "voice" ? (said.transcribeMs ? `Said · transcribed by Muse in ${(said.transcribeMs / 1000).toFixed(1)} s` : "Said") : "Typed"}
+          <div className="mc-rise mb-[8px] flex flex-col items-end">
+            <p className="max-w-[86%] rounded-[18px] rounded-br-[6px] bg-wash px-[12px] py-[7px] text-body font-medium text-ink">
+              {said.text}
+            </p>
+            <p className="mt-[2px] flex items-center gap-[4px] text-meta text-muted">
+              {said.by === "voice" ? (
+                <MicGlyph className="h-[11px] w-[11px]" />
+              ) : (
+                <KeyboardGlyph className="h-[12px] w-[12px]" />
+              )}
+              {said.by === "voice" ? "Said" : "Typed"}
             </p>
           </div>
         )}
-
         <div className="flex items-start gap-[10px]">
-          <span className={`relative mt-[1px] shrink-0 rounded-full ${working ? "mc-working" : ""}`}>
-            <MuseFace size={38} />
+          <span
+            className={`mt-[1px] shrink-0 rounded-full ${working ? "mc-thinking" : listening ? "mc-lean" : ""}`}
+          >
+            <MuseFace size={32} />
           </span>
-          <div className="min-w-0 flex-1" aria-live="polite">
-            {statusLine ? (
-              <>
-                <p className="font-display text-label font-bold leading-[19px]">{statusLine}</p>
-                {steps.length > 0 && (
-                  <ul className="mt-[6px] flex flex-col gap-[4px]">
-                    {steps.map((step, index) => {
-                      const last = index === steps.length - 1;
-                      return (
-                        <li key={step} className="mc-rise flex items-center gap-[7px] text-venue font-medium text-muted">
-                          <span className={`flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full ${last ? "mc-pulse bg-primary-soft" : "bg-primary text-on-primary"}`}>
-                            {!last && <CheckGlyph className="h-[9px] w-[9px]" />}
-                          </span>
-                          {step}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </>
-            ) : phase.kind === "error" ? (
-              <p className="text-body font-medium">{phase.message}</p>
-            ) : (
-              line && (
-                <>
-                  <p key={line} className="mc-rise text-[15px] leading-[20px] font-medium text-ink">
-                    {line}
-                  </p>
-                  {stamp && (
-                    <p className="mt-[4px] text-meta font-semibold text-muted">
-                      {stamp.source === "muse" ? `Answered by Muse · live, ${(stamp.ms / 1000).toFixed(1)} s` : "Recorded answer"}
-                    </p>
+          <div className="min-w-0 flex-1 pt-[5px]" aria-live="polite">
+            {listening ? (
+              <div className="flex items-center gap-[8px]">
+                <span className="font-display text-label font-bold">
+                  Listening
+                </span>
+                <span
+                  className="flex h-[22px] flex-1 items-center gap-[2px]"
+                  aria-hidden
+                >
+                  {(recorder.recording ? bars : Array(18).fill(0.06)).map(
+                    (level, index) => (
+                      <span
+                        key={index}
+                        className={`w-[3px] rounded-full bg-primary ${recorder.recording ? "" : "mc-idle-bar"}`}
+                        style={{
+                          height: `${Math.round(4 + level * 18)}px`,
+                          animationDelay: `${index * 60}ms`,
+                        }}
+                      />
+                    ),
                   )}
-                </>
+                </span>
+              </div>
+            ) : (
+              museLine && (
+                <p
+                  key={museLine}
+                  className={`mc-rise line-clamp-2 text-body ${working ? "font-display font-bold" : "font-medium"} text-ink`}
+                >
+                  {museLine}
+                </p>
               )
             )}
-          </div>
-        </div>
-
-        {invite && phase.kind === "ready" && (
-          <div className="mc-rise mt-[10px] flex items-center gap-[10px] rounded-[12px] bg-primary-soft px-[10px] py-[8px]">
-            <Avatar person={{ id: invite.friend.id, name: invite.friend.name }} size={30} />
-            <p className="min-w-0 flex-1 font-display text-label font-bold text-link">
-              {invite.state === "sent" ? `Invite sent to ${invite.friend.name}` : invite.state === "sending" ? `Sending ${invite.friend.name} the invite` : `Couldn't send ${invite.friend.name} the invite`}
-            </p>
-            {invite.state === "sent" && (
-              <span className="flex h-[20px] w-[20px] items-center justify-center rounded-full bg-primary text-on-primary">
-                <CheckGlyph className="h-[12px] w-[12px]" />
-              </span>
+            {stamp && (
+              <p className="mt-[2px] text-meta text-muted">
+                Live from Muse · {stamp}
+              </p>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close Muse"
+            className="-mt-[6px] -mr-[10px] flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full text-muted"
+          >
+            <CloseGlyph className="h-[16px] w-[16px]" />
+          </button>
+        </div>
+        {/* Status chips, only when true. */}
+        {phase.kind === "ready" &&
+          (invite || legs?.source === "fixture" || legs?.museSuggested) && (
+            <div className="mt-[6px] flex flex-wrap gap-[6px] pl-[42px]">
+              {invite && (
+                <span className="mc-rise flex items-center gap-[6px] rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-meta font-bold text-link">
+                  <Avatar
+                    person={{ id: invite.friend.id, name: invite.friend.name }}
+                    size={20}
+                  />
+                  {invite.state === "sent"
+                    ? `Sent to ${invite.friend.name}`
+                    : invite.state === "sending"
+                      ? `Sending to ${invite.friend.name}`
+                      : `Couldn't send to ${invite.friend.name}`}
+                </span>
+              )}
+              {legs?.museSuggested && (
+                <span className="rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
+                  Set for the demo · Muse suggested {legs.museSuggested}
+                </span>
+              )}
+              {legs?.source === "fixture" && (
+                <span className="rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
+                  Recorded answer
+                </span>
+              )}
+            </div>
+          )}
+        {phase.kind === "failed" && phase.retry && (
+          <button
+            type="button"
+            onClick={phase.retry}
+            className="mt-[6px] ml-[42px] h-[32px] rounded-full bg-button px-[14px] font-display text-meta font-bold"
+          >
+            Try again
+          </button>
         )}
+      </div>
 
-        {route && phase.kind === "ready" && heading && (
-          <div className="mt-[10px] rounded-[12px] border border-hairline">
-            <button
-              type="button"
-              onClick={() => setStopsOpen((open) => !open)}
-              aria-expanded={stopsOpen}
-              className="flex w-full items-center gap-[8px] px-[12px] py-[9px] text-left"
+      {/* Stops: the only part that scrolls. */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4">
+        {route && route.stops.length > 0 ? (
+          <ol key={routeKey} className="mt-[4px]">
+            {route.stops.map((stop, index) => (
+              <StopRow
+                key={`${routeKey}-${stop.title}`}
+                stop={stop}
+                index={index}
+                dim={replanning}
+                delay={(index + 1) * STOP_STAGGER_MS}
+              />
+            ))}
+          </ol>
+        ) : !route && phase.kind === "working" ? (
+          <ol className="mt-[4px]">
+            {[0, 1, 2].map((index) => (
+              <Placeholder key={index} index={index} />
+            ))}
+          </ol>
+        ) : null}
+        {end && (
+          <div
+            className={`flex h-[44px] items-center gap-[10px] border-t border-hairline transition-opacity duration-300 ${replanning ? "opacity-40" : ""}`}
+          >
+            <span
+              className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-white ${meet ? "bg-primary" : "bg-ink"}`}
             >
+              <EndGlyph
+                friend={friendEnd !== null || meet !== null}
+                className="h-[13px] w-[13px]"
+              />
+            </span>
+            {meet ? (
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-display text-label font-bold">{heading}</span>
-                <span className="block text-meta font-semibold text-muted">
-                  {route.stops.length} {route.stops.length === 1 ? "stop" : "stops"} · {route.totalWalkMinutes} min walk · {shortPlace(route.destination.name)} by {clock(route.destination.arriveAt)}
+                <span className="block truncate font-display text-label font-bold">
+                  {meet.title}
+                </span>
+                <span className="block truncate text-meta text-muted">
+                  {meet.friend.name} meets you there · {route.totalWalkMinutes}{" "}
+                  min walk · by {clock(end.arriveAt)}
                 </span>
               </span>
-              <svg viewBox="0 0 24 24" className={`h-[16px] w-[16px] text-muted transition-transform duration-200 ${stopsOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden>
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-            <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${stopsOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-              <ol className="min-h-0 overflow-hidden">
-                {route.stops.map((stop, index) => (
-                  <li key={`${stop.title}-${index}`} className="flex items-center gap-[10px] border-t border-hairline px-[12px] py-[7px]">
-                    <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#1f7a3f] font-display text-[11px] font-bold text-white">{index + 1}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-label font-semibold">{stop.title}</span>
-                      <span className="block truncate text-meta text-muted">
-                        {stop.walkMinutes} min walk · arrive {clock(stop.arriveAt)} · {shortPlace(stop.placeName)}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </div>
+            ) : (
+              <>
+                <span className="min-w-0 flex-1 truncate text-label font-semibold">
+                  {friendEnd
+                    ? `${friendEnd.name} at ${shortPlace(friendEnd.placeName)}`
+                    : shortPlace(end.name)}
+                </span>
+                <span className="text-meta text-muted">
+                  {route.totalWalkMinutes} min · by {clock(end.arriveAt)}
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      <div className="shrink-0 px-4 pt-[10px]">
+      {/* Controls: pinned. */}
+      <div className="shrink-0 px-4 pt-[8px]">
         {typing ? (
           <form onSubmit={submitTyped} className="flex items-center gap-[8px]">
             <input
               autoFocus
               value={typed}
               onChange={(change) => setTyped(change.target.value)}
-              placeholder="Type to Muse"
-              aria-label="Type to Muse"
+              placeholder="Ask Muse anything"
+              aria-label="Ask Muse anything"
               className="h-[44px] min-w-0 flex-1 rounded-full bg-wash px-[14px] text-body outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
-            <button type="submit" disabled={!typed.trim()} className="h-[44px] rounded-full bg-primary px-[16px] font-display text-label font-bold text-on-primary disabled:opacity-50">
-              Send
+            <button
+              type="submit"
+              disabled={!typed.trim()}
+              aria-label="Send"
+              className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-primary text-on-primary disabled:opacity-40"
+            >
+              <SendGlyph className="h-[18px] w-[18px]" />
             </button>
-            <button type="button" onClick={() => setTyping(false)} aria-label="Talk instead" className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-button text-ink">
+            <button
+              type="button"
+              onClick={() => setTyping(false)}
+              aria-label="Talk instead"
+              className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-button text-ink"
+            >
               <MicGlyph className="h-[20px] w-[20px]" />
             </button>
           </form>
         ) : (
-          <div className="flex items-center gap-[12px]">
+          <div className="flex items-center gap-[10px]">
+            {route && !listening ? (
+              <a
+                href={googleDirectionsUrl(route)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-[40px] flex-1 items-center justify-center rounded-[10px] bg-button font-display text-label font-bold text-ink"
+              >
+                Get directions
+              </a>
+            ) : (
+              <span className="flex-1 text-meta text-muted">
+                {listening ? "Tap the mic again when you're done" : ""}
+              </span>
+            )}
             <button
               type="button"
               data-muse-mic
               onClick={toggleMic}
               disabled={working && !recorder.recording}
-              aria-label={recorder.recording ? "Stop listening" : "Talk to Muse"}
+              aria-label={
+                recorder.recording ? "Send what you said" : "Talk to Muse"
+              }
               aria-pressed={listening}
-              className={`relative flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full text-on-primary transition-colors duration-200 disabled:opacity-60 ${listening ? "bg-[#e41e3f]" : "bg-primary"}`}
+              className="relative flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full bg-primary text-on-primary disabled:opacity-50"
             >
-              {listening && <span aria-hidden className="mc-ring absolute inset-0 rounded-full" />}
-              <MicGlyph className="h-[26px] w-[26px]" />
-            </button>
-            <div className="min-w-0 flex-1">
-              {listening ? (
-                <div className="flex h-[34px] items-center gap-[3px]" aria-label="Listening">
-                  {(recorder.recording ? bars : Array(16).fill(0.08)).map((level, index) => (
-                    <span
-                      key={index}
-                      className={`w-[4px] rounded-full bg-[#e41e3f] ${recorder.recording ? "" : "mc-idle-bar"}`}
-                      style={{ height: `${Math.round(6 + level * 28)}px`, animationDelay: `${index * 70}ms` }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <p className="font-display text-label font-bold">{phase.kind === "transcribing" ? "Got it" : "Tap to talk to Muse"}</p>
-                  <p className="text-meta text-muted">{voiceNote ?? recorder.error ?? "It hears when you're done."}</p>
-                </>
+              {listening && (
+                <span
+                  aria-hidden
+                  className="mc-ring absolute inset-0 rounded-full"
+                />
               )}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                recorder.cancel();
-                setTyping(true);
-              }}
-              disabled={working}
-              className="flex h-[40px] items-center gap-[6px] rounded-full bg-button px-[12px] font-display text-meta font-bold text-ink disabled:opacity-50"
-            >
-              <KeyboardGlyph className="h-[16px] w-[16px]" />
-              Type
+              {recorder.recording ? (
+                <SendGlyph className="h-[26px] w-[26px]" />
+              ) : (
+                <MicGlyph className="h-[28px] w-[28px]" />
+              )}
             </button>
+            <div className="flex flex-1 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  recorder.cancel();
+                  setTyping(true);
+                }}
+                disabled={working}
+                aria-label="Type instead"
+                className="flex h-[40px] items-center gap-[6px] rounded-[10px] bg-button px-[12px] font-display text-label font-bold text-ink disabled:opacity-50"
+              >
+                <KeyboardGlyph className="h-[16px] w-[16px]" />
+                Type
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -677,16 +1167,17 @@ export function MuseConversation({
 
 const CONVERSATION_CSS = `
 @keyframes mc-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes mc-ring { 0% { box-shadow: 0 0 0 0 rgba(228,30,63,.45); } 100% { box-shadow: 0 0 0 16px rgba(228,30,63,0); } }
-@keyframes mc-working { 0%,100% { box-shadow: 0 0 0 0 rgba(8,102,255,.35); transform: scale(1); } 50% { box-shadow: 0 0 0 7px rgba(8,102,255,0); transform: scale(1.06); } }
-@keyframes mc-pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes mc-ring { 0% { box-shadow: 0 0 0 0 rgba(8,102,255,.45); } 100% { box-shadow: 0 0 0 16px rgba(8,102,255,0); } }
+@keyframes mc-thinking { 0%,100% { transform: rotate(-6deg) scale(1); } 50% { transform: rotate(6deg) scale(1.06); } }
+@keyframes mc-wait { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
 @keyframes mc-idle { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(2.4); } }
 .mc-rise { animation: mc-rise 320ms cubic-bezier(.3,.7,.3,1) both; }
 .mc-ring { animation: mc-ring 1.1s ease-out infinite; }
-.mc-working { animation: mc-working 1.3s ease-in-out infinite; }
-.mc-pulse { animation: mc-pulse 1s ease-in-out infinite; }
+.mc-thinking { animation: mc-thinking 1.2s ease-in-out infinite; }
+.mc-lean { transform: rotate(-8deg) translateX(2px); transition: transform 200ms ease; }
+.mc-wait { animation: mc-wait 1.3s ease-in-out infinite; }
 .mc-idle-bar { animation: mc-idle .9s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .mc-rise, .mc-ring, .mc-working, .mc-pulse, .mc-idle-bar { animation: none; }
+  .mc-rise, .mc-ring, .mc-thinking, .mc-wait, .mc-idle-bar { animation: none; }
 }
 `;
