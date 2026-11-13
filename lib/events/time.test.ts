@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CampusEvent } from "@/lib/events/schema";
 import { loadSeedEvents } from "@/lib/events/seed";
-import { filterEvents, formatDateLine } from "@/lib/events/time";
+import { filterEvents, formatDateLine, freePerk } from "@/lib/events/time";
 
 const now = new Date("2026-11-12T16:00:00.000Z");
 const events = loadSeedEvents(now);
@@ -40,5 +40,24 @@ describe("formatDateLine", () => {
 
   it("uses weekday, month and day further out", () => {
     expect(formatDateLine(at("2026-11-15T00:00:00.000Z", "2026-11-15T02:00:00.000Z"), now)).toBe("Sat, Nov 14 at 6 PM");
+  });
+});
+
+describe("freePerk", () => {
+  const base = events[0];
+  const make = (over: Partial<CampusEvent>): CampusEvent => ({ ...base, title: "Night", description: "Come by.", ...over }) as CampusEvent;
+
+  it("says what a free event gives: the food, then any merch", () => {
+    expect(freePerk(make({ free: true, food: true, foodNote: "Popcorn and soda" }))).toBe("Popcorn and soda");
+    expect(freePerk(make({ free: true, food: true, foodNote: "Pizza", description: "Free swag too." }))).toBe("Pizza, swag");
+    expect(freePerk(make({ free: true, food: false, foodNote: undefined, description: "T-shirts and stickers." }))).toBe(
+      "T-shirts, stickers",
+    );
+    expect(freePerk(make({ free: true, food: true, foodNote: undefined }))).toBe("Food");
+  });
+
+  it("is null for a free talk with nothing to take away, or a paid event", () => {
+    expect(freePerk(make({ free: true, food: false, foodNote: undefined }))).toBeNull();
+    expect(freePerk(make({ free: false, food: true, foodNote: "Dinner" }))).toBeNull();
   });
 });

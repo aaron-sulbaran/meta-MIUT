@@ -50,6 +50,8 @@ export type MapCard = {
   place: Point & { name: string };
   dateLine: string;
   free: boolean;
+  /** What a free event gives, like "Popcorn and soda", or null. */
+  perk: string | null;
   category: Category;
   organizerName: string;
   /** The organizer's logo image, when the event data has one. */
@@ -822,7 +824,7 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
             <article
-              className="relative flex h-[128px] items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
+              className="relative flex h-[144px] items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
             >
               <LogoTile card={card} />
               <div className="min-w-0 flex-1">
@@ -848,6 +850,9 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
                 {/* Every card is one size and tall enough for a two-line title, the
                     time, walk and Directions, and the place. Personalization reasons
                     stay inside the agent, as on the Top 3 and alerts (d-fwq6). */}
+                {card.perk ? (
+                  <p className="mt-[3px] truncate text-meta font-semibold text-ink">Free: {card.perk}</p>
+                ) : null}
                 <p className="mt-[4px] flex items-center gap-[5px] text-[12px] font-semibold leading-[15px] text-muted">
                   <MapPinIcon className="h-[12px] w-[12px] shrink-0" />
                   <span className="truncate">{card.place.name}</span>

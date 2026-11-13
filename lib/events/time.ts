@@ -34,6 +34,29 @@ export function hasTakeaway(event: CampusEvent): boolean {
   return event.food || TAKEAWAY.test(`${event.title} ${event.description}`);
 }
 
+const TAKEAWAY_NAMES: [RegExp, string][] = [
+  [/\bt-?shirts?\b/i, "T-shirts"],
+  [/\bmerch\b/i, "merch"],
+  [/\bswag\b/i, "swag"],
+  [/\bgiveaways?\b/i, "giveaways"],
+  [/\bfree gifts?\b/i, "gifts"],
+  [/\btote bags?\b/i, "tote bags"],
+  [/\bstickers\b/i, "stickers"],
+];
+
+// What a free event gives you, like "Popcorn and soda" or "Pizza, swag", or null when
+// it gives nothing beyond the event itself.
+export function freePerk(event: CampusEvent): string | null {
+  if (!event.free) return null;
+  const text = `${event.title} ${event.description}`;
+  const merch = TAKEAWAY_NAMES.filter(([pattern]) => pattern.test(text)).map(([, name]) => name);
+  const food = event.food ? (event.foodNote?.trim() || "Food") : null;
+  const parts = [...(food ? [food] : []), ...merch].slice(0, 3);
+  if (parts.length === 0) return null;
+  const line = parts.join(", ");
+  return line.charAt(0).toUpperCase() + line.slice(1);
+}
+
 // The Free tab is for free events anyone can walk into that give something beyond the
 // event itself (food, drinks, merch). A free talk or concert stays a general event.
 // A free event with limited spots stays off it (Muse still recommends it) until the
