@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DraftCard } from "@/components/organizer/draft-card";
 import { prepareFlyer } from "@/components/organizer/flyer-image";
+import { MuseMaking, type MakingState } from "@/components/organizer/muse-making";
 import type { ExtractDraft, ExtractDraftsResponse, FlyerImage, InputMode, OrganizerOption } from "@/components/organizer/types";
 import { useSpeechInput } from "@/components/organizer/use-speech-input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,11 @@ import type { KnownPlace } from "@/lib/organizer/place";
 
 // The organizer side of the demo: a flyer photo (with its caption) or a spoken line in,
 // Muse drafts every event in it, the organizer checks the flagged fields and publishes.
+// A handoff (the demo's staged Instagram post, ?handoff=story) brings its own flyer and
+// caption: no picker, Muse starts at once behind the "making your event" card (O3).
+
+/** A post handed over from the staged Instagram screen: its flyer, caption, and club. */
+export type OrganizerHandoff = { flyerSrc: string; caption: string; organizer: OrganizerOption };
 
 const NO_CAPTION = "(No caption. Read everything from the flyer image.)";
 
@@ -37,6 +43,7 @@ export function OrganizerFlow({
   eventTitles,
   sampleCaption,
   said = "",
+  handoff = null,
 }: {
   places: KnownPlace[];
   organizers: OrganizerOption[];
@@ -44,9 +51,10 @@ export function OrganizerFlow({
   sampleCaption: string;
   // A spoken line from Ask Muse, drafted as soon as the screen opens.
   said?: string;
+  handoff?: OrganizerHandoff | null;
 }) {
   const fallbackOrganizer: OrganizerOption = { name: "Your club", handle: "your_club" };
-  const [organizerHandle, setOrganizerHandle] = useState(organizers[0]?.handle ?? fallbackOrganizer.handle);
+  const [organizerHandle, setOrganizerHandle] = useState(handoff?.organizer.handle ?? organizers[0]?.handle ?? fallbackOrganizer.handle);
   const organizer = organizers.find((option) => option.handle === organizerHandle) ?? organizers[0] ?? fallbackOrganizer;
 
   const [mode, setMode] = useState<InputMode>(said ? "voice" : "photo");
@@ -56,6 +64,7 @@ export function OrganizerFlow({
   const [spoken, setSpoken] = useState(said);
   const [reading, setReading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [making, setMaking] = useState<MakingState | null>(null);
 
   const speech = useSpeechInput(useCallback((text: string) => setSpoken(text), []));
 
@@ -74,17 +83,22 @@ export function OrganizerFlow({
 
   const canSend = mode === "photo" ? Boolean(flyer || caption.trim()) : Boolean(spoken.trim());
 
-  async function draftIt() {
-    if (!canSend || reading) return;
+  // `post` drafts a handed-over post directly, before its flyer and caption reach state.
+  async function draftIt(post?: { flyer: FlyerImage | null; caption: string }) {
+    if (!post && (!canSend || reading)) return;
     if (speech.listening) speech.stop();
-    const sentCaption = mode === "photo" ? caption.trim() || NO_CAPTION : spoken.trim();
+    const sendMode: InputMode = post ? "photo" : mode;
+    const sendFlyer = post ? post.flyer : flyer;
+    const sendCaption = post ? post.caption : caption;
+    const sentCaption = sendMode === "photo" ? sendCaption.trim() || NO_CAPTION : spoken.trim();
     const body =
-      mode === "photo"
-        ? { caption: sentCaption, ...(flyer ? { imageBase64: flyer.base64, imageMediaType: flyer.mediaType } : {}) }
+      sendMode === "photo"
+        ? { caption: sentCaption, ...(sendFlyer ? { imageBase64: sendFlyer.base64, imageMediaType: sendFlyer.mediaType } : {}) }
         : { caption: sentCaption, spoken: true };
     setReading(true);
     setResult(null);
     const run = Date.now();
+    if (post) setMaking({ phase: "reading", startedAt: run });
     try {
       const response = await fetch("/api/muse/extract/events", {
         method: "POST",
@@ -94,10 +108,19 @@ export function OrganizerFlow({
       const answer = (await response.json()) as ExtractDraftsResponse;
       const all = answer.data?.events ?? [];
       const upcoming = all.filter((draft) => !(Date.parse(draft.end) <= Date.now()));
+      if (post) {
+        setMaking({
+          phase: "done",
+          tookMs: Date.now() - run,
+          live: answer.source === "muse",
+          draft: upcoming[0] ?? all[0] ?? null,
+          fallbackReason: answer.fallbackReason ?? null,
+        });
+      }
       setResult({
         run,
-        mode,
-        caption: mode === "photo" ? caption.trim() : spoken.trim(),
+        mode: sendMode,
+        caption: sendMode === "photo" ? sendCaption.trim() : spoken.trim(),
         drafts: upcoming,
         skippedPast: all.length - upcoming.length,
         live: answer.source === "muse",
@@ -105,7 +128,8 @@ export function OrganizerFlow({
         error: answer.data ? null : (answer.error ?? `Muse could not read it (HTTP ${response.status}).`),
       });
     } catch {
-      setResult({ run, mode, caption: sentCaption, drafts: [], skippedPast: 0, live: false, fallbackReason: null, error: "No connection. Try again." });
+      if (post) setMaking(null);
+      setResult({ run, mode: sendMode, caption: sentCaption, drafts: [], skippedPast: 0, live: false, fallbackReason: null, error: "No connection. Try again." });
     } finally {
       setReading(false);
     }
@@ -119,6 +143,29 @@ export function OrganizerFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [said]);
 
+  // A handed-over post: load its flyer like a picked photo, then draft it at once.
+  const handedOver = useRef(false);
+  useEffect(() => {
+    if (!handoff || handedOver.current) return;
+    handedOver.current = true;
+    void (async () => {
+      let prepared: FlyerImage | null = null;
+      try {
+        const response = await fetch(handoff.flyerSrc, { cache: "no-store" });
+        const blob = await response.blob();
+        const file = new File([blob], "flyer.png", { type: blob.type || "image/png" });
+        const ready = await prepareFlyer(file);
+        if (ready.error === null) prepared = ready.data;
+      } catch {
+        // No flyer: Muse still reads the caption.
+      }
+      if (prepared) setFlyer(prepared);
+      setCaption(handoff.caption);
+      await draftIt({ flyer: prepared, caption: handoff.caption });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoff]);
+
   function startOver() {
     setResult(null);
     setCaption("");
@@ -129,7 +176,13 @@ export function OrganizerFlow({
 
   return (
     <div className="flex flex-col gap-[12px] px-[12px] pt-[12px]">
-      <section className="flex flex-col gap-[10px]">
+      {handoff && (
+        <p className="text-venue text-muted">
+          From your Instagram post as <span className="font-display font-bold text-ink">{handoff.organizer.name}</span> (@{handoff.organizer.handle})
+        </p>
+      )}
+      {handoff && making && <MuseMaking flyerSrc={flyer?.previewUrl ?? handoff.flyerSrc} state={making} />}
+      <section className="flex flex-col gap-[10px]" hidden={Boolean(handoff)}>
         <label className="block text-venue text-muted">
           Posting as
           <select
@@ -237,18 +290,18 @@ export function OrganizerFlow({
           </>
         )}
 
-        <Button tone="primary" disabled={!canSend || reading} onClick={draftIt}>
+        <Button tone="primary" disabled={!canSend || reading} onClick={() => void draftIt()}>
           {reading ? "Muse is reading it" : "Draft it with Muse"}
         </Button>
       </section>
 
-      {reading && (
+      {reading && !handoff && (
         <div aria-hidden className="h-[180px] animate-pulse rounded-card border border-hairline bg-wash motion-reduce:animate-none" />
       )}
 
       {result && (
         <section aria-live="polite" className="flex flex-col gap-[10px] pb-[8px]">
-          <div className="flex flex-wrap items-baseline justify-between gap-[6px]">
+          <div className="flex flex-wrap items-baseline justify-between gap-[6px]" hidden={Boolean(handoff) && !result.error}>
             <h2 className="font-display text-title font-bold">
               {result.error
                 ? "Muse could not read it"
@@ -271,7 +324,7 @@ export function OrganizerFlow({
           {!result.error && result.drafts.length === 0 && result.skippedPast === 0 && (
             <p className="text-body text-muted">Muse reads this as something other than an event people go to, like a sale or a reminder. Nothing was drafted.</p>
           )}
-          {!result.live && !result.error && result.drafts.length > 0 && (
+          {!handoff && !result.live && !result.error && result.drafts.length > 0 && (
             <p className="text-venue text-muted">Muse was not reachable, so this is a recorded example draft{result.fallbackReason ? ` (${result.fallbackReason})` : ""}.</p>
           )}
           {result.drafts.map((draft, index) => (

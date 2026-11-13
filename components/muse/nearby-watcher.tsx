@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { isStagedScreen } from "@/lib/demo/staged";
 import { useEffect, useSyncExternalStore } from "react";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
 import type { Alert } from "@/lib/alerts/schema";
@@ -74,6 +75,7 @@ function notifyInBackground(alerts: Alert[], open: (path: string) => void) {
 
 export function NearbyWatcher() {
   const router = useRouter();
+  const pathname = usePathname();
   const pref = useSyncExternalStore(subscribe, readPref, () => "dismissed" as const);
 
   useEffect(() => {
@@ -134,7 +136,8 @@ export function NearbyWatcher() {
     };
   }, [pref, router]);
 
-  if (pref !== null) return null;
+  // Not on staged screens: they imitate another app (Instagram).
+  if (pref !== null || isStagedScreen(pathname)) return null;
 
   function turnOn() {
     writePref("on");
