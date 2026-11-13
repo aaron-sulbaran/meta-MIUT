@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CampusEvent } from "@/lib/events/schema";
 import { loadSeedEvents } from "@/lib/events/seed";
-import { ACCEPT_AFTER_MS, COMPANY_LIMIT, friendsGoingLine, resetSocial, sayHello, setGoing, sharedLine, whoIsGoing } from "@/lib/social/going";
+import { ACCEPT_AFTER_MS, COMPANY_LIMIT, friendsGoingLine, hellosTo, resetSocial, saveSocial, sayHello, setGoing, sharedLine, whoIsGoing } from "@/lib/social/going";
 import { FRIENDS } from "@/lib/social/fixtures/people";
+import { setStateClient } from "@/lib/store/state";
 
 const viewer = "sample-student";
 const interests = ["rock climbing", "free food", "hackathons", "film"];
@@ -101,5 +102,32 @@ describe("going together", () => {
     expect(sharedLine(["film"])).toBe("You both like film");
     expect(sharedLine(["hackathons", "film"])).toBe("You both like hackathons and film");
     expect(sharedLine(["a", "b", "c"])).toBe("You both like a, b and c");
+  });
+});
+
+describe("social state from an older version", () => {
+  beforeEach(() => resetSocial());
+
+  it("fills in missing fields instead of throwing, and still saves", async () => {
+    const saved: string[] = [];
+    setStateClient({
+      command: async (args: (string | number)[]) => {
+        if (args[0] === "SET") saved.push(String(args[1]));
+        return { data: null, error: null };
+      },
+    } as unknown as Parameters<typeof setStateClient>[0]);
+    // The shape before hello notes existed, as a dev server kept it in memory.
+    (globalThis as unknown as { __socialState?: unknown }).__socialState = { going: new Map(), hellos: new Map() };
+    try {
+      const event = events.find((candidate) => whoIsGoing(candidate, viewer, interests).openToCompany.length > 0)!;
+      setGoing(event, "lisa", { going: true });
+      const to = whoIsGoing(event, viewer, interests).openToCompany[0]!.id;
+      expect(sayHello(event, viewer, to, 0, "Hi there").error).toBeNull();
+      await expect(saveSocial(event)).resolves.toBeUndefined();
+      expect(saved.some((key) => key.endsWith("social-hellos-notes"))).toBe(true);
+      expect(hellosTo(to)[0]?.message).toBe("Hi there");
+    } finally {
+      setStateClient(undefined);
+    }
   });
 });

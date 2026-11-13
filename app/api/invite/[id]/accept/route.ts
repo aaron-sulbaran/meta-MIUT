@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getEventStore } from "@/lib/events/store";
-import { readJsonBody } from "@/lib/http";
+import { readJsonBody, savingRoute } from "@/lib/http";
 import { PERSONAS } from "@/lib/social/fixtures/people";
 import { loadSocial, saveSocial, setGoing } from "@/lib/social/going";
 import { currentViewer } from "@/lib/social/viewer";
@@ -12,7 +12,7 @@ import { currentViewer } from "@/lib/social/viewer";
 
 const AcceptSchema = z.object({ from: z.string().min(1).max(64).optional() });
 
-export async function POST(request: NextRequest, context: RouteContext<"/api/invite/[id]/accept">) {
+export const POST = savingRoute("invite accept", async function post(request: NextRequest, context: RouteContext<"/api/invite/[id]/accept">) {
   const { id } = await context.params;
   const body = await readJsonBody(request, AcceptSchema);
   if (body.error !== null) return Response.json({ data: null, error: body.error }, { status: 400 });
@@ -26,4 +26,4 @@ export async function POST(request: NextRequest, context: RouteContext<"/api/inv
   if (inviter) setGoing(event, inviter.id, { going: true });
   await saveSocial(event);
   return Response.json({ data: { going: [viewer.id, ...(inviter ? [inviter.id] : [])] }, error: null });
-}
+});

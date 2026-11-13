@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon } from "@/components/ui/icons";
 import type { InviteStep } from "@/components/invite/steps";
 import { AccountRow, META_SYSTEM_FONT, MetaLockup, ProfileCircle } from "@/components/invite/meta-account";
+import { SAVE_FAILED } from "@/lib/http";
 
 // Where an invite lands for someone with no Facebook account (Lisa's act, beats
 // U2b to U2f). Every step is her own tap, and each tells the /demo stage (or her
@@ -167,7 +168,7 @@ export function InviteLanding({
     const ok = await accept();
     setBusy(false);
     if (!ok) {
-      setError("Could not join right now. Try again.");
+      setError(SAVE_FAILED);
       return;
     }
     if (inviterId) handOff(HANDOFF.lisaJoined(eventId, inviterId), () => {});
@@ -185,7 +186,7 @@ export function InviteLanding({
     }).catch(() => null);
     setBusy(false);
     if (!response?.ok) {
-      setError("Could not turn it on right now. Try again.");
+      setError(SAVE_FAILED);
       return;
     }
     setCompany(true);

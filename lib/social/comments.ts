@@ -16,10 +16,12 @@ export { COMMENT_MAX_LENGTH, type EventComment, type EventComments } from "@/lib
 type Stored = { id: string; authorId: string; name: string; text: string; at: string; replyTo?: string; mention?: string };
 type CommentsState = { posted: Map<string, Stored[]> };
 
-const globalForComments = globalThis as unknown as { __commentsState?: CommentsState };
+const globalForComments = globalThis as unknown as { __commentsState?: Partial<CommentsState> };
+/** Filled in on every read, so state from an older version of this module never throws. */
 function state(): CommentsState {
-  globalForComments.__commentsState ??= { posted: new Map() };
-  return globalForComments.__commentsState;
+  const held = (globalForComments.__commentsState ??= {});
+  if (!(held.posted instanceof Map)) held.posted = new Map();
+  return held as CommentsState;
 }
 
 const MINUTE = 60_000;

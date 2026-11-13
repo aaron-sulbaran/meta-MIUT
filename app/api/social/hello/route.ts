@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getEventStore } from "@/lib/events/store";
-import { readJsonBody } from "@/lib/http";
+import { readJsonBody, savingRoute } from "@/lib/http";
 import { hellosFrom, loadSocial, sayHello, saveSocial, whoIsGoing } from "@/lib/social/going";
 import { EVERYONE } from "@/lib/social/fixtures/people";
 import { writeHello } from "@/lib/social/muse-hello";
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: Request) {
+export const POST = savingRoute("say hi", async function post(request: Request) {
   const body = await readJsonBody(request, HelloSchema);
   if (body.error !== null) return Response.json({ data: null, error: body.error }, { status: 400 });
   const event = await getEventStore().getEvent(body.data.eventId);
@@ -89,4 +89,4 @@ export async function POST(request: Request) {
   }
   await saveSocial(event);
   return Response.json({ data: whoIsGoing(event, viewer.id, viewer.interests), error: null, hello });
-}
+});
