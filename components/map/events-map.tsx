@@ -560,6 +560,7 @@ export function EventsMap({
   promisedStopId = null,
   storyEventId = null,
   openAsk = false,
+  firstVisit = false,
 }: {
   cards: MapCard[];
   studentSpot: Point;
@@ -585,6 +586,8 @@ export function EventsMap({
   storyEventId?: string | null;
   /** Open with the Ask Muse popup up (?muse=ask, from Sprout's menu on the List). */
   openAsk?: boolean;
+  /** A first visit to Events (?first=1): the Muse card opens over the map and curates her top events. */
+  firstVisit?: boolean;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -614,6 +617,8 @@ export function EventsMap({
   // not the Food Crawl sheet: Muse plans where you can see it, speaks, and the mic re-plans.
   const [conversation] = useState(autoPlan === "home");
   const [previewSpot, setPreviewSpot] = useState<FriendSpot | null>(null);
+  // The first-visit curate: Muse's picks, numbered on the map over every other event.
+  const [musePicks, setMusePicks] = useState<string[]>([]);
   // Open once, a beat after the first walk is drawn, so the room sees the plan change.
   const autoAskOpened = useRef(false);
   const hasRoute = route !== null;
@@ -836,6 +841,29 @@ export function EventsMap({
     );
   }, [mapReady, route]);
 
+  // Muse's first-visit picks: numbered pins on their events, every other event still on the
+  // map, framed with the student above the Muse card. Tapping one opens it.
+  useEffect(() => {
+    const map = mapRef.current;
+    const MarkerClass = markerClassRef.current;
+    if (!mapReady || !map || !MarkerClass || musePicks.length === 0 || route) return;
+    const placed = musePicks.flatMap((eventId, index) => {
+      const card = cards.find((item) => item.eventId === eventId);
+      if (!card) return [];
+      const element = routeMarkerElement(String(index + 1), false, "home", () => router.push(`/events/${encodeURIComponent(eventId)}`), card.title);
+      return [{ card, marker: new MarkerClass({ element, anchor: "bottom", offset: [0, -44] }).setLngLat([card.place.lng, card.place.lat]).addTo(map) }];
+    });
+    const points = [studentSpot, ...placed.map(({ card }) => card.place)];
+    map.fitBounds(
+      [
+        [Math.min(...points.map((point) => point.lng)), Math.min(...points.map((point) => point.lat))],
+        [Math.max(...points.map((point) => point.lng)), Math.max(...points.map((point) => point.lat))],
+      ],
+      { padding: { top: 150, bottom: 440, left: 50, right: 50 }, maxZoom: 16, duration: 700 },
+    );
+    return () => placed.forEach(({ marker }) => marker.remove());
+  }, [mapReady, musePicks, route, cards, studentSpot, router]);
+
   // A friend's spot while Muse plans toward them ("find something between you and Lisa").
   useEffect(() => {
     const map = mapRef.current;
@@ -1031,7 +1059,7 @@ export function EventsMap({
       </div>
 
 
-      {!crawlOpen && !askOpen && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
+      {!crawlOpen && !askOpen && !firstVisit && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
 
       {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} autoAsk={askLine?.line} />}
 
@@ -1064,6 +1092,22 @@ export function EventsMap({
           storyEventId={storyEventId}
           onRoute={setRoute}
           onPreviewSpot={setPreviewSpot}
+        />
+      )}
+
+      {firstVisit && !crawlOpen && (
+        <MuseConversation
+          studentSpot={studentSpot}
+          events={crawlEvents}
+          at={planAt}
+          holdReveal={holdReveal}
+          autoAsk={null}
+          promisedStopId={null}
+          storyEventId={storyEventId}
+          onRoute={setRoute}
+          onPreviewSpot={setPreviewSpot}
+          opening="curate"
+          onPicks={setMusePicks}
         />
       )}
 

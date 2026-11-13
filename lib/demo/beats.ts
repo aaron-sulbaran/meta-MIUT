@@ -401,9 +401,9 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "First time in Events",
-    caption: "Muse builds the feed from what she already follows.",
-    note: "Trish: first time in Events. Muse reads what she follows and builds her feed. Board Game Night is first.",
-    path: () => HANDOFF.curateAuto,
+    caption: "Facebook opens on the map of everything on campus. Muse picks hers from what she already follows.",
+    note: "Trish: Facebook opens on the Events map. Muse reads what she follows, live, and puts her top picks on the map. Tap Board Game Night + Free Dumplings.",
+    path: () => HANDOFF.firstEvents,
   },
   {
     id: "U3d",

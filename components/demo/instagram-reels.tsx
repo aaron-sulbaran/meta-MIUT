@@ -19,7 +19,7 @@ import { HANDOFF, STORY_POST, handOff } from "@/lib/demo/staged";
 // the next. The stage moves this screen in place with {type: "demo-reel", reel, sheet}.
 
 // Where the sheet's button goes: Trish's first visit to Facebook Events (beat U3b).
-export const REELS_NEXT = HANDOFF.curateAuto;
+export const REELS_NEXT = HANDOFF.firstEvents;
 
 const BEAT_STEP: Record<string, number> = { U3a1: 0, U3a2: 1, U3a3: 2, U3a4: 3 };
 const stepPath = (step: number) => HANDOFF.reels(Math.min(step, 2) + 1, step === 3);

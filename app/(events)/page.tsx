@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { EventFeed } from "@/components/events/event-feed";
 import { TopPicks, TopPicksSkeleton } from "@/components/events/top-picks";
 import { ListTopBar, type ListChip } from "@/components/map/list-top-bar";
+import { AppSwitch } from "@/components/demo/app-switch";
 import { MapHome, MapHomeSkeleton } from "@/components/map/map-home";
 import { ListMuseMenu, MuseHeaderButton } from "@/components/map/muse-menu";
 import { ViewToggle } from "@/components/map/view-toggle";
@@ -23,10 +24,12 @@ import { getEventStore } from "@/lib/events/store";
 // watcher's simulated location). ?auto=1 (the demo's U1c) has Ask Muse ask the
 // scripted re-plan line on its own, as typed text; the real ask call still runs.
 // ?reveal=wait (the stage loading U1b ahead) holds Muse's reveal until the stage posts {type: "reveal"}.
+// ?first=1 is a first visit to Events (the demo's U3b, opened from Instagram with ?opened=instagram,
+// which plays the app switch): the Muse card curates her top events over the map.
 export default async function EventsTabPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string; reveal?: string; muse?: string }>;
+  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string; reveal?: string; muse?: string; first?: string; opened?: string }>;
 }) {
   await connection();
   const params = await searchParams;
@@ -36,7 +39,7 @@ export default async function EventsTabPage({
   const events = await getEventStore().listEvents();
 
   return (
-    <>
+    <AppSwitch from={params.opened}>
       <SubPageHeader
         title="Events"
         backHref="/home"
@@ -63,6 +66,7 @@ export default async function EventsTabPage({
               autoAsk={params.auto === "1" ? REPLAN_LINE : null}
               holdReveal={params.reveal === "wait"}
               openAsk={params.muse === "ask"}
+              firstVisit={params.first === "1"}
               planAt={params.time && Number.isFinite(Date.parse(params.time)) ? params.time : null}
             />
           </Suspense>
@@ -88,6 +92,6 @@ export default async function EventsTabPage({
           />
         </>
       )}
-    </>
+    </AppSwitch>
   );
 }
