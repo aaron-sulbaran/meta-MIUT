@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { DraftCard } from "@/components/organizer/draft-card";
 import { prepareFlyer } from "@/components/organizer/flyer-image";
 import { FlyerMoment } from "@/components/demo/moments/flyer-moment";
+import type { FlyerRegion } from "@/components/demo/moments/flyer-regions";
 import type { MakingState } from "@/components/organizer/muse-making";
 import type { ExtractDraft, ExtractDraftsResponse, FlyerImage, InputMode, OrganizerOption } from "@/components/organizer/types";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,8 @@ export type OrganizerHandoff = {
   flyerSrc: string;
   caption: string;
   organizer: OrganizerOption;
-  // The flyer's printed time line and the demo clock, so boxes land on the right words.
-  timeLine: string;
+  // Where each line is printed on the flyer (empty when its layout is unknown), and the demo clock.
+  regions: FlyerRegion[];
   nowIso: string;
   // Where the stage goes once the event is posted (O5), or null outside the stage.
   postedPath: string | null;
@@ -172,7 +173,7 @@ export function OrganizerFlow({
         <FlyerMoment
           flyerSrc={flyer?.previewUrl ?? handoff.flyerSrc}
           caption={handoff.caption}
-          timeLine={handoff.timeLine}
+          regions={handoff.regions}
           now={new Date(handoff.nowIso)}
           state={making}
           places={places}

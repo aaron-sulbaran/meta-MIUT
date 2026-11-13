@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { OrganizerFlow, type OrganizerHandoff } from "@/components/organizer/organizer-flow";
 import type { OrganizerOption } from "@/components/organizer/types";
+import { flyerRegions } from "@/components/demo/moments/flyer-regions";
 import { PostedEvent } from "@/components/demo/moments/posted-event";
 import { HANDOFF, STORY_POST, flyerUrl, storyCaption, storyTimeLine } from "@/lib/demo/staged";
 import { ensureStoryEvent } from "@/lib/demo/story";
@@ -49,7 +50,8 @@ export default async function OrganizerPage({
           flyerSrc: flyerUrl(now),
           caption: storyCaption(now),
           organizer: { ...STORY_POST.organizer },
-          timeLine: storyTimeLine(now),
+          // The drawn demo flyer's layout. A story with another flyer passes [] (no boxes, fields still fill in).
+          regions: flyerRegions(storyTimeLine(now)),
           nowIso: now.toISOString(),
           postedPath: HANDOFF.organizerPosted(at ?? null),
         }

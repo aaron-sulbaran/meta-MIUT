@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BrandMark } from "@/components/demo/moments/brand-mark";
-import { FLYER_SIZE, flyerRegions, readFields, type ReadField } from "@/components/demo/moments/flyer-regions";
+import { FLYER_SIZE, readFields, type FlyerRegion, type ReadField } from "@/components/demo/moments/flyer-regions";
 import { PostedEvent } from "@/components/demo/moments/posted-event";
 import type { MakingState } from "@/components/organizer/muse-making";
 import { publishDraft, type Published } from "@/components/organizer/publish-draft";
@@ -107,7 +107,7 @@ function FlyerBoxes({ fields, shown, active }: { fields: ReadField[]; shown: num
 export function FlyerMoment({
   flyerSrc,
   caption,
-  timeLine,
+  regions,
   now,
   state,
   places,
@@ -117,7 +117,8 @@ export function FlyerMoment({
 }: {
   flyerSrc: string;
   caption: string;
-  timeLine: string;
+  /** Where each line is printed on this flyer (the drawn demo flyer); empty for a flyer with no known layout, so nothing is boxed. */
+  regions: FlyerRegion[];
   now: Date;
   state: MakingState;
   places: KnownPlace[];
@@ -126,7 +127,7 @@ export function FlyerMoment({
   onPosted?: (published: Published) => void;
 }) {
   const draft = state.phase === "done" ? state.draft : null;
-  const fields = useMemo(() => (draft ? readFields(draft, flyerRegions(timeLine), formatWhen(now)) : null), [draft, timeLine, now]);
+  const fields = useMemo(() => (draft ? readFields(draft, regions, formatWhen(now)) : null), [draft, regions, now]);
   const [shown, setShown] = useState(0);
   const [posting, setPosting] = useState<"idle" | "saving" | { error: string }>("idle");
   const [published, setPublished] = useState<Published | null>(null);
@@ -194,10 +195,10 @@ export function FlyerMoment({
         </div>
       </div>
 
-      <div className="relative mx-auto w-[272px] overflow-hidden rounded-[10px] border border-hairline bg-wash" style={{ aspectRatio: `${FLYER_SIZE.width} / ${FLYER_SIZE.height}` }}>
+      <div className="relative mx-auto w-[272px] overflow-hidden rounded-[10px] border border-hairline bg-wash" style={regions.length > 0 ? { aspectRatio: `${FLYER_SIZE.width} / ${FLYER_SIZE.height}` } : undefined}>
         {/* The organizer's own post image (a drawn flyer in the demo). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={flyerSrc} alt="Your Instagram post's flyer" className="h-full w-full object-cover" />
+        <img src={flyerSrc} alt="Your Instagram post's flyer" className={regions.length > 0 ? "h-full w-full object-cover" : "block h-auto w-full"} />
         {reading && <span aria-hidden className="moment-scan absolute inset-x-0 h-[22%] motion-reduce:hidden" />}
         {fields && <FlyerBoxes fields={fields} shown={shown} active={allShown ? -1 : shown - 1} />}
       </div>
