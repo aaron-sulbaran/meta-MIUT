@@ -86,18 +86,15 @@ function settledCardId(strip: HTMLElement): string | null {
   return best?.id || null;
 }
 
-// Past a 30 minute walk the card also gives the T time (a rough estimate, as in the crawl).
-const LONG_WALK_MINUTES = 30;
-
+// The card gives the faster of walking or the T (a rough estimate, as in the crawl).
 function transitMinutes(from: Point, to: Point): number | null {
-  if (walkMinutes(from, to) <= LONG_WALK_MINUTES) return null;
   const leg = travel(from, to, "transit");
   return leg.mode === "transit" ? leg.minutes : null;
 }
 
 function travelLine(from: Point, to: Point): string {
   const transit = transitMinutes(from, to);
-  return `${walkMinutes(from, to)} min walk${transit === null ? "" : ` · ${transit} min by T`}`;
+  return transit === null ? `${walkMinutes(from, to)} min walk` : `${transit} min by T`;
 }
 
 function directionsUrl(from: Point, to: Point, byTransit = false): string {
