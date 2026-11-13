@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { CastAvatar } from "@/components/demo/cast-avatar";
 import { DeckHost } from "@/components/demo/deck-host";
 import { FilmPlayer, type FilmControls } from "@/components/demo/film-player";
+import { PHONE_OUTER_HEIGHT, PHONE_OUTER_WIDTH, PhoneFrame } from "@/components/demo/phone-frame";
 import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type CastId } from "@/lib/demo/beats";
 import { demoClock } from "@/lib/demo/clock";
+import { phoneChromeFor } from "@/lib/demo/phone-chrome";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
 // The projected stage for the pitch, on Facebook's white page. One beat at a
@@ -27,9 +29,6 @@ import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 // within one person the phone cross-fades. Reset and the beat list stay off
 // the projected view: they live on /demo/console and the remote (keys still work).
 
-const PHONE_WIDTH = 390;
-const PHONE_HEIGHT = 844;
-const BEZEL = 12;
 const FOOTER_HEIGHT = 72;
 const PERSON_CARD_MS = 700;
 const FADE_MS = 200;
@@ -89,12 +88,13 @@ function subscribeToResize(onChange: () => void) {
   window.addEventListener("resize", onChange);
   return () => window.removeEventListener("resize", onChange);
 }
+// The whole phone, bezel included, scales as one piece (components/demo/phone-frame.tsx).
 const phoneScale = () => {
-  const byHeight = (window.innerHeight - FOOTER_HEIGHT - 48 - BEZEL * 2) / PHONE_HEIGHT;
+  const byHeight = (window.innerHeight - FOOTER_HEIGHT - 48) / PHONE_OUTER_HEIGHT;
   // Stacked under 640 px: the phone takes most of the height, the words sit below it.
-  if (window.innerWidth < 640) return Math.min(byHeight * 0.64, (window.innerWidth - 32 - BEZEL * 2) / PHONE_WIDTH);
+  if (window.innerWidth < 640) return Math.min(byHeight * 0.64, (window.innerWidth - 32) / PHONE_OUTER_WIDTH);
   // Side by side: the phone up to about half the width, the words beside it.
-  return Math.min(byHeight, (window.innerWidth * 0.48 - BEZEL * 2) / PHONE_WIDTH);
+  return Math.min(byHeight, (window.innerWidth * 0.48) / PHONE_OUTER_WIDTH);
 };
 
 async function fetchStoryEvent(): Promise<{ id: string; error: null } | { id: null; error: string }> {
@@ -466,11 +466,8 @@ export function Stage() {
         </section>
       ) : (
         <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[20px] px-[16px] py-[24px] sm:flex-row sm:gap-[4vw] sm:px-[4vw]">
-          <div
-            className="relative shrink-0 overflow-clip rounded-[52px] bg-card shadow-[0_18px_50px_rgba(0,0,0,0.18)]"
-            style={{ width: PHONE_WIDTH * scale + BEZEL * 2, height: PHONE_HEIGHT * scale + BEZEL * 2, border: `${BEZEL}px solid #1c1e21` }}
-          >
-            <div className="relative" style={{ width: PHONE_WIDTH, height: PHONE_HEIGHT, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+          <PhoneFrame scale={scale} chrome={phoneChromeFor(beat, showPlaceholder)} time={runStartedAt}>
+            <div className="absolute inset-0">
               {showPlaceholder && beat.staged ? (
                 <StagedScreenView screen={beat.staged} onHandoff={() => goTo(index + 1)} />
               ) : topScreen ? (
@@ -501,7 +498,7 @@ export function Stage() {
                 <div className="flex h-full items-center justify-center text-body text-muted">Loading the story event</div>
               )}
             </div>
-          </div>
+          </PhoneFrame>
           <div className="flex w-full max-w-[600px] min-w-0 flex-col gap-[2.4vh]">
             <span className="inline-flex w-fit items-center gap-[12px] rounded-full bg-primary-soft py-[6px] pr-[18px] pl-[6px] font-display text-[clamp(16px,1.5vw,24px)] font-bold text-link">
               <CastAvatar id={cast} size={40} />
