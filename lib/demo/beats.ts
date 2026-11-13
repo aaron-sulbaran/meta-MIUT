@@ -45,6 +45,9 @@ export type Beat = {
   // Continues inside the phone of beat `from` (when it is still on screen) by posting
   // `message` to it, instead of loading this beat's path. Any other way in loads the path.
   inFrame?: { from: string; message: { type: "demo-ask"; line: string } };
+  // Load this beat's screen hidden while the beat before it is on (same person),
+  // so it is already at rest when the presenter moves on.
+  prefetch?: boolean;
 };
 
 export type FilmName = "problem" | "muse" | "build";
@@ -177,6 +180,8 @@ export const BEATS: Beat[] = [
     title: "Already mapped",
     caption: "The best free stop on his walk home, before he asks.",
     path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
+    // Planned while the lock screen is up, so the walk is already drawn ("before he asks").
+    prefetch: true,
   },
   {
     id: "U1c",
