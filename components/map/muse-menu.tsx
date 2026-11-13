@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 
@@ -14,10 +14,14 @@ import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 export const SPROUT_SRC = "/muse/sprout.png";
 /** Sprout's full body on a transparent background, from sprout-portrait in muse-friends. */
 export const SPROUT_BODY_SRC = "/muse/sprout-body.png";
-/** Sprout waving, on a loop that never stops (Lisa's GIF, cut out to a transparent animated WebP), so he stands out as the thing to tap. */
-export const SPROUT_WAVE_SRC = "/muse/sprout-wave.webp";
-/** The wave's first frame, for viewers who ask for less motion. */
-export const SPROUT_WAVE_STILL_SRC = "/muse/sprout-wave-still.png";
+/**
+ * Sprout standing still and holding up M, I, (U), T one poster at a time,
+ * spelling the team name MI(U)T, on a loop (Lisa). Built from her waving GIF
+ * by scripts/mascot/build_miut_mascot.py; rerun it to change the posters.
+ */
+export const SPROUT_ANIMATED_SRC = "/muse/sprout-miut.webp";
+/** The loop's opening frame (Sprout, no poster), for viewers who ask for less motion. */
+export const SPROUT_STILL_SRC = "/muse/sprout-miut-still.png";
 // Set once Sprout has introduced himself, so the speech bubble shows only on a first visit.
 const INTRO_SEEN_KEY = "muse:intro-seen";
 
@@ -43,7 +47,7 @@ export function MuseFace({ size, className = "" }: { size: number; className?: s
 
 /** Sprout's whole body, no circle or background. */
 export function MuseBody({ size, className = "", animated = false }: { size: number; className?: string; animated?: boolean }) {
-  // If the wave cannot load (a dev server that has not picked up the new file,
+  // If the animation cannot load (a dev server that has not picked up the new file,
   // a stale deploy, an old browser), Sprout falls back to his still body
   // rather than a broken-image icon.
   const [failed, setFailed] = useState(false);
@@ -53,26 +57,26 @@ export function MuseBody({ size, className = "", animated = false }: { size: num
     const image = ref.current;
     if (image && image.complete && image.naturalWidth === 0) setFailed(true);
   }, []);
-  const wave = animated && !failed;
+  const play = animated && !failed;
   const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={ref}
-      src={wave ? SPROUT_WAVE_SRC : SPROUT_BODY_SRC}
+      src={play ? SPROUT_ANIMATED_SRC : SPROUT_BODY_SRC}
       alt=""
       width={size}
       height={size}
       draggable={false}
-      onError={wave ? () => setFailed(true) : undefined}
+      onError={play ? () => setFailed(true) : undefined}
       className={`block select-none object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] ${className}`}
       style={{ width: size, height: size }}
     />
   );
-  if (!wave) return img;
-  // The wave plays nonstop unless the viewer asked for less motion.
+  if (!play) return img;
+  // The poster loop plays unless the viewer asked for less motion.
   return (
     <picture>
-      <source srcSet={SPROUT_WAVE_STILL_SRC} media="(prefers-reduced-motion: reduce)" />
+      <source srcSet={SPROUT_STILL_SRC} media="(prefers-reduced-motion: reduce)" />
       {img}
     </picture>
   );
@@ -100,10 +104,10 @@ function markIntroSeen() {
 }
 
 /**
- * Sprout in the Events header. On the map it opens the Muse menu; on the List
- * view (mode "link") it goes to Ask Muse, as the search icon did.
+ * Sprout in the Events header. On the Map and the List alike it opens the
+ * Muse menu, Ask Muse and Freebie Crawl (Lisa).
  */
-export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
+export function MuseHeaderButton() {
   const [open, setOpen] = useState(false);
   const [intro, setIntro] = useState(false);
   useEffect(() => {
@@ -136,9 +140,10 @@ export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
       className="block transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1.3)] motion-reduce:transition-none"
       style={{ transform: open ? "rotate(-14deg) translate(-2px, 2px)" : "none" }}
     >
-      {/* Sprout waves the whole time, menu open or not, so he reads as
-          someone to tap, not decoration. */}
-      <MuseBody size={40} animated />
+      {/* Sprout holds up M, I, (U), T the whole time, menu open or not, so he
+          reads as someone to tap, not decoration; full button size so the
+          posters read. */}
+      <MuseBody size={44} animated />
     </span>
   );
   const bubble = intro && !open && (
@@ -147,19 +152,9 @@ export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
       className="pointer-events-none absolute right-0 top-[48px] z-50 w-[196px] rounded-[14px] bg-ink px-[12px] py-[9px] text-left text-[12.5px] font-semibold leading-[16px] text-white shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
     >
       <span aria-hidden className="absolute -top-[5px] right-[16px] h-[11px] w-[11px] rotate-45 rounded-[2px] bg-ink" />
-      {mode === "menu" ? "Hi, I'm Muse! Tap me to ask anything or plan a freebie crawl." : "Hi, I'm Muse! Tap me to ask anything."}
+      Hi, I&apos;m Muse! Tap me to ask anything or plan a freebie crawl.
     </span>
   );
-  if (mode === "link") {
-    return (
-      <span className="relative">
-        <Link href="/ask" aria-label="Ask Muse" className={box} onClick={dismissIntro}>
-          {body}
-        </Link>
-        {bubble}
-      </span>
-    );
-  }
   return (
     <span className="relative">
       <button
@@ -189,7 +184,22 @@ function RouteGlyph({ className }: { className?: string }) {
   );
 }
 
-export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () => void }) {
+/**
+ * The Muse menu on the List view: the same two buttons as on the map. Both
+ * open the map, since the walk and the Ask popup live there: Ask Muse with
+ * its popup up (?muse=ask), Freebie Crawl with the planner up (?plan=crawl).
+ */
+export function ListMuseMenu() {
+  const router = useRouter();
+  return (
+    // Pinned just under the sticky header, so the menu drops from Sprout even when the list is scrolled.
+    <div className="sticky top-[calc(52px+env(safe-area-inset-top))] z-30 h-0">
+      <MuseMenu page onAsk={() => router.push("/?muse=ask")} onCrawl={() => router.push("/?plan=crawl")} />
+    </div>
+  );
+}
+
+export function MuseMenu({ onAsk, onCrawl, page = false }: { onAsk: () => void; onCrawl: () => void; page?: boolean }) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
 
@@ -221,7 +231,16 @@ export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () =>
 
   return (
     <>
-      {open && <button type="button" aria-label="Close the Muse menu" tabIndex={-1} onClick={() => setOpen(false)} className="absolute inset-0 z-20 cursor-default bg-ink/10" />}
+      {open && (
+        <button
+          type="button"
+          aria-label="Close the Muse menu"
+          tabIndex={-1}
+          onClick={() => setOpen(false)}
+          // On the List it dims the page below the header, like the map does.
+          className={`${page ? "fixed inset-x-0 bottom-0 top-[calc(52px+env(safe-area-inset-top))]" : "absolute inset-0"} z-20 cursor-default bg-ink/10`}
+        />
+      )}
       <div className="pointer-events-none absolute right-3 top-3 z-30 flex flex-col items-end">
         <ul
           id={menuId}

@@ -4,7 +4,7 @@ import { EventFeed } from "@/components/events/event-feed";
 import { TopPicks, TopPicksSkeleton } from "@/components/events/top-picks";
 import { ListTopBar, type ListChip } from "@/components/map/list-top-bar";
 import { MapHome, MapHomeSkeleton } from "@/components/map/map-home";
-import { MuseHeaderButton } from "@/components/map/muse-menu";
+import { ListMuseMenu, MuseHeaderButton } from "@/components/map/muse-menu";
 import { ViewToggle } from "@/components/map/view-toggle";
 import { HeaderAction, SubPageHeader } from "@/components/ui/header";
 import { PlusSquareIcon } from "@/components/ui/icons";
@@ -15,8 +15,9 @@ import { getEventStore } from "@/lib/events/store";
 // The Events tab opens on the map (lisa, t-94t4). The feed is one tap away as
 // List (?view=list). Both views share one top bar: For you and Free on the
 // upper left, Map/List on the upper right. Sprout, the Muse character, sits in
-// the header where the search icon was: on the map it opens the Muse menu, on
-// the List view it opens Ask Muse. /?plan=home opens the map with Muse's walk from
+// the header where the search icon was: on the Map and the List it opens the
+// Muse menu (Ask Muse, Freebie Crawl); from the List, both open the map
+// (/?muse=ask with the Ask popup up, /?plan=crawl with the planner up). /?plan=home opens the map with Muse's walk from
 // class to home planned (the "just out of class" alert links here); ?time=<ISO>
 // plans every walk from a set campus time, for the demo (?at= is the nearby
 // watcher's simulated location). ?auto=1 (the demo's U1c) has Ask Muse ask the
@@ -25,7 +26,7 @@ import { getEventStore } from "@/lib/events/store";
 export default async function EventsTabPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string; reveal?: string }>;
+  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string; reveal?: string; muse?: string }>;
 }) {
   await connection();
   const params = await searchParams;
@@ -43,7 +44,7 @@ export default async function EventsTabPage({
         actions={
           <>
             <HeaderAction label="Create an event" Icon={PlusSquareIcon} href="/organizer" />
-            <MuseHeaderButton mode={view === "map" ? "menu" : "link"} />
+            <MuseHeaderButton />
           </>
         }
       />
@@ -61,6 +62,7 @@ export default async function EventsTabPage({
               }
               autoAsk={params.auto === "1" ? REPLAN_LINE : null}
               holdReveal={params.reveal === "wait"}
+              openAsk={params.muse === "ask"}
               planAt={params.time && Number.isFinite(Date.parse(params.time)) ? params.time : null}
             />
           </Suspense>
@@ -68,6 +70,8 @@ export default async function EventsTabPage({
         </div>
       ) : (
         <>
+          {/* Sprout's menu on the List: the same Ask Muse and Freebie Crawl as on the map. */}
+          <ListMuseMenu />
           <ListTopBar chip={listChip} />
           <EventFeed
             key={listChip}

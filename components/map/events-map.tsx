@@ -559,6 +559,7 @@ export function EventsMap({
   holdReveal = false,
   promisedStopId = null,
   storyEventId = null,
+  openAsk = false,
 }: {
   cards: MapCard[];
   studentSpot: Point;
@@ -582,6 +583,8 @@ export function EventsMap({
   promisedStopId?: string | null;
   /** The event the demo follows; a friend re-plan lands on it (flagged when Muse picked another). */
   storyEventId?: string | null;
+  /** Open with the Ask Muse popup up (?muse=ask, from Sprout's menu on the List). */
+  openAsk?: boolean;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -605,7 +608,7 @@ export function EventsMap({
   const [crawlStart, setCrawlStart] = useState<{ key: number; start: CrawlStart } | null>(() =>
     askPlan ? { key: 0, start: startFromAsk(askPlan, askEvents) } : autoPlan === "home" ? { key: 0, start: { kind: "home" } } : null,
   );
-  const [askOpen, setAskOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(openAsk);
   const [route, setRoute] = useState<Route | null>(null);
   // The "free bite" alert path (/?plan=home) is a conversation with Muse (muse-conversation.tsx),
   // not the Food Crawl sheet: Muse plans where you can see it, speaks, and the mic re-plans.
