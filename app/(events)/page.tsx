@@ -13,11 +13,14 @@ import { getEventStore } from "@/lib/events/store";
 // The Events tab opens on the map (lisa, t-94t4). The feed is one tap away as
 // List (?view=list). Both views share one top bar: For you and Free on the
 // upper left, Map/List on the upper right. Ask Muse stays one tap away in the
-// header (the search icon).
+// header (the search icon). /?plan=home opens the map with Muse's walk from
+// class to home planned (the "just out of class" alert links here); ?time=<ISO>
+// plans every walk from a set campus time, for the demo (?at= is the nearby
+// watcher's simulated location).
 export default async function EventsTabPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; chip?: string }>;
+  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string }>;
 }) {
   await connection();
   const params = await searchParams;
@@ -42,7 +45,12 @@ export default async function EventsTabPage({
       {view === "map" ? (
         <div className="relative">
           <Suspense fallback={<MapHomeSkeleton />}>
-            <MapHome events={events} now={now} />
+            <MapHome
+              events={events}
+              now={now}
+              autoPlan={params.plan === "home" ? "home" : null}
+              planAt={params.time && Number.isFinite(Date.parse(params.time)) ? params.time : null}
+            />
           </Suspense>
           <ViewToggle view="map" overlay />
         </div>

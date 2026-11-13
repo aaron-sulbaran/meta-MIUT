@@ -2,6 +2,7 @@ import { getEventStore } from "@/lib/events/store";
 import { readJsonBody } from "@/lib/http";
 import { AskInputSchema, askAboutEvents } from "@/lib/muse/ask";
 import { clearTurns, loadTurns, saveTurns } from "@/lib/muse/conversation";
+import { friendContext } from "@/lib/map/friend-spots";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { compileCandidates } from "@/lib/muse/candidates";
 import { DEMO_USER_ID, loadInterestMemory, saveSignals } from "@/lib/muse/memory";
@@ -20,7 +21,11 @@ export async function POST(request: Request) {
   const likely = compileCandidates(student, memory, events, now);
   if (body.data.fresh) await clearTurns(DEMO_USER_ID);
   const history = body.data.fresh ? [] : await loadTurns(DEMO_USER_ID);
-  const result = await askAboutEvents(body.data, events, now, student, history, memory, likely);
+  // A friend named in the request who shares their location (seeded for the
+  // demo): Muse reads where they are, so "closer to both of us" needs no follow-up.
+  const friend = friendContext(body.data.question);
+  const asked = friend ? { ...body.data, question: `${body.data.question}\n${friend}` } : body.data;
+  const result = await askAboutEvents(asked, events, now, student, history, memory, likely);
   if (result.error !== null) return Response.json(result, { status: 502 });
 
   const at = now.toISOString();
