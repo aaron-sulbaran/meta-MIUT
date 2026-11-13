@@ -64,11 +64,12 @@ app/(events)/        Events tab: / (chips, Muse top 3, list) and /events/[id]
 app/home/            Home feed shell, events lead the feed
 app/reference/       /reference/events: Facebook Events today, the fidelity benchmark (sample data)
 app/map/             map screen
-app/organizer/       organizer flow (Instagram post to draft to confirm)
+app/organizer/       organizer flow: flyer photo or spoken line, Muse drafts with quoted evidence, publish or update a repost
 app/ask/             ask Muse screen
 app/api/muse/        route handlers: extract, rank, ask (POST, JSON)
 app/api/events/      GET all events, POST publish a confirmed draft (stores it, sends the alert)
 app/api/alerts/      GET ?since=<cursor> new alerts, POST send an alert for an event
+app/api/events/[id]/ GET one event, PATCH { updates } for a repost Muse matched
 app/api/events/[id]/attendance/  GET ?viewer=<id> counts and seats left, POST {viewerId, action} interested or RSVP
 app/api/demo/reset/  POST reseed events and clear alerts (token in production)
 app/demo/            operator console: publish a sample event, fire an alert, reset
@@ -81,6 +82,7 @@ lib/brand.ts         PRODUCT_NAME, campus name and time zone
 lib/events/          schema.ts (the contract), seed.ts, store.ts, publish.ts, time.ts
 lib/alerts/          schema.ts (client safe), feed.ts, compose.ts (alert text from the event), policy.ts (who gets alerted)
 lib/attendance/      Interested and RSVP: schema.ts and client.ts (client safe), viewer.ts (random id per browser), store.ts
+lib/organizer/       client safe: place names to map spots, campus clock time for pickers, food note tidy
 lib/store/redis.ts   minimal Upstash Redis REST client (fetch, no SDK)
 lib/muse/            client.ts, job.ts, extract.ts, rank.ts, ask.ts, fixtures/
 lib/geo.ts           distance and walking minutes
@@ -96,7 +98,7 @@ Stay in your folders. Touching another lane's folder means a hub note to its own
 | Muse | `lib/muse/`, `app/api/muse/` |
 | Events tab | `app/(events)/`, `components/events/`, `app/ask/`, `components/ask/`, `lib/events/time.ts` |
 | Map | `app/map/`, `components/map/`, `lib/geo.ts` |
-| Organizer and notification | `app/organizer/`, `components/organizer/` |
+| Organizer and notification | `app/organizer/`, `components/organizer/`, `lib/organizer/` |
 | Design, seed, pitch | `data/seed/`, `app/globals.css`, `components/ui/`, `app/layout.tsx` |
 | Integration | `lib/store/`, `lib/alerts/` (except `policy.ts` and `compose.ts`, who gets alerted and what it says, owned by the alert item), `lib/events/publish.ts`, `lib/attendance/`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/` |
 
