@@ -88,6 +88,8 @@ export const HANDOFF = {
   lisaLanding: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`,
   // U3d: the story event, with Muse asked who to go with on arrival.
   whosGoing: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1`,
+  // U2c: Lisa's landing already joined: the event and "Aaron knows you're going".
+  lisaJoined: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}&state=joined`,
   // U3b: the curate step (t-s8eh).
   curate: "/curate",
   // U3b on the stage: curating starts on arrival, so the clicker is the one tap.
