@@ -93,12 +93,10 @@ function endingFor(start: CrawlStart): Ending {
   };
 }
 
-/** The Meet a friend line: a friend the map knows (lib/map/friend-spots.ts) ends the walk where they are. */
-function friendEnding(note: string): Ending {
+/** A friend the map knows (lib/map/friend-spots.ts), named in the line, ends the walk where they are. */
+function friendEnding(note: string): Ending | null {
   const friend = friendNamedIn(note);
-  return friend
-    ? { kind: "friend", label: friendLabel(friend), to: friend, note, friendName: friend.name, friendId: friend.id }
-    : { kind: "friend", label: "Your friend", to: HOME, note };
+  return friend ? { kind: "friend", label: friendLabel(friend), to: friend, note, friendName: friend.name, friendId: friend.id } : null;
 }
 
 const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -126,11 +124,43 @@ const KIND_LABELS: Record<string, string> = {
   added: "Added",
 };
 
+// Walk or transit: a freebie crawl is on foot, so there is no Drive (Lisa).
 const MODES: { id: TravelMode; label: string }[] = [
   { id: "walk", label: "Walk" },
   { id: "transit", label: "Transit" },
-  { id: "drive", label: "Drive" },
 ];
+
+/** The campus calendar day of `ms`, as year, month (1-12) and day. */
+function campusDay(ms: number): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: CAMPUS_TIME_ZONE, year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(ms));
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  return { year: get("year"), month: get("month"), day: get("day") };
+}
+
+/** "HH:MM" on the clock in campus time for `ms`. */
+function campusClockValue(ms: number): string {
+  return new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: CAMPUS_TIME_ZONE });
+}
+
+/** The moment it is `hhmm` today on campus (today being the day of `baseMs`). */
+export function campusTodayAt(hhmm: string, baseMs: number): number {
+  const [hour, minute] = hhmm.split(":").map(Number);
+  const { year, month, day } = campusDay(baseMs);
+  const wall = Date.UTC(year, month - 1, day, hour ?? 0, minute ?? 0);
+  // Campus offset at that moment: read the guess back as campus wall time and correct.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CAMPUS_TIME_ZONE,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+  }).formatToParts(new Date(wall));
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const seen = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
+  return wall - (seen - wall);
+}
 
 
 // Small line glyphs for the sheet (no emoji in UI strings).
@@ -142,7 +172,6 @@ function Glyph({ path, className = "h-[17px] w-[17px]" }: { path: string; classN
   );
 }
 const HOME_PATH = "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10";
-const FRIEND_PATH = "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM2 21a7 7 0 0 1 14 0M17 8h5M19.5 5.5v5";
 const PERSON_PATH = "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0";
 const PIN_PATH = "M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21ZM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z";
 const LOOP_PATH = "M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5";
@@ -152,12 +181,13 @@ function clock(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: CAMPUS_TIME_ZONE });
 }
 
-function toRoute(from: Point, plan: ApiPlan, eventsById: Map<string, CrawlEvent>): Route {
+function toRoute(from: Point, plan: ApiPlan, eventsById: Map<string, CrawlEvent>, endKind: Ending["kind"]): Route {
   const stops: RouteStop[] = plan.stops.map((stop) => {
     const event = stop.eventId ? eventsById.get(stop.eventId) : undefined;
     return { ...stop, startsAt: event?.startIso ?? null, endsAt: event?.endIso ?? null };
   });
-  return { from, stops, destination: plan.destination, totalWalkMinutes: plan.totalWalkMinutes };
+  // The end's kind picks its map marker: a house only for home, a person for a friend, else a pin.
+  return { from, stops, destination: { ...plan.destination, kind: endKind }, totalWalkMinutes: plan.totalWalkMinutes };
 }
 
 export function CrawlPlanner({
@@ -183,7 +213,6 @@ export function CrawlPlanner({
   onClose: () => void;
 }) {
   const [step, setStep] = useState<"choose" | "loading" | "plan" | "error">(start ? "loading" : "choose");
-  const [friendNote, setFriendNote] = useState("");
   const [placeText, setPlaceText] = useState("");
   const [placeMiss, setPlaceMiss] = useState(false);
   const [ending, setEnding] = useState<Ending | null>(null);
@@ -207,10 +236,12 @@ export function CrawlPlanner({
       setInvited("error");
     }
   }, []);
-  // Leave now, or depart at a picked time (a datetime-local value), like Google Maps.
+  // Leave now, or depart at a picked time today ("HH:MM", campus time), like Google Maps.
   const [leaveAt, setLeaveAt] = useState("");
   // A set start time from the link (?time=), used while the student has not picked one.
   const presetStartMs = at ? Date.parse(at) : Number.NaN;
+  // "Today" is the demo's day when the link sets one, else the real one.
+  const todayBaseMs = () => (Number.isFinite(presetStartMs) ? presetStartMs : Date.now());
   const eventsById = useMemo(() => new Map(events.map((event) => [event.eventId, event])), [events]);
 
   const showPlan = useCallback(
@@ -225,7 +256,7 @@ export function CrawlPlanner({
     async (target: Ending, travel: TravelMode) => {
       setStep("loading");
       setAdding(false);
-      const startMs = leaveAt ? new Date(leaveAt).getTime() : Number.isFinite(presetStartMs) ? presetStartMs : Date.now();
+      const startMs = leaveAt ? campusTodayAt(leaveAt, todayBaseMs()) : Number.isFinite(presetStartMs) ? presetStartMs : Date.now();
       try {
         const response = await fetch("/api/muse/crawl", {
           method: "POST",
@@ -246,7 +277,7 @@ export function CrawlPlanner({
         const data = body.data;
         // Belt and braces until the planner reads `exclude`: drop hidden stops here too.
         const kept = { ...data, stops: data.stops.filter((stop) => !stop.eventId || !dismissed.includes(stop.eventId)) };
-        let route = toRoute(studentSpot, kept, eventsById);
+        let route = toRoute(studentSpot, kept, eventsById, target.kind);
         if (kept.stops.length !== data.stops.length) route = retime(route, startMs);
         showPlan({ route, pitch: data.pitch, invite: data.invite, startMs });
         setStep("plan");
@@ -258,6 +289,8 @@ export function CrawlPlanner({
         setStep("error");
       }
     },
+    // todayBaseMs only reads presetStartMs, which is listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [deliverInvite, dismissed, eventsById, leaveAt, presetStartMs, showPlan, studentSpot],
   );
 
@@ -349,36 +382,14 @@ export function CrawlPlanner({
               <span className="block text-meta text-muted">{HOME.name}</span>
             </span>
           </button>
-          <form
-            className="flex items-center gap-3 py-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!friendNote.trim()) return;
-              choose(friendEnding(friendNote.trim()));
-            }}
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-wash" aria-hidden>
-              <Glyph path={FRIEND_PATH} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-label font-semibold">Meet a friend</span>
-              <input
-                value={friendNote}
-                onChange={(event) => setFriendNote(event.target.value)}
-                placeholder="Meeting Lisa after class"
-                aria-label="Where are you meeting your friend"
-                className="mt-1 w-full rounded-[10px] bg-wash px-3 py-[7px] text-meta outline-none"
-              />
-            </span>
-            <button type="submit" className="shrink-0 rounded-full bg-primary px-3 py-[6px] text-meta font-semibold text-on-primary disabled:opacity-40" disabled={!friendNote.trim()}>
-              Go
-            </button>
-          </form>
+          {/* Somewhere else: a friend's name ends the walk where they are, a
+              place ends it there. A plain text box, no suggestions dropdown (Lisa). */}
           <form
             className="flex items-start gap-3 py-3"
             onSubmit={(event) => {
               event.preventDefault();
-              const target = placeEnding(placeText, events);
+              const text = placeText.trim();
+              const target = friendEnding(text) ?? placeEnding(text, events);
               setPlaceMiss(target === null);
               if (target) choose(target);
             }}
@@ -394,17 +405,14 @@ export function CrawlPlanner({
                   setPlaceText(event.target.value);
                   setPlaceMiss(false);
                 }}
-                list="crawl-place-names"
-                placeholder="Kendall Square, Stata, Harvard Square"
-                aria-label="Where does your walk end"
+                autoComplete="off"
+                placeholder="Meet a friend? Other location?"
+                aria-label="Meet a friend or another location"
                 className="mt-1 w-full rounded-[10px] bg-wash px-3 py-[7px] text-meta outline-none"
               />
-              <datalist id="crawl-place-names">
-                {CRAWL_PLACES.map((place) => (
-                  <option key={place.name} value={place.name} />
-                ))}
-              </datalist>
-              {placeMiss && <span className="mt-1 block text-meta text-muted">Muse does not know that place yet. Try a building or square near campus.</span>}
+              {placeMiss && (
+                <span className="mt-1 block text-meta text-muted">Muse does not know that one yet. Try a friend&apos;s name, a building or a square near campus.</span>
+              )}
             </span>
             <button type="submit" className="mt-[22px] shrink-0 rounded-full bg-primary px-3 py-[6px] text-meta font-semibold text-on-primary disabled:opacity-40" disabled={!placeText.trim()}>
               Go
@@ -428,10 +436,10 @@ export function CrawlPlanner({
             onChange={(event) => {
               if (event.target.value === "now") setLeaveAt("");
               else if (!leaveAt) {
-                const inAnHour = new Date(Date.now() + 60 * 60_000);
-                inAnHour.setMinutes(0, 0, 0);
-                const local = new Date(inAnHour.getTime() - inAnHour.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
-                setLeaveAt(local);
+                // The next full hour, unless that is already tomorrow.
+                const base = todayBaseMs();
+                const next = campusClockValue(base + 60 * 60_000).slice(0, 2) + ":00";
+                setLeaveAt(next < campusClockValue(base) ? campusClockValue(base) : next);
               }
             }}
             className="rounded-[8px] bg-wash px-2 py-[5px] text-meta font-semibold text-ink"
@@ -440,13 +448,19 @@ export function CrawlPlanner({
             <option value="at">Depart at</option>
           </select>
           {leaveAt && (
-            <input
-              type="datetime-local"
-              aria-label="Depart at"
-              value={leaveAt}
-              onChange={(event) => setLeaveAt(event.target.value)}
-              className="min-w-0 flex-1 rounded-[8px] bg-wash px-2 py-[5px] text-meta text-ink"
-            />
+            <>
+              {/* A time today only: no other days (Lisa). */}
+              <input
+                type="time"
+                aria-label="Depart at, today"
+                value={leaveAt}
+                min={campusClockValue(todayBaseMs())}
+                max="23:59"
+                onChange={(event) => setLeaveAt(event.target.value)}
+                className="min-w-0 flex-1 rounded-[8px] bg-wash px-2 py-[5px] text-meta text-ink"
+              />
+              <span className="shrink-0 font-semibold text-ink">today</span>
+            </>
           )}
         </label>
       </div>
@@ -520,7 +534,7 @@ export function CrawlPlanner({
           <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
             <span className="h-3 w-3 rounded-full border-2 border-white bg-primary shadow-[0_0_0_4px_rgba(8,102,255,0.18)]" />
           </span>
-          <span className="text-meta font-semibold">{fromLabel ?? "Your spot"} · leave {leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
+          <span className="text-meta font-semibold">Your location{fromLabel ? ` (${fromLabel.replace(/^Out of/, "out of")})` : ""} · leave {leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
         </li>
         {route.stops.map((stop, index) => {
           const event = stop.eventId ? eventsById.get(stop.eventId) : undefined;
@@ -552,7 +566,7 @@ export function CrawlPlanner({
         })}
         <li className="flex items-center gap-3 border-t border-hairline py-[8px]">
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white" aria-hidden>
-            <Glyph path={ending?.friendName ? PERSON_PATH : ending?.kind === "place" ? PIN_PATH : HOME_PATH} className="h-[13px] w-[13px]" />
+            <Glyph path={ending?.kind === "home" ? HOME_PATH : ending?.kind === "friend" ? PERSON_PATH : ending?.kind === "wander" ? LOOP_PATH : PIN_PATH} className="h-[13px] w-[13px]" />
           </span>
           <span className="min-w-0 flex-1 truncate text-label font-semibold">{route.destination.name}</span>
           <span className="shrink-0 text-meta text-muted">

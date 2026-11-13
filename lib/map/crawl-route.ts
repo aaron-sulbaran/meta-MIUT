@@ -27,7 +27,16 @@ export type RouteStop = {
   mode: TravelMode;
 };
 
-export type RouteEnd = { name: string; lat: number; lng: number; arriveAt: string; walkMinutes: number; mode: TravelMode };
+export type RouteEnd = {
+  name: string;
+  lat: number;
+  lng: number;
+  arriveAt: string;
+  walkMinutes: number;
+  mode: TravelMode;
+  /** What the walk ends at, for its map marker: a house for home, a person for a friend, else a pin. */
+  kind?: "home" | "friend" | "place" | "wander";
+};
 
 export type Route = { from: Point; stops: RouteStop[]; destination: RouteEnd; totalWalkMinutes: number };
 
