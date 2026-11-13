@@ -41,6 +41,15 @@ const STUDENT_ZOOM = 14.6;
 // Below this zoom only the selected event shows its name pill, so close
 // bubbles do not pile up their labels.
 const LABEL_ZOOM = 16.2;
+// The card strip's size. Everything that floats just above the strip (recenter,
+// the Undo toast, the map credit) is placed from these, so a taller card moves
+// them up with it instead of overlapping.
+const CARD_HEIGHT = 144;
+const STRIP_BOTTOM = 10;
+function aboveStrip(gap: number): string {
+  return `calc(var(--tabbar-height) + var(--tabbar-gap) + ${STRIP_BOTTOM + CARD_HEIGHT + gap}px)`;
+}
+
 const DISMISSED_KEY = "map:dismissed";
 // How long Undo stays up before Muse learns from a Not for me.
 const UNDO_MS = 5000;
@@ -950,7 +959,7 @@ export function EventsMap({
         onClick={recenter}
         aria-label="Recenter on my location"
         className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-card text-ink shadow-md active:scale-95"
-        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 144px)", display: crawlOpen ? "none" : undefined }}
+        style={{ bottom: aboveStrip(12), display: crawlOpen ? "none" : undefined }}
       >
         <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden fill="none" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="7" />
@@ -963,7 +972,7 @@ export function EventsMap({
         <div
           role="status"
           className="absolute left-3 z-10 flex items-center gap-3 rounded-full bg-ink px-[14px] py-[8px] text-meta font-semibold text-white shadow-md"
-          style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 150px)" }}
+          style={{ bottom: aboveStrip(12) }}
         >
           <span className="max-w-[170px] truncate">Hidden: {lastDismissed.title}</span>
           <button type="button" onClick={undoDismiss} className="text-primary-soft underline">
@@ -987,7 +996,7 @@ export function EventsMap({
       {!crawlOpen && (
         <p
           className="pointer-events-none absolute left-3 z-10 text-[9px] font-medium text-black/35"
-          style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 142px)" }}
+          style={{ bottom: aboveStrip(4) }}
         >
           © OpenStreetMap
         </p>
@@ -1007,12 +1016,13 @@ export function EventsMap({
         onKeyDown={() => (interacted.current = true)}
         aria-label="Events on the map"
         className="no-scrollbar absolute inset-x-0 z-10 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-3 px-3 pb-1"
-        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 10px)", display: crawlOpen ? "none" : undefined }}
+        style={{ bottom: `calc(var(--tabbar-height) + var(--tabbar-gap) + ${STRIP_BOTTOM}px)`, display: crawlOpen ? "none" : undefined }}
       >
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
             <article
-              className="relative flex h-[144px] items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
+              className="relative flex items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
+              style={{ height: CARD_HEIGHT }}
             >
               <LogoTile card={card} />
               <div className="min-w-0 flex-1">
