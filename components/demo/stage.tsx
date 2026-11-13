@@ -467,9 +467,10 @@ export function Stage() {
         </section>
       ) : (
         <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[20px] px-[16px] py-[24px] sm:flex-row sm:gap-[4vw] sm:px-[4vw]">
-          <PhoneFrame scale={scale} chrome={phoneChromeFor(beat, showPlaceholder)} time={runStartedAt}>
+          <PhoneFrame scale={scale} chrome={phoneChromeFor(beat, showPlaceholder && stagedReady === false)} time={runStartedAt}>
             <div className="absolute inset-0">
-              {showPlaceholder && beat.staged ? (
+              {/* The placeholder only once the staged route is known to be missing, so the cut into a staged beat never flashes it. */}
+              {showPlaceholder && stagedReady === false && beat.staged ? (
                 <StagedScreenView screen={beat.staged} onHandoff={() => goTo(index + 1)} />
               ) : topScreen ? (
                 shownFrames.map((frame) => (
