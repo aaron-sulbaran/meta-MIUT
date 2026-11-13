@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 // Sprout, the Muse character (a Blender render), sits in the Events header
@@ -106,10 +106,10 @@ function markIntroSeen() {
 }
 
 /**
- * Sprout in the Events header. On the map it opens the Muse menu; on the List
- * view (mode "link") it goes to Ask Muse, as the search icon did.
+ * Sprout in the Events header. On the Map and the List alike it opens the
+ * Muse menu, Ask Muse and Freebie Crawl (Lisa).
  */
-export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
+export function MuseHeaderButton() {
   const [open, setOpen] = useState(false);
   const [intro, setIntro] = useState(false);
   useEffect(() => {
@@ -154,19 +154,9 @@ export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
       className="pointer-events-none absolute right-0 top-[48px] z-50 w-[196px] rounded-[14px] bg-ink px-[12px] py-[9px] text-left text-[12.5px] font-semibold leading-[16px] text-white shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
     >
       <span aria-hidden className="absolute -top-[5px] right-[16px] h-[11px] w-[11px] rotate-45 rounded-[2px] bg-ink" />
-      {mode === "menu" ? "Hi, I'm Muse! Tap me to ask anything or plan a freebie crawl." : "Hi, I'm Muse! Tap me to ask anything."}
+      Hi, I&apos;m Muse! Tap me to ask anything or plan a freebie crawl.
     </span>
   );
-  if (mode === "link") {
-    return (
-      <span className="relative">
-        <Link href="/ask" aria-label="Ask Muse" className={box} onClick={dismissIntro}>
-          {body}
-        </Link>
-        {bubble}
-      </span>
-    );
-  }
   return (
     <span className="relative">
       <button
@@ -196,7 +186,22 @@ function RouteGlyph({ className }: { className?: string }) {
   );
 }
 
-export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () => void }) {
+/**
+ * The Muse menu on the List view: the same two buttons as on the map. Both
+ * open the map, since the walk and the Ask popup live there: Ask Muse with
+ * its popup up (?muse=ask), Freebie Crawl with the planner up (?plan=crawl).
+ */
+export function ListMuseMenu() {
+  const router = useRouter();
+  return (
+    // Pinned just under the sticky header, so the menu drops from Sprout even when the list is scrolled.
+    <div className="sticky top-[calc(52px+env(safe-area-inset-top))] z-30 h-0">
+      <MuseMenu page onAsk={() => router.push("/?muse=ask")} onCrawl={() => router.push("/?plan=crawl")} />
+    </div>
+  );
+}
+
+export function MuseMenu({ onAsk, onCrawl, page = false }: { onAsk: () => void; onCrawl: () => void; page?: boolean }) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
 
@@ -228,7 +233,16 @@ export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () =>
 
   return (
     <>
-      {open && <button type="button" aria-label="Close the Muse menu" tabIndex={-1} onClick={() => setOpen(false)} className="absolute inset-0 z-20 cursor-default bg-ink/10" />}
+      {open && (
+        <button
+          type="button"
+          aria-label="Close the Muse menu"
+          tabIndex={-1}
+          onClick={() => setOpen(false)}
+          // On the List it dims the page below the header, like the map does.
+          className={`${page ? "fixed inset-x-0 bottom-0 top-[calc(52px+env(safe-area-inset-top))]" : "absolute inset-0"} z-20 cursor-default bg-ink/10`}
+        />
+      )}
       <div className="pointer-events-none absolute right-3 top-3 z-30 flex flex-col items-end">
         <ul
           id={menuId}
