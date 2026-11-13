@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon } from "@/components/ui/icons";
 import { AccountRow, META_SYSTEM_FONT, MetaLockup, ProfileCircle } from "@/components/invite/meta-account";
@@ -68,6 +68,7 @@ export function InviteLanding({
   viewerInstagram,
   friendNames,
   poster,
+  initialJoined = false,
 }: {
   eventId: string;
   eventTitle: string;
@@ -83,8 +84,20 @@ export function InviteLanding({
   /** Her friends already on Facebook, the inviter first. */
   friendNames: string[];
   poster: ReactNode;
+  /** Open on the joined state (?state=joined, the demo's U2c); the accept still runs, so it is true. */
+  initialJoined?: boolean;
 }) {
-  const [step, setStep] = useState<Step>("invite");
+  const [step, setStep] = useState<Step>(initialJoined ? "joined" : "invite");
+  const acceptedOnArrival = useRef(false);
+  useEffect(() => {
+    if (!initialJoined || acceptedOnArrival.current) return;
+    acceptedOnArrival.current = true;
+    void fetch(`/api/invite/${encodeURIComponent(eventId)}/accept`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ from: inviterId ?? undefined }),
+    }).catch(() => null);
+  }, [initialJoined, eventId, inviterId]);
   const [error, setError] = useState<string | null>(null);
   const inviter = inviterName ?? "A friend";
   const handle = viewerInstagram ? `@${viewerInstagram}` : null;
