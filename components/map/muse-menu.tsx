@@ -129,7 +129,7 @@ export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () =>
 
   const options = [
     { label: "Ask Muse", hint: "Type or say it", Icon: MuseMark, run: onAsk },
-    { label: "Food crawl", hint: "Free stops on your walk", Icon: RouteGlyph, run: onCrawl },
+    { label: "Food crawl", hint: "Plan your walk", Icon: RouteGlyph, run: onCrawl },
   ];
 
   return (
@@ -140,7 +140,7 @@ export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () =>
           id={menuId}
           role="menu"
           aria-label="Muse"
-          className="flex flex-col items-end gap-[8px]"
+          className="flex flex-col items-stretch gap-[8px]"
           style={{ pointerEvents: open ? "auto" : "none" }}
         >
           {options.map(({ label, hint, Icon, run }, index) => (
@@ -154,7 +154,7 @@ export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () =>
                   setOpen(false);
                   run();
                 }}
-                className="flex items-center gap-[10px] rounded-full bg-card/75 py-[7px] pl-[8px] pr-[14px] text-left shadow-md ring-1 ring-black/5 backdrop-blur-md transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
+                className="flex w-full items-center gap-[10px] rounded-full bg-card/75 py-[7px] pl-[8px] pr-[14px] text-left shadow-md ring-1 ring-black/5 backdrop-blur-md transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
                 style={{
                   opacity: open ? 1 : 0,
                   transform: open ? "none" : `translate(10px, -${14 + index * 18}px) scale(0.85)`,
