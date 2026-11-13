@@ -5,6 +5,8 @@ import { CloseIcon } from "@/components/ui/icons";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { walkMinutes } from "@/lib/geo";
 import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
+import { CRAWL_PLACES } from "@/lib/muse/crawl-places";
+import { knownPlacesFrom, resolvePlace } from "@/lib/organizer/place";
 import {
   arrivesTooLate,
   googleDirectionsUrl,
@@ -31,7 +33,7 @@ export type CrawlEvent = {
 };
 
 type Ending = {
-  kind: "home" | "friend" | "wander";
+  kind: "home" | "friend" | "wander" | "place";
   label: string;
   to: Point;
   note?: string;
@@ -97,6 +99,20 @@ function friendEnding(note: string): Ending {
     : { kind: "friend", label: "Your friend", to: HOME, note };
 }
 
+const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/** The Somewhere else line: a named campus spot (Kendall, Harvard Square) or any event venue, else null. */
+function placeEnding(text: string, events: CrawlEvent[]): Ending | null {
+  const wanted = squash(text);
+  if (!wanted) return null;
+  const spot =
+    CRAWL_PLACES.find((place) => squash(place.name) === wanted || place.aliases.includes(wanted)) ??
+    CRAWL_PLACES.find((place) => [place.name, ...place.aliases].some((name) => ` ${wanted} `.includes(` ${squash(name)} `)));
+  if (spot) return { kind: "place", label: spot.name, to: { lat: spot.lat, lng: spot.lng } };
+  const venue = resolvePlace(text, knownPlacesFrom(events));
+  return venue ? { kind: "place", label: venue.knownName, to: { lat: venue.place.lat, lng: venue.place.lng } } : null;
+}
+
 const KIND_LABELS: Record<string, string> = {
   main: "Main",
   dessert: "Dessert",
@@ -126,6 +142,7 @@ function Glyph({ path, className = "h-[17px] w-[17px]" }: { path: string; classN
 const HOME_PATH = "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10";
 const FRIEND_PATH = "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM2 21a7 7 0 0 1 14 0M17 8h5M19.5 5.5v5";
 const PERSON_PATH = "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0";
+const PIN_PATH = "M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21ZM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z";
 const LOOP_PATH = "M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5";
 
 // Times in campus time, like every other time in the app.
@@ -165,6 +182,8 @@ export function CrawlPlanner({
 }) {
   const [step, setStep] = useState<"choose" | "loading" | "plan" | "error">(start ? "loading" : "choose");
   const [friendNote, setFriendNote] = useState("");
+  const [placeText, setPlaceText] = useState("");
+  const [placeMiss, setPlaceMiss] = useState(false);
   const [ending, setEnding] = useState<Ending | null>(null);
   const [mode, setMode] = useState<TravelMode>("walk");
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -308,6 +327,11 @@ export function CrawlPlanner({
           <div>
             <h2 className="font-display text-title font-bold">Where does your walk end?</h2>
             <p className="mt-[2px] text-meta text-muted">Muse picks free stops on the way from events you have not hidden.</p>
+            {plan && (
+              <button type="button" onClick={() => setStep("plan")} className="mt-1 text-meta font-semibold text-primary">
+                Keep your route to {plan.route.destination.name}
+              </button>
+            )}
           </div>
           <button type="button" onClick={close} aria-label="Close food crawl" className="-mr-1 flex h-8 w-8 items-center justify-center rounded-full text-muted">
             <CloseIcon className="h-[14px] w-[14px]" />
@@ -345,6 +369,42 @@ export function CrawlPlanner({
               />
             </span>
             <button type="submit" className="shrink-0 rounded-full bg-primary px-3 py-[6px] text-meta font-semibold text-on-primary disabled:opacity-40" disabled={!friendNote.trim()}>
+              Go
+            </button>
+          </form>
+          <form
+            className="flex items-start gap-3 py-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const target = placeEnding(placeText, events);
+              setPlaceMiss(target === null);
+              if (target) choose(target);
+            }}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-wash" aria-hidden>
+              <Glyph path={PIN_PATH} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-label font-semibold">Somewhere else</span>
+              <input
+                value={placeText}
+                onChange={(event) => {
+                  setPlaceText(event.target.value);
+                  setPlaceMiss(false);
+                }}
+                list="crawl-place-names"
+                placeholder="Kendall Square, Stata, Harvard Square"
+                aria-label="Where does your walk end"
+                className="mt-1 w-full rounded-[10px] bg-wash px-3 py-[7px] text-meta outline-none"
+              />
+              <datalist id="crawl-place-names">
+                {CRAWL_PLACES.map((place) => (
+                  <option key={place.name} value={place.name} />
+                ))}
+              </datalist>
+              {placeMiss && <span className="mt-1 block text-meta text-muted">Muse does not know that place yet. Try a building or square near campus.</span>}
+            </span>
+            <button type="submit" className="mt-[22px] shrink-0 rounded-full bg-primary px-3 py-[6px] text-meta font-semibold text-on-primary disabled:opacity-40" disabled={!placeText.trim()}>
               Go
             </button>
           </form>
@@ -481,12 +541,24 @@ export function CrawlPlanner({
         })}
         <li className="flex items-center gap-3 border-t border-hairline py-[8px]">
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white" aria-hidden>
-            <Glyph path={ending?.friendName ? PERSON_PATH : HOME_PATH} className="h-[13px] w-[13px]" />
+            <Glyph path={ending?.friendName ? PERSON_PATH : ending?.kind === "place" ? PIN_PATH : HOME_PATH} className="h-[13px] w-[13px]" />
           </span>
           <span className="min-w-0 flex-1 truncate text-label font-semibold">{route.destination.name}</span>
           <span className="shrink-0 text-meta text-muted">
             {route.destination.walkMinutes} min · {clock(route.destination.arriveAt)}
           </span>
+          <button
+            type="button"
+            onClick={() => {
+              setPlaceText("");
+              setPlaceMiss(false);
+              setStep("choose");
+            }}
+            aria-label="Change where the walk ends"
+            className="shrink-0 rounded-full bg-button px-3 py-[5px] text-meta font-semibold text-ink"
+          >
+            Change
+          </button>
         </li>
         <li className="border-t border-hairline py-[8px]">
           {adding ? (
