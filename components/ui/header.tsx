@@ -9,6 +9,8 @@ import { ChevronLeftIcon, MenuIcon } from "@/components/ui/icons";
 /** Where icons this demo has no screen for lead: a pointer to the real app. */
 export const GET_FACEBOOK = "/get-facebook";
 
+export const getFacebookHref = (from: string) => `${GET_FACEBOOK}?from=${from}`;
+
 const bar = "sticky top-0 z-20 bg-card pt-[env(safe-area-inset-top)]";
 
 /** Home feed: menu, the wordmark set in type, actions. Pass menu to make the bars live. */
@@ -49,18 +51,29 @@ export function SubPageHeader({
   backHref,
   backLabel = "Back",
   actions,
+  fixedBack = false,
 }: {
   title: string;
   backHref: string;
   backLabel?: string;
   actions?: ReactNode;
+  /** Always go to backHref instead of the previous page. */
+  fixedBack?: boolean;
 }) {
+  const backClass = "flex h-11 w-11 items-center justify-start pl-[4px] text-ink";
+  const chevron = <ChevronLeftIcon className="h-[18px] w-[18px]" />;
   return (
     <header className={bar}>
       <div className="relative flex h-[52px] items-center pl-[10px] pr-[2px]">
-        <BackLink href={backHref} label={backLabel} className="flex h-11 w-11 items-center justify-start pl-[4px] text-ink">
-          <ChevronLeftIcon className="h-[18px] w-[18px]" />
-        </BackLink>
+        {fixedBack ? (
+          <Link href={backHref} aria-label={backLabel} className={backClass}>
+            {chevron}
+          </Link>
+        ) : (
+          <BackLink href={backHref} label={backLabel} className={backClass}>
+            {chevron}
+          </BackLink>
+        )}
         <h1 className="pointer-events-none absolute inset-x-[120px] truncate text-center font-display text-title font-bold">{title}</h1>
         <HeaderActions>{actions}</HeaderActions>
       </div>

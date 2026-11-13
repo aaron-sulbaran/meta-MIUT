@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GET_FACEBOOK } from "@/components/ui/header";
+import { getFacebookHref } from "@/components/ui/header";
 import { isStagedScreen } from "@/lib/demo/staged";
 import { Fragment, type ComponentType } from "react";
 import {
@@ -39,7 +39,7 @@ const tab = (active: boolean) =>
 
 function InertTabIcon({ label, Icon, dot, count }: InertTab) {
   return (
-    <Link href={GET_FACEBOOK} aria-label={label} className="relative flex h-[39px] items-center justify-center text-ink">
+    <Link href={getFacebookHref(label.toLowerCase())} aria-label={label} className="relative flex h-[39px] items-center justify-center text-ink">
       <span className="relative">
         <Icon className="h-[23.5px] w-[23.5px]" />
         {dot && <span className="absolute left-[calc(50%+9.7px-3.85px)] top-[calc(50%-9.5px-3.85px)] h-[7.7px] w-[7.7px] rounded-full bg-badge" />}
@@ -79,7 +79,7 @@ export function TabBar() {
             )}
           </Fragment>
         ))}
-        <Link href={GET_FACEBOOK} aria-label="Profile" className="flex h-[39px] items-center justify-center">
+        <Link href={getFacebookHref("profile")} aria-label="Profile" className="flex h-[39px] items-center justify-center">
           <ProfileAvatar size={25} ring />
         </Link>
       </div>
