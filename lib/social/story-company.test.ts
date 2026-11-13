@@ -4,7 +4,7 @@ import { STORY_FALLBACK_ID, STORY_ORGANIZER } from "@/lib/demo/story-data";
 import { withStoryCompany } from "@/lib/demo/story-fixtures";
 import { loadSeedEvents } from "@/lib/events/seed";
 import { ACCEPT_AFTER_MS, hellosTo, resetSocial, sayHello, sayHelloBack, setGoing, whoIsGoing } from "@/lib/social/going";
-import { goingFixture } from "@/lib/social/muse-going";
+import { distinctReasons, goingFixture } from "@/lib/social/muse-going";
 import { viewerFor } from "@/lib/social/viewer";
 
 const base = loadSeedEvents(new Date("2026-11-12T18:00:00Z"))[0]!;
@@ -103,6 +103,29 @@ describe("Jolyn and Lisa say hi back", () => {
 
   it("cannot answer a hi that was never sent", () => {
     expect(sayHelloBack(story.id, trish.id, "lisa").error).not.toBeNull();
+  });
+});
+
+describe("each suggested person has their own reason", () => {
+  beforeEach(() => resetSocial());
+
+  it("replaces a reason Muse repeated with what Trish shares with each of them", () => {
+    setGoing(story, "lisa", { going: true });
+    const who = whoIsGoing(story, trish.id, trish.interests);
+    const same = { line: "Say hi to Jolyn and Lisa.", people: PAIR.map((id) => ({ id, why: "You both like film and free food" })) };
+    expect(distinctReasons(same, who).people.map((person) => person.why)).toEqual([
+      "You both like board games and hackathons",
+      "You both like film and free food",
+    ]);
+  });
+
+  it("keeps reasons that already differ, and the recorded answer differs too", () => {
+    setGoing(story, "lisa", { going: true });
+    const who = whoIsGoing(story, trish.id, trish.interests);
+    const live = { line: "Hi", people: [{ id: "sample-student", why: "Board games fan" }, { id: "lisa", why: "Loves film" }] };
+    expect(distinctReasons(live, who)).toBe(live);
+    const whys = goingFixture(who).people.map((person) => person.why);
+    expect(new Set(whys).size).toBe(whys.length);
   });
 });
 
