@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MuseFace } from "@/components/map/muse-menu";
 import { buttonClass } from "@/components/ui/button";
-import { ChevronRightIcon, CloseIcon, InstagramPostIcon } from "@/components/ui/icons";
+import { ChevronRightIcon, CloseIcon, InstagramPostIcon, WaveIcon } from "@/components/ui/icons";
 import { updateAttendance } from "@/lib/attendance/client";
 import { EVENT_FULL_ERROR } from "@/lib/attendance/schema";
 import { getViewerId } from "@/lib/attendance/viewer";
@@ -297,9 +297,11 @@ export function WhosGoing({
                             type="button"
                             disabled={helloBusy !== null}
                             onClick={() => void sayHi(person.id)}
-                            className={buttonClass("secondary", "shrink-0")}
+                            aria-label={`Say hi to ${person.name}`}
+                            title="Say hi"
+                            className={buttonClass("secondary", "w-[35px] shrink-0 rounded-full px-0")}
                           >
-                            Say hi
+                            <WaveIcon className="h-[23px] w-[23px]" />
                           </button>
                         )}
                       </li>
