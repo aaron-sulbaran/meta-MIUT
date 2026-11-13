@@ -1,8 +1,10 @@
+import { BrandMark } from "@/components/demo/brand-mark";
 import type { ReactNode } from "react";
 
 // Shared pieces of the staged Instagram screens (hub t-y329). They read as
-// Instagram by layout alone: no logo, no wordmark, invented names, drawn
-// avatars. Each screen fills the phone frame and says quietly that it is staged.
+// Instagram by layout: no wordmark (there is no official file), invented names,
+// drawn avatars; any Meta, Facebook, or Instagram logo is the official file
+// through components/demo/brand-mark.tsx. Each screen fills the phone frame and says quietly that it is staged.
 
 export const IG = {
   ink: "#000000",
@@ -161,14 +163,10 @@ export function StagedMark() {
   );
 }
 
-/** Outline glyphs for the sheet rows, drawn (no logo files). */
+/** Glyphs for the sheet rows: outline icons, and the official Facebook logo. */
 export const SheetGlyphs = {
-  facebook: (
-    <svg viewBox="0 0 24 24" className="h-[24px] w-[24px]" aria-hidden {...stroke}>
-      <circle cx="12" cy="12" r="9.25" />
-      <path d="M13.4 21.2v-7.4h2.3l.4-2.7h-2.7V9.4c0-.8.4-1.4 1.5-1.4h1.3V5.7a15 15 0 0 0-2-.2c-2.1 0-3.4 1.2-3.4 3.5v2.1H8.5v2.7h2.3v7.4" />
-    </svg>
-  ),
+  // Facebook's official logo, never redrawn (components/demo/brand-mark.tsx).
+  facebook: <BrandMark name="facebook" size={24} />,
   globe: (
     <svg viewBox="0 0 24 24" className="h-[24px] w-[24px]" aria-hidden {...stroke}>
       <circle cx="12" cy="12" r="9.25" />
