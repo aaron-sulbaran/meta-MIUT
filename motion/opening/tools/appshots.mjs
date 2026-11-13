@@ -12,6 +12,12 @@ mkdirSync(outDir, { recursive: true });
 
 const hideDev = async (page) => page.addStyleTag({ content: 'nextjs-portal{display:none!important}' }).catch(() => {});
 const SHOTS = {
+  async home(page, shot) {
+    await page.goto(base + '/', { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.waitForTimeout(12000);
+    await hideDev(page);
+    await shot('home');
+  },
   async map(page, shot) {
     await page.goto(base + '/');
     await page.waitForLoadState('networkidle').catch(() => {});

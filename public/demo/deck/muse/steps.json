@@ -1,27 +1,12 @@
 [
   {
-    "id": "instagram-post",
-    "title": "The club posts on Instagram, like always",
-    "notes": "But here's the challenge. Students aren't the only ones who don't want to do extra work. Event organizers don't either. They're already posting their events on Instagram. So why make them post everything twice?"
+    "id": "models",
+    "title": "Powered by Meta's Muse models",
+    "notes": "That's where Muse AI comes in. [On screen: Muse Ember for reasoning, writing and reading flyers; Muse Voice Transcribe for voice input.]"
   },
   {
-    "id": "share-and-read",
-    "title": "One share, and Muse reads the post",
-    "notes": "That's where Muse AI comes in."
-  },
-  {
-    "id": "fields",
-    "title": "Muse fills in the event, field by field",
-    "notes": "With a single share, Muse AI reads the existing post, extracts the event details, and prepares a Facebook Event automatically."
-  },
-  {
-    "id": "post-it",
-    "title": "The organizer confirms with one tap",
-    "notes": "Organizers simply confirm the details and choose how their event is promoted."
-  },
-  {
-    "id": "for-students",
-    "title": "For students: Muse puts it first",
+    "id": "discovery",
+    "title": "Personalized AI discovery",
     "notes": "And for students, Muse AI helps surface the events that match their interests, location, and schedule."
   },
   {
