@@ -5,6 +5,7 @@ import { CastAvatar } from "@/components/demo/cast-avatar";
 import { PHONE_SLUG, beatScreen, inFrameMessage, phoneView, storyDue, type PhoneView } from "@/lib/demo/beat-context";
 import { CAST, type CastId } from "@/lib/demo/beats";
 import { demoClock } from "@/lib/demo/clock";
+import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
 // A presenter's own phone during the pitch (/demo/phone/<slug>). It follows the
@@ -17,8 +18,6 @@ import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 // a stray tap never jumps the show; the laptop's keys and /demo/remote always win.
 // Nothing here moves on a timer.
 
-const POLL_MS = 200;
-const HIDDEN_POLL_MS = 2_000;
 const NOTICE_MS = 2_500;
 
 type Position = { index: number; seq: number };
@@ -62,31 +61,27 @@ export function PhoneScene({ cast }: { cast: CastId }) {
     setPosition({ index: next.index, seq: next.seq });
   }, []);
 
-  // Follow the stage.
+  // Follow the stage on lib/demo/stage-poll.ts's schedule: fast while the skit moves, slow when quiet, never when hidden.
+  const pollRef = useRef<StagePoll | null>(null);
   useEffect(() => {
     let stopped = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    async function poll() {
-      if (timer) clearTimeout(timer);
+    const poll = startStagePoll(async () => {
       try {
         const response = await fetch(`/api/demo/stage?phone=${encodeURIComponent(slug)}`, { cache: "no-store" });
         const body = (await response.json()) as { data: Position | null };
         if (!stopped && !pendingRef.current) adopt(body.data ?? { index: 0, seq: 0 });
         if (!stopped) setOnline(true);
+        return body.data?.index ?? null;
       } catch {
         if (!stopped) setOnline(false);
+        return null;
       }
-      if (!stopped) timer = setTimeout(poll, document.hidden ? HIDDEN_POLL_MS : POLL_MS);
-    }
-    const onVisible = () => {
-      if (!document.hidden) void poll();
-    };
-    void poll();
-    document.addEventListener("visibilitychange", onVisible);
+    });
+    pollRef.current = poll;
     return () => {
       stopped = true;
-      if (timer) clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
+      poll.stop();
+      pollRef.current = null;
     };
   }, [slug, adopt]);
 
@@ -101,6 +96,8 @@ export function PhoneScene({ cast }: { cast: CastId }) {
       const at = indexRef.current;
       if (at === null || pendingRef.current) return;
       pendingRef.current = true;
+      // A tap inside the screen never reaches this page's listeners: keep polling fast from here.
+      pollRef.current?.active();
       // Move here at once; the stage's answer settles it.
       const target = action === "next" ? at + 1 : at - 1;
       indexRef.current = target;
@@ -185,6 +182,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
     (kind: "listening" | "said", detail: { on?: boolean; text?: string }) => {
       const at = indexRef.current;
       if (at === null) return;
+      pollRef.current?.active();
       void fetch("/api/demo/stage", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -240,30 +238,30 @@ export function PhoneScene({ cast }: { cast: CastId }) {
           ) : (
             <div className="flex flex-1 items-center justify-center text-body text-muted">Loading your screen</div>
           )}
-          <nav
-            aria-label="Move the stage"
-            className="absolute flex flex-col items-end gap-[8px]"
-            style={{ bottom: "calc(96px + env(safe-area-inset-bottom))", right: "calc(8px + env(safe-area-inset-right))", touchAction: "manipulation" }}
-          >
+          {/* Its own strip under the screen, so it never covers the app's text or controls. */}
+          <nav aria-label="Move the stage" className="flex h-[44px] shrink-0 items-center justify-between border-t border-hairline bg-page px-[6px]" style={{ touchAction: "manipulation" }}>
             <button
               type="button"
               aria-label="Back one beat"
               disabled={index === null || index === 0 || phoneView(index - 1, cast).kind !== "scene"}
               onClick={() => void move("back")}
-              className="flex h-[40px] w-[40px] items-center justify-center rounded-full bg-black/35 text-white backdrop-blur disabled:opacity-0"
+              className="flex h-[40px] items-center gap-[2px] rounded-full px-[10px] font-display text-label font-bold text-muted disabled:opacity-0"
             >
               <Chevron back />
+              Back
             </button>
+            <span className="text-meta text-muted" role="status">
+              {online ? `${CAST[cast].name} is on` : "Offline, retrying"}
+            </span>
             <button
               type="button"
               aria-label={view.lastOfAct && view.handsTo ? `Next: hand over to ${CAST[view.handsTo].name}` : "Next beat"}
               onClick={() => void move("next")}
-              className="flex h-[40px] min-w-[40px] items-center justify-center gap-[2px] rounded-full bg-black/35 px-[11px] font-display text-label font-bold text-white backdrop-blur"
+              className="flex h-[40px] items-center gap-[2px] rounded-full px-[10px] font-display text-label font-bold text-link"
             >
-              {view.lastOfAct && view.handsTo ? <span className="pl-[4px]">{CAST[view.handsTo].name}</span> : null}
+              {view.lastOfAct && view.handsTo ? `To ${CAST[view.handsTo].name}` : "Next"}
               <Chevron />
             </button>
-            {!online && <span className="rounded-full bg-black/60 px-[10px] py-[4px] text-meta text-white">Offline</span>}
           </nav>
         </>
       ) : (

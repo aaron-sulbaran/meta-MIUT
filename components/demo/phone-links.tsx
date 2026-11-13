@@ -9,8 +9,9 @@ import { CAST, type CastId } from "@/lib/demo/beats";
 // (/demo/phone/<slug>) with a copy button, and whether that phone is open now
 // (it checked in with the stage in the last few seconds).
 
-const POLL_MS = 3_000;
-const CONNECTED_MS = 10_000;
+// Phones stamp themselves at most every 15 s (lib/demo/stage-position.ts), so a phone counts as open for 40 s.
+const POLL_MS = 10_000;
+const CONNECTED_MS = 40_000;
 
 const noSubscribe = () => () => {};
 
@@ -23,6 +24,7 @@ export function PhoneLinks() {
   useEffect(() => {
     let stopped = false;
     async function poll() {
+      if (document.hidden) return;
       try {
         const response = await fetch("/api/demo/stage?phones=1", { cache: "no-store" });
         const body = (await response.json()) as { phones?: Partial<Record<CastId, string | null>> };
