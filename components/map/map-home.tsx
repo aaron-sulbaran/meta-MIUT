@@ -10,11 +10,6 @@ import { personalizeEvents } from "@/lib/muse/rank";
 // interest memory, see personalizeEvents), orders the events by them, and
 // hands plain data to the client map.
 
-// The organizer's logo, once the event contract carries one (organizer.logoUrl).
-function organizerLogo(event: CampusEvent): string | null {
-  const logo = (event.organizer as { logoUrl?: unknown }).logoUrl;
-  return typeof logo === "string" && logo.length > 0 ? logo : null;
-}
 
 function mapChips(event: CampusEvent, now: Date): MapChip[] {
   const chips: MapChip[] = [];
@@ -43,7 +38,7 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
         free: event.free,
         category: eventCategory(event),
         organizerName: event.organizer.name,
-        logoUrl: organizerLogo(event),
+        logoUrl: event.organizer.logoUrl ?? null,
         chips: mapChips(event, now),
         weight: point.weight,
         pickRank: point.pickRank,
