@@ -1,6 +1,7 @@
 {
-  "_about": "openingQr: true (Aaron's decision, 2026-11-13) opens the pitch on the code to the live product (step try-it) until the first click; false starts on the caret. Flip it with node motion/opening/tools/opening-qr.mjs on|off, which keeps steps.json in step.",
+  "_about": "openingQr: true (Aaron's decision, 2026-11-13) opens the pitch on the code to the live product (step try-it) until the first click; false starts on the caret. Flip it with node motion/opening/tools/opening-qr.mjs on|off, which keeps steps.json in step. standout: true brings back the step that highlights \"If it helped me get more things done.\" after the avalanche; false (Aaron, pitch day) goes straight to \"But there was one exception.\" Changing it adds or removes one step, so regenerate steps.json (motion/opening/tools/frames.mjs --steps-json).",
   "openingQr": true,
+  "standout": false,
   "tryLine": "Try it yourself while we set up",
   "address": "meta-miut.vercel.app"
 }
