@@ -132,7 +132,8 @@ export function InstagramDm({ to }: { to: string }) {
           <div className="flex flex-col gap-[6px] motion-safe:animate-[staged-pop_260ms_ease-out]">
             <p className="ml-[34px] flex items-center gap-1 text-[11px]" style={{ color: IG.muted }}>
               <MuseMark className="h-[12px] w-[12px] text-[#0866ff]" />
-              Sent by {invite.from}&apos;s Muse · {when(invite.at)}
+              {/* No clock time: the invite is stamped in real time, the show runs on the demo's afternoon. */}
+              Sent by {invite.from}&apos;s Muse
             </p>
             <div className="flex items-end gap-2">
               <DrawnAvatar name="Aaron" size={26} />
