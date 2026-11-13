@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, monogram } from "@/components/map/category-icons";
 import { CrawlPlanner } from "@/components/map/crawl-planner";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
+import { travel } from "@/lib/crawl/order";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 import type { Route } from "@/lib/map/crawl-route";
@@ -85,12 +86,26 @@ function settledCardId(strip: HTMLElement): string | null {
   return best?.id || null;
 }
 
-function directionsUrl(from: Point, to: Point): string {
+// Past a 30 minute walk the card also gives the T time (a rough estimate, as in the crawl).
+const LONG_WALK_MINUTES = 30;
+
+function transitMinutes(from: Point, to: Point): number | null {
+  if (walkMinutes(from, to) <= LONG_WALK_MINUTES) return null;
+  const leg = travel(from, to, "transit");
+  return leg.mode === "transit" ? leg.minutes : null;
+}
+
+function travelLine(from: Point, to: Point): string {
+  const transit = transitMinutes(from, to);
+  return `${walkMinutes(from, to)} min walk${transit === null ? "" : ` · ${transit} min by T`}`;
+}
+
+function directionsUrl(from: Point, to: Point, byTransit = false): string {
   const params = new URLSearchParams({
     api: "1",
     origin: `${from.lat},${from.lng}`,
     destination: `${to.lat},${to.lng}`,
-    travelmode: "walking",
+    travelmode: byTransit ? "transit" : "walking",
   });
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
@@ -836,10 +851,11 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
                 <p className="truncate text-meta font-semibold text-muted">{card.dateLine}</p>
                 <p className="mt-[3px] flex items-center gap-[6px] text-meta font-semibold text-muted">
                   <span className="truncate">
-                    {walkMinutes(studentSpot, card.place)} min walk{card.perk ? "" : card.free ? " · Free" : " · Paid"}
+                    {travelLine(studentSpot, card.place)}
+                    {card.perk ? "" : card.free ? " · Free" : " · Paid"}
                   </span>
                   <a
-                    href={directionsUrl(studentSpot, card.place)}
+                    href={directionsUrl(studentSpot, card.place, transitMinutes(studentSpot, card.place) !== null)}
                     target="_blank"
                     rel="noreferrer"
                     className="relative z-10 shrink-0 rounded-full bg-primary-soft px-[8px] py-[2px] text-primary"
