@@ -1,7 +1,20 @@
 import type { ComponentType, ReactNode } from "react";
 import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon, TicketIcon } from "@/components/ui/icons";
 import type { CampusEvent } from "@/lib/events/schema";
-import { formatEventTime } from "@/lib/events/time";
+import { formatDateLine, formatEventTime } from "@/lib/events/time";
+
+// The event page's title block: when, what, where and who hosts.
+export function EventTitleBlock({ event, now }: { event: CampusEvent; now: Date }) {
+  return (
+    <section className="px-3 pt-[14px]">
+      <p className="text-meta font-semibold text-muted">{formatDateLine(event, now)}</p>
+      <h1 className="mt-[3px] font-display text-[22px] leading-[26px] font-bold">{event.title}</h1>
+      <p className="mt-[4px] text-venue font-semibold text-ink">
+        {event.place.name} · Hosted by {event.organizer.name}
+      </p>
+    </section>
+  );
+}
 
 // The event page's Details section: time, place, entry, food, host, then the
 // description. Also under an invite's event once it is unlocked (app/invite).

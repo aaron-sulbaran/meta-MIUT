@@ -3,11 +3,14 @@ import { connection } from "next/server";
 import { AppSwitch } from "@/components/demo/app-switch";
 import { InviteLanding } from "@/components/invite/invite-landing";
 import { inviteStep } from "@/components/invite/steps";
+import { EventShareAction } from "@/components/events/event-actions";
 import { posterKicker } from "@/components/events/event-card";
+import { EventDetails, EventTitleBlock } from "@/components/events/event-details";
+import { SubPageHeader } from "@/components/ui/header";
 import { Poster } from "@/components/ui/poster";
 import { getEventStore } from "@/lib/events/store";
-import { formatDateLine, formatEventTime, freePerk } from "@/lib/events/time";
 import { EVERYONE, FRIENDS } from "@/lib/social/fixtures/people";
+import { loadSocial, whoIsGoing } from "@/lib/social/going";
 import { currentViewer } from "@/lib/social/viewer";
 
 // Where an invite lands for someone with no Facebook account (Lisa's act, U2b to
@@ -30,6 +33,7 @@ export default async function InvitePage({
 
   const now = new Date();
   const viewer = await currentViewer();
+  await loadSocial([event.id]);
   const inviter = EVERYONE.find((person) => person.id === from) ?? null;
   const viewerInstagram = EVERYONE.find((person) => person.id === viewer.id)?.instagram ?? null;
   // Her friends already on Facebook, the inviter first: who she knows there on day one.
@@ -45,17 +49,20 @@ export default async function InvitePage({
         eventId={event.id}
         eventTitle={event.title}
         organizerName={event.organizer.name}
-        dateLine={formatDateLine(event, now)}
-        timeLine={formatEventTime(event, now)}
-        placeName={event.place.name}
-        perk={freePerk(event)}
-        inviterId={inviter?.id ?? null}
+                inviterId={inviter?.id ?? null}
         inviterName={inviter?.name ?? null}
         viewerName={viewer.name}
         viewerInstagram={viewerInstagram}
         friendNames={friendNames}
         initialStep={inviteStep(state)}
-        poster={<Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />}
+        who={whoIsGoing(event, viewer.id, viewer.interests)}
+      // The real event page's own parts, the same components /events/[id] draws.
+      page={{
+        header: <SubPageHeader title="Event" backHref="/" backLabel="Back to Events" actions={<EventShareAction event={event} />} />,
+        title: <EventTitleBlock event={event} now={now} />,
+        details: <EventDetails event={event} now={now} />,
+      }}
+      poster={<Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />}
       />
     </AppSwitch>
   );

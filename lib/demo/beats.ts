@@ -355,7 +355,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "She's going",
     caption: `${CAST.user1.name} knows she's coming. And she's open to meeting people.`,
-    note: "Lisa: I'm going, and Jolyn knows. Turn on Open to company: that hands over to Trish.",
+    note: "Lisa: I'm going, and Jolyn knows. Turn on Open to company and say: Oh, I bet that'll be important later. The switch hands over to Trish.",
     // Her landing already joined, so the beat rests on the event even if the steps before were skipped.
     path: lisaJoinedPath,
     inFrame: { from: "U2e", message: { type: "demo-step", step: "joined" } },
