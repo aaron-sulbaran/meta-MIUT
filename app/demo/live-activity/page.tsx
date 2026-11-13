@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { LiveActivityLockScreen } from "@/components/demo/live-activity";
 import { nearestFreeBite } from "@/lib/demo/free-bite";
+import { HANDOFF } from "@/lib/demo/staged";
 import { getEventStore } from "@/lib/events/store";
 import { classJustEnded } from "@/lib/map/class-start";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
@@ -22,7 +23,7 @@ export default async function LiveActivityPage({ searchParams }: { searchParams:
       nowIso={now.toISOString()}
       lastClass={classJustEnded(student.schedule, now)}
       bite={nearestFreeBite(events, student.home, now)}
-      handoffPath={`/?plan=home&time=${encodeURIComponent(pinned ?? now.toISOString())}`}
+      handoffPath={HANDOFF.walkHome(pinned ?? now.toISOString())}
     />
   );
 }
