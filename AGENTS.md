@@ -85,7 +85,7 @@ lib/demo/            beats.ts (client safe), staged.ts (staged routes and every 
 app/curate/          User 3's first Events visit: Muse reads email, calendar, Instagram, Reels and ranks a first feed
 app/api/curate/      POST a curated feed (Muse job, story event pinned first and flagged storyPinned if Muse ranked it lower)
 lib/curate/          connectors.ts (seeded sources, client safe), curate.ts (request, fixture, pinStory)
-app/invite/[id]/     Lisa's no-account landing, one ?state= per beat: locked preview, Meta account sheet, account ready, Join, going and Open to company
+app/invite/[id]/     Lisa's no-account landing, one ?state= per beat: locked preview, Meta account sheet, account ready, the event with I'm going, then going and Open to company
 app/api/invite/[id]/accept/  POST {from} marks the viewer and the inviter going
 components/alerts/   AlertListener (mount once in the root layout), banner, demo console
 components/ui/       Facebook shell: tab-bar (TabBar, ProfileAvatar), header (HomeHeader, SectionHeader,

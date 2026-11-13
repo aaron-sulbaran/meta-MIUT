@@ -12,7 +12,7 @@ import { currentViewer } from "@/lib/social/viewer";
 
 // Where an invite lands for someone with no Facebook account (Lisa's act, U2b to
 // U2f): the event locked behind "you need a Facebook account", Meta's "Your Meta
-// Account is here" sheet, the account ready, the event with Join, then going and
+// Account is here" sheet, the account ready, the event with I'm going, then going and
 // Open to company (components/invite/invite-landing.tsx). ?state= opens on a step
 // (account, ready, event, joined); ?opened=instagram plays the hop into Facebook.
 // The account is staged; Going and Open to company are real.
