@@ -14,6 +14,10 @@ import { MuseMark } from "@/components/ui/icons";
 export const SPROUT_SRC = "/muse/sprout.png";
 /** Sprout's full body on a transparent background, from sprout-portrait in muse-friends. */
 export const SPROUT_BODY_SRC = "/muse/sprout-body.png";
+/** Sprout's idle loop (sprout-idle in muse-friends): breathes and blinks, so he reads as alive and tappable. */
+export const SPROUT_IDLE_SRC = "/muse/sprout-idle.webp";
+// Set once Sprout has introduced himself, so the speech bubble shows only on a first visit.
+const INTRO_SEEN_KEY = "muse:intro-seen";
 
 const MUSE_TOGGLE = "muse:toggle";
 const MUSE_STATE = "muse:state";
@@ -36,11 +40,11 @@ export function MuseFace({ size, className = "" }: { size: number; className?: s
 }
 
 /** Sprout's whole body, no circle or background. */
-export function MuseBody({ size, className = "" }: { size: number; className?: string }) {
-  return (
+export function MuseBody({ size, className = "", animated = false }: { size: number; className?: string; animated?: boolean }) {
+  const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={SPROUT_BODY_SRC}
+      src={animated ? SPROUT_IDLE_SRC : SPROUT_BODY_SRC}
       alt=""
       width={size}
       height={size}
@@ -49,6 +53,30 @@ export function MuseBody({ size, className = "" }: { size: number; className?: s
       style={{ width: size, height: size }}
     />
   );
+  if (!animated) return img;
+  // The idle loop plays unless the viewer asked for less motion.
+  return (
+    <picture>
+      <source srcSet={SPROUT_BODY_SRC} media="(prefers-reduced-motion: reduce)" />
+      {img}
+    </picture>
+  );
+}
+
+function readIntroSeen(): boolean {
+  try {
+    return window.localStorage.getItem(INTRO_SEEN_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+function markIntroSeen() {
+  try {
+    window.localStorage.setItem(INTRO_SEEN_KEY, "1");
+  } catch {
+    // Storage can be blocked; the bubble may show again next visit.
+  }
 }
 
 /**
@@ -57,11 +85,30 @@ export function MuseBody({ size, className = "" }: { size: number; className?: s
  */
 export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
   const [open, setOpen] = useState(false);
+  const [intro, setIntro] = useState(false);
   useEffect(() => {
     const onState = (event: Event) => setOpen((event as CustomEvent<boolean>).detail);
     window.addEventListener(MUSE_STATE, onState);
     return () => window.removeEventListener(MUSE_STATE, onState);
   }, []);
+
+  // First visit: Sprout introduces himself in a speech bubble for a few seconds.
+  useEffect(() => {
+    if (readIntroSeen()) return;
+    const show = window.setTimeout(() => setIntro(true), 900);
+    const hide = window.setTimeout(() => {
+      setIntro(false);
+      markIntroSeen();
+    }, 8000);
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
+  }, []);
+  const dismissIntro = () => {
+    setIntro(false);
+    markIntroSeen();
+  };
 
   const box = "flex h-[44px] w-[44px] items-center justify-center transition-transform active:scale-95";
   const body = (
@@ -69,26 +116,44 @@ export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
       className="block transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1.3)] motion-reduce:transition-none"
       style={{ transform: open ? "rotate(-14deg) translate(-2px, 2px)" : "none" }}
     >
-      <MuseBody size={38} />
+      <MuseBody size={38} animated />
+    </span>
+  );
+  const bubble = intro && !open && (
+    <span
+      role="status"
+      className="pointer-events-none absolute right-0 top-[48px] z-50 w-[196px] rounded-[14px] bg-ink px-[12px] py-[9px] text-left text-[12.5px] font-semibold leading-[16px] text-white shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+    >
+      <span aria-hidden className="absolute -top-[5px] right-[16px] h-[11px] w-[11px] rotate-45 rounded-[2px] bg-ink" />
+      {mode === "menu" ? "Hi, I'm Muse! Tap me to ask anything or plan a food crawl." : "Hi, I'm Muse! Tap me to ask anything."}
     </span>
   );
   if (mode === "link") {
     return (
-      <Link href="/ask" aria-label="Ask Muse" className={box}>
-        {body}
-      </Link>
+      <span className="relative">
+        <Link href="/ask" aria-label="Ask Muse" className={box} onClick={dismissIntro}>
+          {body}
+        </Link>
+        {bubble}
+      </span>
     );
   }
   return (
-    <button
-      type="button"
-      onClick={() => window.dispatchEvent(new Event(MUSE_TOGGLE))}
-      aria-expanded={open}
-      aria-label={open ? "Close Muse" : "Muse: ask or plan a food crawl"}
-      className={box}
-    >
-      {body}
-    </button>
+    <span className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          dismissIntro();
+          window.dispatchEvent(new Event(MUSE_TOGGLE));
+        }}
+        aria-expanded={open}
+        aria-label={open ? "Close Muse" : "Muse: ask or plan a food crawl"}
+        className={box}
+      >
+        {body}
+      </button>
+      {bubble}
+    </span>
   );
 }
 
