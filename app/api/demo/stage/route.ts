@@ -1,5 +1,5 @@
 import { castFromSlug } from "@/lib/demo/beat-context";
-import { PhoneMoveSchema, StageMoveSchema, moveStage, movePhone, readPhonesSeen, readStagePosition, stampPhone } from "@/lib/demo/stage-position";
+import { DeckStepSchema, PhoneMoveSchema, reportDeckStep, StageMoveSchema, moveStage, movePhone, readPhonesSeen, readStagePosition, stampPhone } from "@/lib/demo/stage-position";
 import { z } from "zod";
 
 // The /demo stage's position (lib/demo/stage-position.ts).
@@ -7,7 +7,9 @@ import { z } from "zod";
 // stamped as connected); ?phones=1 adds when each presenter phone last checked in.
 // POST { action: "next" | "back" } from the phone remote, { action: "goto", index }
 // from the stage itself, or { action, from, at } from a presenter's own phone,
-// which moves the stage only on that presenter's beats (409 with where the stage is otherwise).
+// which moves the stage only on that presenter's beats (409 with where the stage is otherwise),
+// or { action: "deck", at, name, step, steps? } from the stage: the deck step on beat `at`,
+// read back as `data.deck` ({ name, step, steps } or absent) and dropped by the next move.
 
 const NO_STORE = { "cache-control": "no-store" };
 
@@ -30,6 +32,14 @@ export async function POST(request: Request) {
     return result.moved
       ? Response.json({ data: result.data, error: null }, { headers: NO_STORE })
       : Response.json({ data: result.data, error: result.reason }, { status: 409, headers: NO_STORE });
+  }
+  const deck = DeckStepSchema.safeParse(raw);
+  if (deck.success) {
+    const result = await reportDeckStep(deck.data);
+    return Response.json(
+      { data: result.data, error: result.recorded ? null : "The stage has moved to another beat" },
+      { status: result.recorded ? 200 : 409, headers: NO_STORE },
+    );
   }
   const body = StageMoveSchema.safeParse(raw);
   if (!body.success) return Response.json({ data: null, error: raw === null ? "Body must be JSON" : z.prettifyError(body.error) }, { status: 400 });

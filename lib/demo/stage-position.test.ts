@@ -43,7 +43,7 @@ describe("moves from a presenter's own phone", () => {
     expect(tapped).toMatchObject({ moved: true, data: { index: o1 + 1 } });
     // The same tap again (or the stage frame's copy of it) does nothing.
     expect(await movePhone({ action: "next", from: "organizer", at: o1 }, new Date(NOW.getTime() + 2))).toMatchObject({ moved: false, data: { index: o1 + 1 } });
-    expect(await movePhone({ action: "next", from: "lisa", at: o1 + 1 })).toMatchObject({ moved: false });
+    expect(await movePhone({ action: "next", from: "user2", at: o1 + 1 })).toMatchObject({ moved: false });
     expect((await moveStage({ action: "next" }, new Date(NOW.getTime() + 3))).index).toBe(o1 + 2);
     setStateClient(undefined);
   });
@@ -62,5 +62,23 @@ describe("the same invite sent twice", () => {
     resetClaims();
     expect(await claimOnce(key, 180, 182_000)).toBe(true);
     setStateClient(undefined);
+  });
+});
+
+describe("the deck step in the stage record", () => {
+  it("records the step for the beat the stage is on, keeps it on the same beat, and drops it on a move", async () => {
+    const { applyDeckStep, DeckStepSchema, StagePositionSchema } = await import("@/lib/demo/stage-position");
+    const onDeck = applyMove(null, { action: "goto", index: 0 }, 16, NOW);
+    const stepped = applyDeckStep(onDeck, { action: "deck", at: 0, name: "opening", step: 3, steps: 8 }, new Date(NOW.getTime() + 1));
+    expect(stepped).toMatchObject({ index: 0, deck: { name: "opening", step: 3, steps: 8 } });
+    expect(stepped!.seq).toBeGreaterThan(onDeck.seq);
+    // The stage claiming its own beat again keeps the step; moving on drops it.
+    expect(applyMove(stepped, { action: "goto", index: 0 }, 16, NOW).deck).toEqual(stepped!.deck);
+    expect(applyMove(stepped, { action: "next" }, 16, NOW).deck).toBeUndefined();
+    // A late report from a beat the stage has left does nothing.
+    expect(applyDeckStep(applyMove(stepped, { action: "next" }, 16, NOW), { action: "deck", at: 0, name: "opening", step: 4 }, NOW)).toBeNull();
+    // Older records with no deck still parse, and a report needs a beat, a name and a step.
+    expect(StagePositionSchema.safeParse({ index: 2, seq: 1, at: NOW.toISOString() }).success).toBe(true);
+    expect(DeckStepSchema.safeParse({ action: "deck", at: 0, name: "opening" }).success).toBe(false);
   });
 });

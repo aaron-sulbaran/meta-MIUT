@@ -22,6 +22,10 @@ export const StagePositionSchema = z.object({
   // reader acts only on moves newer than the last one it saw.
   seq: z.number().int(),
   at: z.string(),
+  // The step a deck beat is on (the stage reports it from the deck's "step"
+  // message), so a phone can show that step's presenter notes. Belongs to beat
+  // `index` only: any move drops it. Optional, so older records still parse.
+  deck: z.object({ name: z.string().min(1).max(64), step: z.number().int().min(0), steps: z.number().int().min(1).optional() }).nullish(),
 });
 export type StagePosition = z.infer<typeof StagePositionSchema>;
 
@@ -32,17 +36,41 @@ export const StageMoveSchema = z.discriminatedUnion("action", [
 ]);
 export type StageMove = z.infer<typeof StageMoveSchema>;
 
+// The stage reports the deck step on screen: { action: "deck", at, name, step, steps? }.
+// `at` is the beat the stage is on, so a late report after a move does nothing.
+export const DeckStepSchema = z.object({
+  action: z.literal("deck"),
+  at: z.number().int().min(0),
+  name: z.string().min(1).max(64),
+  step: z.number().int().min(0),
+  steps: z.number().int().min(1).optional(),
+});
+export type DeckStep = z.infer<typeof DeckStepSchema>;
+
+/** The position with the deck step recorded, or null when the stage is no longer on beat `at`. */
+export function applyDeckStep(current: StagePosition | null, report: DeckStep, now: Date): StagePosition | null {
+  if ((current?.index ?? 0) !== report.at) return null;
+  return {
+    index: report.at,
+    seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
+    at: now.toISOString(),
+    deck: { name: report.name, step: report.step, ...(report.steps ? { steps: report.steps } : {}) },
+  };
+}
+
 const STATE_NAME = "demo-stage";
 const memory = globalThis as typeof globalThis & { __demoStagePosition?: StagePosition };
 
-/** The position after a move, clamped to the beats that exist. */
+/** The position after a move, clamped to the beats that exist. A deck step stays only while the beat does. */
 export function applyMove(current: StagePosition | null, move: StageMove, beatCount: number, now: Date): StagePosition {
   const from = current?.index ?? 0;
   const wanted = move.action === "goto" ? move.index : move.action === "next" ? from + 1 : from - 1;
+  const index = Math.max(0, Math.min(beatCount - 1, wanted));
   return {
-    index: Math.max(0, Math.min(beatCount - 1, wanted)),
+    index,
     seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
     at: now.toISOString(),
+    ...(current?.deck && current.index === index ? { deck: current.deck } : {}),
   };
 }
 
@@ -69,6 +97,13 @@ async function savePosition(next: StagePosition): Promise<StagePosition> {
   shared.__demoStageRead = { at: Date.now(), value: Promise.resolve(next) };
   await saveState(STATE_NAME, next);
   return next;
+}
+
+export async function reportDeckStep(report: DeckStep, now = new Date()): Promise<{ data: StagePosition; recorded: boolean }> {
+  const current = await readStored();
+  const next = applyDeckStep(current, report, now);
+  if (!next) return { data: current ?? applyMove(null, { action: "goto", index: 0 }, BEATS.length, now), recorded: false };
+  return { data: await savePosition(next), recorded: true };
 }
 
 export async function moveStage(move: StageMove, now = new Date()): Promise<StagePosition> {

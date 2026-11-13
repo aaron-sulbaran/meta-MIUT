@@ -14,7 +14,7 @@ describe("who may move the stage from their own phone", () => {
 
   it("refuses anyone else, and anyone on the pitch beats", () => {
     const start = firstOf("organizer");
-    expect(decidePhoneMove(start, { action: "next", from: "lisa", at: start }).ok).toBe(false);
+    expect(decidePhoneMove(start, { action: "next", from: "user2", at: start }).ok).toBe(false);
     expect(decidePhoneMove(0, { action: "next", from: "organizer", at: 0 }).ok).toBe(false);
   });
 
@@ -27,9 +27,9 @@ describe("who may move the stage from their own phone", () => {
   });
 
   it("keeps Back inside the person's own act", () => {
-    const start = firstOf("lisa");
-    expect(decidePhoneMove(start, { action: "back", from: "lisa", at: start }).ok).toBe(false);
-    expect(decidePhoneMove(start + 1, { action: "back", from: "lisa", at: start + 1 })).toEqual({ ok: true, index: start });
+    const start = firstOf("user2");
+    expect(decidePhoneMove(start, { action: "back", from: "user2", at: start }).ok).toBe(false);
+    expect(decidePhoneMove(start + 1, { action: "back", from: "user2", at: start + 1 })).toEqual({ ok: true, index: start });
   });
 
   it("does nothing twice: a tap from a beat the stage has left is refused", () => {
@@ -41,14 +41,14 @@ describe("who may move the stage from their own phone", () => {
 describe("what a presenter phone shows", () => {
   it("waits before the show, says who is next, and wraps up after", () => {
     expect(phoneView(0, "organizer")).toMatchObject({ kind: "waiting", phase: "before", upNext: true });
-    expect(phoneView(0, "lisa")).toMatchObject({ kind: "waiting", upNext: false });
-    expect(phoneView(lastOf("organizer"), "aaron")).toMatchObject({ kind: "waiting", onNow: "organizer", upNext: true });
+    expect(phoneView(0, "user2")).toMatchObject({ kind: "waiting", upNext: false });
+    expect(phoneView(lastOf("organizer"), "user1")).toMatchObject({ kind: "waiting", onNow: "organizer", upNext: true });
     expect(phoneView(BEATS.length - 1, "user3")).toMatchObject({ kind: "waiting", phase: "after" });
   });
 
   it("marks the last beat of an act with who it hands to", () => {
-    expect(phoneView(lastOf("aaron"), "aaron")).toMatchObject({ kind: "scene", lastOfAct: true, handsTo: "lisa" });
-    expect(nextCast(lastOf("lisa"))).toBe("user3");
+    expect(phoneView(lastOf("user1"), "user1")).toMatchObject({ kind: "scene", lastOfAct: true, handsTo: "user2" });
+    expect(nextCast(lastOf("user2"))).toBe("user3");
   });
 
   it("continues U1c inside the walk already on screen, otherwise loads it", () => {

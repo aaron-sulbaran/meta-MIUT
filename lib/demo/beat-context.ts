@@ -1,16 +1,11 @@
-import { ACT_CAST, BEATS, STORY_DUE_AFTER, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
+import { ACT_CAST, BEATS, CAST_SLUG, STORY_DUE_AFTER, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
 
 // What a beat puts on a phone, and who may move the stage from their own phone.
 // Client safe. The presenter phones (/demo/phone/<slug>) use it; the /demo
 // stage builds the same paths and could use beatScreen and inFrameMessage too.
 
-// Each presenter's personal link: /demo/phone/<slug>.
-export const PHONE_SLUG: Record<CastId, string> = {
-  organizer: "jing",
-  aaron: "jolyn",
-  lisa: "lisa",
-  user3: "trish",
-};
+// Each presenter's personal link: /demo/phone/<slug> (slugs live with the cast in beats.ts).
+export const PHONE_SLUG: Record<CastId, string> = CAST_SLUG;
 
 export const PHONE_CAST = Object.keys(PHONE_SLUG) as CastId[];
 
@@ -35,7 +30,7 @@ export function storyDue(index: number): boolean {
 
 /** The screen a beat loads in the phone, or null (a film, or waiting for the story event). */
 export function beatScreen(beat: Beat, context: BeatContext): string | null {
-  if (beat.kind === "slide" || beat.kind === "film") return null;
+  if (beat.kind !== "staged" && beat.kind !== "app") return null;
   return beat.path?.(context) ?? null;
 }
 
