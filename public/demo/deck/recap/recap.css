@@ -166,3 +166,10 @@
 .m-time .num {
   font-variant-numeric: tabular-nums;
 }
+
+/* What the times are, under each one: this morning's test runs, not this run's calls. */
+.m-note {
+  margin-top: 14px;
+  font-size: 30px;
+  color: var(--gray);
+}

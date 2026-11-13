@@ -55,7 +55,7 @@
     }
     if (name === "recap-times") {
       const max = Math.max(...RECAP_KEYS.map((k) => (PROOF[k] || {}).seconds || 0), 1);
-      return `<div class="dg dg-times">${RECAP_KEYS.map((k, i) => {
+      return `<div class="dg dg-times"><p class="dg-label">${window.RECAP_PROOF_LABEL || ""}, in seconds</p>${RECAP_KEYS.map((k, i) => {
         const s = (PROOF[k] || {}).seconds || 0;
         return `<div class="dg-time"><p>${LIVE[i]}</p><i style="width:${Math.round((s / max) * 100)}%"></i><b>${s.toFixed(1)} s</b></div>`;
       }).join("")}</div>`;
