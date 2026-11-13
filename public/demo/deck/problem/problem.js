@@ -601,6 +601,7 @@
       notes: "Every day, clubs host events and give away free food. But it's scattered.",
       build(seg, ctx) {
         ctx.show(seg, "s3");
+        ctx.leave(seg, "s2");
         const enter = (f, at, from, dur, ease) => {
           ctx.ft(seg, f.el, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, at);
           ctx.ft(
@@ -707,6 +708,7 @@
       notes: "Quiet. Then: 'Marketplace made Facebook useful for finding things.'",
       build(seg, ctx) {
         ctx.show(seg, "s4");
+        ctx.leave(seg, "s3");
         ctx.hush(seg, 0.01);
         revealLine(seg, ctx, "#s4-a", 0.55);
         revealLine(seg, ctx, "#s4-b", 1.45);
@@ -787,6 +789,7 @@
       notes: "Quiet. Let them read the question.",
       build(seg, ctx) {
         ctx.show(seg, "s5");
+        ctx.leave(seg, "s4");
         ctx.hush(seg, 0.01);
         /* The listing and the flyer slide in from opposite sides and meet: finding things, finding things to do. */
         ctx.ft(seg, "#s5-lamp", { opacity: 0, x: -420, rotation: -10 }, { opacity: 1, x: 620, rotation: -4, duration: 1.4, ease: "power3.out" }, 0.1);

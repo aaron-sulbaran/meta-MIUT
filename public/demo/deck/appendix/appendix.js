@@ -154,6 +154,7 @@
       notes: "Click a question, or click the deck and press its number.",
       build(seg, ctx) {
         ctx.show(seg, "a2");
+        ctx.leave(seg, "a1");
         ctx.ft(seg, "#i-title", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, 0.1);
         $$(".i-item").forEach((el, i) => ctx.ft(seg, el, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.3 + i * 0.06));
       },
@@ -166,6 +167,8 @@
       build(seg, ctx) {
         const sel = `#q${i + 1}`;
         ctx.show(seg, `q${i + 1}`);
+        /* Next from the slide before fades it out; a jump from the index lands on the rest. */
+        ctx.leave(seg, i === 0 ? "a2" : `q${i}`);
         ctx.ft(seg, `${sel} .q-num`, { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0.05);
         ctx.ft(seg, `${sel} .q-q`, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.1);
         ctx.ft(seg, `${sel} .q-a`, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.35);

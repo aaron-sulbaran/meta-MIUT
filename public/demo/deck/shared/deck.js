@@ -112,6 +112,15 @@
           seg.set(s, { autoAlpha: s.id === sceneId ? 1 : 0 }, 0);
         });
       },
+      /* The scene the last step rested on fades out instead of vanishing, so a click never
+         pops (call after show). Still reads as a cut to black, without the flash. */
+      leave(seg, sceneId, dur) {
+        const d = dur || 0.3;
+        const scene = document.getElementById(sceneId);
+        seg.set(scene, { autoAlpha: 1 }, 0);
+        seg.fromTo(scene, { opacity: 1 }, { opacity: 0, duration: d, ease: "power1.in", immediateRender: false }, 0);
+        seg.set(scene, { autoAlpha: 0 }, d + 0.01);
+      },
       /* A fromTo that never renders early, so many steps can own the same element over time. */
       ft(seg, target, from, to, at) {
         /* A key given only in `from` is held for the whole tween (GSAP would ignore it). */

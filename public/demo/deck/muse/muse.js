@@ -134,8 +134,8 @@
       notes: "Let's see it live: Jing, Jolyn, Lisa, and Trish.",
       build(seg, ctx) {
         ctx.show(seg, "m7");
-        /* A hard cut to the cast, like every other text change. */
-        seg.set("#m7-pair", { opacity: 0 }, 0);
+        /* The lines clear quickly, then the cast. */
+        ctx.ft(seg, "#m7-pair", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power1.in" }, 0);
         const at = [0.35, 0.47, 0.6, 0.7];
         ["#c1", "#c2", "#c3", "#c4"].forEach((sel, i) => {
           ctx.ft(seg, sel, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.85, ease: "power3.out" }, at[i]);

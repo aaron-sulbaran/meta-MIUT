@@ -24,9 +24,11 @@ for (const f of readdirSync(outDir)) if (f.endsWith('.png') || f.endsWith('.raw'
 const browser = await chromium.launch({ channel: 'chrome', args: ['--disable-gpu'] });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.goto(url + (url.includes('?') ? '&' : '?') + 'render=1');
+console.error('[seams] loaded');
 await page.waitForFunction(() => document.documentElement.dataset.deckReady === '1', null, { timeout: 30000 });
 const marks = await page.evaluate(() => window.__deck.marks);
 const ids = await page.evaluate(() => window.__deck.steps.map((s) => s.id));
+console.error(`[seams] ready, ${marks.length} steps`);
 const [a, b] = (opt('--steps') ?? `0-${marks.length - 1}`).split('-').map(Number);
 
 const frames = [];
@@ -38,8 +40,8 @@ for (let i = a; i <= b; i++) {
 }
 let n = 0;
 for (const f of frames) {
-  await page.evaluate((t) => window.__deck.tl.seek(t, true), f.t);
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
+  /* A seek renders synchronously; the screenshot itself waits for the next frame. */
+  await page.evaluate((t) => { window.__deck.tl.seek(t, true); }, f.t);
   f.file = `f_${String(n++).padStart(5, '0')}.png`;
   await page.screenshot({ path: path.join(outDir, f.file) });
 }
