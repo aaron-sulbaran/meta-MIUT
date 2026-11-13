@@ -82,10 +82,11 @@ app/api/demo/stage/  GET where the stage is, POST next, back, or goto (lib/demo/
 app/api/demo/story/  GET the event the demo follows (created quietly if the organizer act was skipped)
 components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed, the Lock Screen's Live Activity); app-switch.tsx plays Facebook opening over a page opened with ?opened=instagram (withAppSwitch in lib/demo/app-switch.ts)
 lib/demo/            beats.ts (client safe), staged.ts (staged routes and every handoff path; a beat after a staged screen takes its path from HANDOFF), free-bite.ts, story.ts, stage-position.ts (also carries the run id), run.ts (runs, client safe), reset.ts (the fresh run), instance-memory.ts (one server instance's in-memory demo state)
-                     head-start.ts: the stage asks O3's flyer read, U1b's walk home and U3b's curate a few beats early (components/demo/head-start.ts, app/api/demo/head-start); the screen's route shares that call per run, stamps the real Muse time (`museMs`), and past 8 s after its beat appears answers recorded
+                     head-start.ts: the stage asks O3's flyer read, U1b's walk home a few beats early (Trish's curate never starts before she says yes) (components/demo/head-start.ts, app/api/demo/head-start); the screen's route shares that call per run, stamps the real Muse time (`museMs`), and past 8 s after its beat appears answers recorded
 app/curate/          User 3's first Events visit: Muse reads email, calendar, Instagram, Reels and ranks a first feed
 app/api/curate/      POST a curated feed (Muse job, story event pinned first and flagged storyPinned if Muse ranked it lower)
-lib/curate/          connectors.ts (seeded sources, client safe), curate.ts (request, fixture, pinStory)
+lib/curate/          connectors.ts (six seeded sources with their official marks, client safe), curate.ts (request, recorded picks, pinStory, never two of the same night), picks.ts (a viewer's own curate answer, which the List's Top 3 shows for them)
+components/curate/   first-visit.tsx: ?first=1 on the map, Muse's opt-in sheet, the reading (real /api/curate call, at least about 4 s), then the List (?view=list&first=1); beats U3b, U3b2, U3b3, U3c move it in place with {type: "demo-first", step}
 app/invite/[id]/     Lisa's no-account landing, one ?state= per beat: locked preview, Meta account sheet, account ready, the event with I'm going, then going and Open to company
 app/api/invite/[id]/accept/  POST {from} marks the viewer and the inviter going
 components/alerts/   AlertListener (mount once in the root layout), banner, demo console
