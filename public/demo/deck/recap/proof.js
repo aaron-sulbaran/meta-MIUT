@@ -63,3 +63,4 @@ window.RECAP_PROOF = {
     }
   }
 };
+window.RECAP_PROOF_LABEL = "Median of this morning's test runs";

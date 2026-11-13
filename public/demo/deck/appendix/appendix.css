@@ -421,3 +421,9 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+.dg-label {
+  margin-bottom: 18px;
+  font-size: 26px;
+  color: var(--gray);
+}

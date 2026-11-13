@@ -59,6 +59,7 @@ for key, names in OTHER.items():
     "   (motion/opening/recap-pass.json): each moment's median run, its own time, and where\n"
     "   that time stamp (or her words) sits in the 390 x 797 app area. */\n"
     f"window.RECAP_PROOF = {json.dumps(proof, indent=2)};\n"
+    "window.RECAP_PROOF_LABEL = \"Median of this morning's test runs\";\n"
 )
 (ROOT / "motion/opening/recap-pass.json").write_text(json.dumps(data, indent=2) + "\n")
 
@@ -91,6 +92,7 @@ RECAP = [
     ("moment-4", f"Re-planned, sent the invite; Muse Ember; {proof['replan']['seconds']} seconds", f"{METHOD} Re-plan, as Jolyn (/?plan=home&auto=1): runs {runs('replan')} s, median {proof['replan']['seconds']} s, shown with that run's screen (asked {proof['replan']['seconds']} s, Sent to Lisa). Model: muse-ember-1.0."),
     ("moment-5", f"Built her first feed; Muse Ember; {proof['picks']['seconds']} seconds", f"{METHOD} Trish's first picks (/?first=1, which calls /api/curate): runs {runs('picks')} s, median {proof['picks']['seconds']} s, shown with that run's screen (picked {proof['picks']['seconds']} s). Model: muse-ember-1.0."),
     ("moment-6", f"Found people, wrote the hello; Muse Ember; {proof['hello']['seconds']} seconds", f"{METHOD} The skit's state replayed first (the story on the demo clock; Lisa, invited by Jolyn, going and open to company). Muse suggests Jolyn and Lisa, then writes Trish's hello: the hello's runs {runs('hello')} s, median {proof['hello']['seconds']} s, shown with that run's screen (Written by Muse, Live, {proof['hello']['seconds']} s). Two calls in this moment: who to go with (/api/social/events/[id]/muse, 1.5 to 1.9 s over HTTP, motion/opening/timings-people.json) and the hello. Model: muse-ember-1.0."),
+    ("moment-1", "Median of this morning's test runs", "Shown under every recap time and above the appendix's times, from recap/proof.js (RECAP_PROOF_LABEL), the one file both slides read: each moment's median over this capture pass, not the run on stage, whose own screens show its own calls. No count-up, so it is never read mid-count."),
     ("live-calls", "Every one a live call to Meta's Muse models. A recorded answer always says so on screen.", "Every moment above ran against the live models in this pass (seven calls across six moments; moment 6 is two). The product labels any recorded fallback on screen (SourceBadge, Recorded labels), per AGENTS.md."),
 ]
 facts = json.loads((DECK / "facts.json").read_text())
