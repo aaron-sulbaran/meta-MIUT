@@ -836,7 +836,7 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
                 <p className="truncate text-meta font-semibold text-muted">{card.dateLine}</p>
                 <p className="mt-[3px] flex items-center gap-[6px] text-meta font-semibold text-muted">
                   <span className="truncate">
-                    {walkMinutes(studentSpot, card.place)} min walk · {card.free ? "Free" : "Paid"}
+                    {walkMinutes(studentSpot, card.place)} min walk{card.perk ? "" : card.free ? " · Free" : " · Paid"}
                   </span>
                   <a
                     href={directionsUrl(studentSpot, card.place)}
