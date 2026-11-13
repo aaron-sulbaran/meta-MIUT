@@ -13,7 +13,7 @@ export { COMMENT_MAX_LENGTH, type EventComment, type EventComments } from "@/lib
 // that time has passed, so a live event reads live. Viewer comments are kept
 // in the process, and in the shared store (Redis) when it is configured.
 
-type Stored = { id: string; authorId: string; name: string; text: string; at: string; replyTo?: string };
+type Stored = { id: string; authorId: string; name: string; text: string; at: string; replyTo?: string; mention?: string };
 type CommentsState = { posted: Map<string, Stored[]> };
 
 const globalForComments = globalThis as unknown as { __commentsState?: CommentsState };
@@ -176,16 +176,18 @@ export function addComment(
   text: string,
   now = new Date(),
   replyTo?: string,
+  mention?: string,
 ): EventComment {
   const list = posted(event.id);
   const comment: Stored = { id: `c-${now.getTime().toString(36)}-${list.length}`, authorId: viewer.id, name: viewer.name, text, at: now.toISOString() };
   if (replyTo) comment.replyTo = replyTo;
+  if (replyTo && mention) comment.mention = mention;
   list.push(comment);
   return { ...comment, mine: true };
 }
 
 const StoredSchema = z.array(
-  z.object({ id: z.string(), authorId: z.string(), name: z.string(), text: z.string(), at: z.string(), replyTo: z.string().optional() }),
+  z.object({ id: z.string(), authorId: z.string(), name: z.string(), text: z.string(), at: z.string(), replyTo: z.string().optional(), mention: z.string().optional() }),
 );
 const commentsName = (eventId: string) => `social-comments:${eventId}`;
 

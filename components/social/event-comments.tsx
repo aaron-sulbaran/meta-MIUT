@@ -52,7 +52,11 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
       const response = await fetch(`/api/social/events/${encodeURIComponent(initial.eventId)}/comments`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: body, replyTo }),
+        body: JSON.stringify({
+          text: body,
+          replyTo,
+          mention: replyTo && replyingTo && !replyingTo.to.mine ? replyingTo.to.name : undefined,
+        }),
       });
       const result = (await response.json()) as { data: EventComments | null; error: string | null };
       if (!response.ok || !result.data) throw new Error(result.error ?? "Could not post");
@@ -179,7 +183,10 @@ function CommentRow({
       <div className="min-w-0">
         <div className="rounded-[16px] bg-wash px-[12px] py-[8px]">
           <p className="text-meta font-semibold text-ink">{comment.mine ? "You" : comment.name}</p>
-          <p className="text-body">{comment.text}</p>
+          <p className="text-body">
+            {comment.mention && <span className="font-semibold text-link">{comment.mention} </span>}
+            {comment.text}
+          </p>
         </div>
         <p className="mt-[3px] flex gap-[12px] pl-[12px] text-meta text-muted">
           <span>{ago(comment.at, now)}</span>

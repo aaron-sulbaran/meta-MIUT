@@ -71,4 +71,12 @@ describe("event comments", () => {
     expect(thread.at(-1)).toMatchObject({ text: "Count me in", replyTo: parent.id, mine: true });
     expect(comments.filter((comment) => !comment.replyTo).some((comment) => comment.text === "Count me in")).toBe(false);
   });
+
+  it("keeps the name of the person a reply answers", () => {
+    const now = at(foodEvent, 30);
+    const parent = eventComments(foodEvent, viewer.id, now).comments.find((comment) => !comment.replyTo) as { id: string; name: string };
+    addComment(foodEvent, viewer, "See you there", now, parent.id, parent.name);
+    const reply = eventComments(foodEvent, viewer.id, now).comments.find((comment) => comment.text === "See you there");
+    expect(reply).toMatchObject({ replyTo: parent.id, mention: parent.name });
+  });
 });
