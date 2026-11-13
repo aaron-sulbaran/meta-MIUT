@@ -1,0 +1,72 @@
+// Local copies of the organizer logos in organizer-logos.ts, so a slow or blocked outside
+// site never holds a screen or shows a broken image. Each file is the identical file served
+// at the address it is keyed by (downloaded 2026-11-13, not redrawn or resized). Add a logo
+// to organizer-logos.ts with its address; add its copy here when it should not depend on that site.
+export const LOCAL_LOGO_FILES: Record<string, string> = {
+  "https://arts.mit.edu/wp-content/uploads/2015/12/cropped-AAM_Browser-Icon-192x192.png":
+    "/logos/organizers/arts-mit-cropped-aam-browser-icon-192x192.png",
+  "https://baker.mit.edu/favicon/apple-touch-icon.png":
+    "/logos/organizers/baker-mit-apple-touch-icon.png",
+  "https://bpb-us-e1.wpmucdn.com/sites.mit.edu/dist/7/551/files/2024/05/2guyslogo_0.jpg":
+    "/logos/organizers/bpb-us-e1-wpmucdn-2guyslogo-0.jpg",
+  "https://bpb-us-e1.wpmucdn.com/sites.mit.edu/dist/b/496/files/2025/03/cropped-UALogoFullColor-192x192.png":
+    "/logos/organizers/bpb-us-e1-wpmucdn-cropped-ualogofullcolor-192x192.png",
+  "https://bpb-us-e1.wpmucdn.com/sites.mit.edu/dist/c/1102/files/2024/11/cropped-favicon_5-192x192.png":
+    "/logos/organizers/bpb-us-e1-wpmucdn-cropped-favicon-5-192x192.png",
+  "https://brand.northeastern.edu/global/assets/favicon/apple-touch-180x180.png?v=2":
+    "/logos/organizers/brand-northeastern-apple-touch-180x180.png",
+  "https://cdn.uconnectlabs.com/wp-content/themes/uConnect_MIT/images/mit-capd-left.svg?v=2":
+    "/logos/organizers/cdn-uconnectlabs-mit-capd-left.svg",
+  "https://cis.mit.edu/themes/cis/favicon.ico":
+    "/logos/organizers/cis-mit-favicon.ico",
+  "https://csc.mit.edu/favicon.ico":
+    "/logos/organizers/csc-mit-favicon.ico",
+  "https://design.mit.edu/favicon.ico":
+    "/logos/organizers/design-mit-favicon.ico",
+  "https://hackharvard.io/assets/img/apple-touch-icon.png":
+    "/logos/organizers/hackharvard-apple-touch-icon.png",
+  "https://hcs.harvard.edu/logo.png":
+    "/logos/organizers/hcs-harvard-logo.png",
+  "https://i0.wp.com/centralsquare.org/wp-content/uploads/2021/06/cropped-logo-color-reversed-1.png?fit=192%2C192&ssl=1":
+    "/logos/organizers/i0-wp-cropped-logo-color-reversed-1.png",
+  "https://images.squarespace-cdn.com/content/v1/5812518015d5db0f10689afc/33a6ae01-67ff-442e-923f-9d80b3ebe666/favicon.ico?format=100w":
+    "/logos/organizers/images-squarespace-cdn-favicon.webp",
+  "https://kendallsquare.org/wp-content/uploads/cropped-ksa_icon_darkgreen_rgb_720-192x192.png":
+    "/logos/organizers/kendallsquare-cropped-ksa-icon-darkgreen-rgb-720-192x1.png",
+  "https://lit.mit.edu/wp-content/uploads/2023/10/favicon.svg":
+    "/logos/organizers/lit-mit-favicon.svg",
+  "https://mitaialignment.org/favicon.png":
+    "/logos/organizers/mitaialignment-favicon.png",
+  "https://mitsloan.mit.edu/favicon-32x32.png":
+    "/logos/organizers/mitsloan-mit-favicon-32x32.png",
+  "https://mta.mit.edu/wp-content/uploads/2026/09/favicon-512x512-1-300x300.png":
+    "/logos/organizers/mta-mit-favicon-512x512-1-300x300.png",
+  "https://mtg.mit.edu/static/images/mtg.png":
+    "/logos/organizers/mtg-mit-mtg.png",
+  "https://seas.harvard.edu/themes/custom/seas/favicon.ico":
+    "/logos/organizers/seas-harvard-favicon.png",
+  "https://simmons.mit.edu/favicon.png":
+    "/logos/organizers/simmons-mit-favicon.png",
+  "https://static.wixstatic.com/media/0a963c_394d8a6268ff4e8fb372b7ce1f41ab95%7Emv2.png/v1/fill/w_192%2Ch_192%2Clg_1%2Cusm_0.66_1.00_0.01/0a963c_394d8a6268ff4e8fb372b7ce1f41ab95%7Emv2.png":
+    "/logos/organizers/static-wixstatic-0a963c-394d8a6268ff4e8fb372b7ce1f41ab95.png",
+  "https://studentlife.mit.edu/app/uploads/2025/01/favicon-512x512-1-300x300.png":
+    "/logos/organizers/studentlife-mit-favicon-512x512-1-300x300.png",
+  "https://web.mit.edu/hellenic/www/gifs/logo-title-smaller.gif":
+    "/logos/organizers/web-mit-logo-title-smaller.gif",
+  "https://web.mit.edu/tsmit/www/TSMIT_logo/TSMIT_logo_2024_transparent.png":
+    "/logos/organizers/web-mit-tsmit-logo-2024-transparent.png",
+  "https://www.berklee.edu/themes/custom/berklee_base/favicon.ico":
+    "/logos/organizers/berklee-favicon.png",
+  "https://www.bu.edu/home/img/apple-touch-icon-precomposed.png":
+    "/logos/organizers/bu-apple-touch-icon-precomposed.png",
+  "https://www.cambridgema.gov/apple-icon-180x180.png":
+    "/logos/organizers/cambridgema-apple-icon-180x180.png",
+  "https://www.centralsquaretheater.org/wp-content/uploads/2023/03/cropped-cst-purple-logo-2023-192x192.png":
+    "/logos/organizers/centralsquaretheater-cropped-cst-purple-logo-2023-192x192.png",
+  "https://www.csail.mit.edu/themes/custom/csail/images/favicon.ico":
+    "/logos/organizers/csail-mit-favicon.ico",
+  "https://www.eecs.mit.edu/wp-content/uploads/2021/06/cropped-cropped-favicon-192x192.png":
+    "/logos/organizers/eecs-mit-cropped-cropped-favicon-192x192.png",
+  "https://www.harvard.edu/wp-content/uploads/2020/10/cropped-logo-branding-compressed.png?w=192":
+    "/logos/organizers/harvard-cropped-logo-branding-compressed.png",
+};

@@ -71,6 +71,7 @@ export default async function EventsTabPage({
               holdReveal={params.reveal === "wait"}
               openAsk={params.muse === "ask"}
               planAt={params.time && Number.isFinite(Date.parse(params.time)) ? params.time : null}
+              liveMuse={!firstVisit}
             />
           </Suspense>
           <ViewToggle view="map" overlay />

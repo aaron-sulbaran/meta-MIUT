@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 import type { MapCard } from "@/components/map/events-map";
 import { CATEGORY_TINTS, monogram } from "@/components/map/category-icons";
+import { OrganizerLogoImg } from "@/components/map/organizer-logo-img";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
 import { posterStyle } from "@/components/ui/poster";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
@@ -127,8 +128,7 @@ export function StopPeek({
               aria-hidden
             >
               {card?.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={card.logoUrl} alt="" referrerPolicy="no-referrer" className="h-full w-full object-contain p-[2px]" />
+                <OrganizerLogoImg src={card.logoUrl} className="h-full w-full object-contain p-[2px]" fallback={monogram(card.organizerName)} />
               ) : (
                 monogram(card?.organizerName ?? stop.title)
               )}

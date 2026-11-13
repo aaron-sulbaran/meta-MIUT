@@ -117,8 +117,12 @@ export function MuseHeaderButton() {
   }, []);
 
   // First visit: Sprout introduces himself in a speech bubble for a few seconds.
+  // Not on a first visit's map (?first=1, components/curate/first-visit.tsx): Muse's opt-in
+  // sheet owns that screen, and the bubble would sit over its dimmed background.
   useEffect(() => {
     if (readIntroSeen()) return;
+    const query = new URLSearchParams(window.location.search);
+    if (query.get("first") === "1" && query.get("view") !== "list") return;
     const show = window.setTimeout(() => setIntro(true), 900);
     const hide = window.setTimeout(() => {
       setIntro(false);

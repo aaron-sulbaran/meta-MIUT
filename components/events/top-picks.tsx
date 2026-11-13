@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
 import { organizerLogo } from "@/lib/map/organizer-logos";
+import { OrganizerLogoImg } from "@/components/map/organizer-logo-img";
 import { MoreForYou } from "@/components/events/more-for-you";
 import { HandoffLink } from "@/components/curate/handoff-link";
 import { MetaAiMark } from "@/components/ui/meta-ai-mark";
@@ -100,15 +101,15 @@ function PickTile({ event, now, viewer, walk, href, handoff = false }: { event: 
   const body = (
     <>
       {event.source.imagePath ? (
+        // Anchored left: a wide flyer cropped into the narrow tile keeps the start of its title.
         // eslint-disable-next-line @next/next/no-img-element
-        <img loading="lazy" decoding="async" src={event.source.imagePath} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img loading="lazy" decoding="async" src={event.source.imagePath} alt="" className="absolute inset-0 h-full w-full object-cover object-left" />
       ) : (
         <Poster seed={event.id} title="" size="small" className="absolute inset-0 h-full !aspect-auto" />
       )}
       <span className="absolute left-[6px] top-[6px] flex h-[28px] w-[28px] items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white text-[9px] font-semibold text-[#0c447c] shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
         {logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt="" referrerPolicy="no-referrer" className="h-full w-full object-contain p-[2px]" />
+          <OrganizerLogoImg src={logo} className="h-full w-full object-contain p-[2px]" fallback={monogram(event.organizer.name)} />
         ) : (
           monogram(event.organizer.name)
         )}
