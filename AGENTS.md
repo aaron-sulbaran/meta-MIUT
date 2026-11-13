@@ -86,6 +86,9 @@ lib/organizer/       client safe: place names to map spots, campus clock time fo
 lib/store/redis.ts   minimal Upstash Redis REST client (fetch, no SDK)
 lib/muse/            client.ts, job.ts, extract.ts, rank.ts, ask.ts, fixtures/
 lib/geo.ts           distance and walking minutes
+lib/map/heat.ts      event weights that order the map cards: Muse picks first, then interest scores
+lib/map/organizer-logos.ts  organizer logos by handle (from their own sites) until the seed carries organizer.logoUrl
+lib/map/category.ts  guesses an event's kind (pizza, film, climb...) from its words; components/map/category-icons.ts draws its badge and the organizer monogram
 data/seed/           placeholder events and student profile
 ```
 
@@ -97,7 +100,7 @@ Stay in your folders. Touching another lane's folder means a hub note to its own
 |---|---|
 | Muse | `lib/muse/`, `app/api/muse/` |
 | Events tab | `app/(events)/`, `components/events/`, `app/ask/`, `components/ask/`, `lib/events/time.ts` |
-| Map | `app/map/`, `components/map/`, `lib/geo.ts` |
+| Map | `app/map/`, `components/map/`, `lib/map/`, `lib/geo.ts` |
 | Organizer and notification | `app/organizer/`, `components/organizer/`, `lib/organizer/` |
 | Design, seed, pitch | `data/seed/`, `app/globals.css`, `components/ui/`, `app/layout.tsx` |
 | Integration | `lib/store/`, `lib/alerts/` (except `policy.ts` and `compose.ts`, who gets alerted and what it says, owned by the alert item), `lib/events/publish.ts`, `lib/attendance/`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/` |
@@ -128,3 +131,4 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (record with `hu
 - Event images are `Poster` compositions seeded by event id. An event with `source.imagePath` (a local file under `public/flyers/`) shows its flyer in the same 2:1 frame instead. No hotlinks.
 - `server-only` is stubbed in tests by `vitest.config.ts`, and in scripts by `node --conditions=react-server`; `scripts/register-ts-paths.mjs` resolves `@/` for plain Node.
 - ESLint reads any function named `use...` as a React hook.
+- The map is MapLibre GL with OpenFreeMap "liberty" tiles (no key). The student stands at `profile.home`, never live GPS (demo runs away from campus). Markers are plain DOM: MapLibre sets `transform` on the marker element, so style and scale a child, not the element. `maplibre-gl` is imported inside an effect, never at module top, because it needs `window`. MapLibre's CSS sets `.maplibregl-map { position: relative }`, so give the map element a sized parent instead of `absolute inset-0` on the element itself.

@@ -22,6 +22,10 @@ export const AccessSchema = z.object({
 export const OrganizerSchema = z.object({
   name: z.string().min(1),
   handle: z.string().min(1),
+  // The club's, association's or business's logo (a URL or a small stored
+  // image). The map shows it on the event's bubble; optional, so events
+  // without one show the organizer's monogram.
+  logoUrl: z.string().min(1).optional(),
 });
 
 export const SourceSchema = z.object({

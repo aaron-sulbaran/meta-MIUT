@@ -17,21 +17,27 @@ import { FEED_FILTER_EVENT, type FeedFilter } from "@/lib/muse/types";
 
 /**
  * The chip row and the list it filters. `topPicks` is rendered by the server
- * (it runs the rank job) and only shows under For you.
+ * (it runs the rank job) and only shows under For you. `initialChip` and
+ * `showChips={false}` let the Events page drive the chip from its own top bar
+ * (components/map/list-top-bar.tsx) instead of this row.
  */
 export function EventFeed({
   events,
   nowIso,
   campus,
   topPicks,
+  initialChip = "forYou",
+  showChips = true,
 }: {
   events: CampusEvent[];
   nowIso: string;
   campus: string;
   topPicks: ReactNode;
+  initialChip?: EventChip;
+  showChips?: boolean;
 }) {
   const now = new Date(nowIso);
-  const [chip, setChip] = useState<EventChip>("forYou");
+  const [chip, setChip] = useState<EventChip>(initialChip);
   const { dismissed, dismiss } = useDismissed();
   // Free has the X (Not for me), like For you; the time chips list everything.
   const visible = eventsForChip(events, chip, now).filter((event) => chip !== "free" || !dismissed.has(event.id));
@@ -45,14 +51,16 @@ export function EventFeed({
 
   return (
     <div>
-      <ChipRow label="Filter events">
-        <LocationChip place={campus} />
-        {EVENT_CHIPS.map((option) => (
-          <FilterChip key={option} active={chip === option} onSelect={() => setChip(option)}>
-            {EVENT_CHIP_LABELS[option]}
-          </FilterChip>
-        ))}
-      </ChipRow>
+      {showChips && (
+        <ChipRow label="Filter events">
+          <LocationChip place={campus} />
+          {EVENT_CHIPS.map((option) => (
+            <FilterChip key={option} active={chip === option} onSelect={() => setChip(option)}>
+              {EVENT_CHIP_LABELS[option]}
+            </FilterChip>
+          ))}
+        </ChipRow>
+      )}
 
       {/* For you is only Muse's picks; the unfiltered list is under the other chips. */}
       {chip === "forYou" ? (
