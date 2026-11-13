@@ -304,6 +304,10 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
     Object.assign(image.style, { width: "100%", height: "100%", objectFit: "contain", padding: "3px", boxSizing: "border-box", display: "block" });
     image.addEventListener("error", () => fillWithInitials(photo, card, size), { once: true });
     photo.appendChild(image);
+    // A logo that has not arrived in a few seconds (a slow outside site) gives way to the monogram.
+    window.setTimeout(() => {
+      if (image.isConnected && !(image.complete && image.naturalWidth > 0)) fillWithInitials(photo, card, size);
+    }, 2_500);
   } else {
     fillWithInitials(photo, card, size);
   }
