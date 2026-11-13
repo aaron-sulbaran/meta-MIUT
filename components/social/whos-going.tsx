@@ -96,6 +96,8 @@ export function WhosGoing({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [helloBusy, setHelloBusy] = useState<string | null>(null);
+  const [helloError, setHelloError] = useState<string | null>(null);
   const [muse, setMuse] = useState<{ state: "idle" | "asking" | "done"; pick: MusePick | null; error: string | null }>({
     state: "idle",
     pick: null,
@@ -134,7 +136,32 @@ export function WhosGoing({
       return;
     }
     setWho(result.data.who);
-    setMuse({ state: "done", pick: { line: result.data.line, people: result.data.people }, error: null });
+    // Everyone looking for company gets a row (and Say hi), Muse's picks first.
+    const picked = new Set(result.data.people.map((person) => person.id));
+    const rest = result.data.who.openToCompany
+      .filter((person) => !picked.has(person.id))
+      .map((person) => ({ id: person.id, why: sharedLine(person.shared) }));
+    setMuse({ state: "done", pick: { line: result.data.line, people: [...result.data.people, ...rest] }, error: null });
+  }
+
+  async function sayHi(personId: string) {
+    setHelloBusy(personId);
+    setHelloError(null);
+    const result = await post<Response>("/api/social/hello", { eventId: who.eventId, to: personId });
+    setHelloBusy(null);
+    if (!result.data) {
+      setHelloError(result.error ?? "Could not say hi right now.");
+      return;
+    }
+    setWho(result.data);
+    // They answer a few seconds later; check back until they have.
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      const latest = await fetch(goingUrl).then((response) => response.json() as Promise<Response>).catch(() => null);
+      if (!latest?.data) continue;
+      setWho(latest.data);
+      if (latest.data.openToCompany.find((person) => person.id === personId)?.hello === "accepted") return;
+    }
   }
 
   const namesLine = friendsNamesLine(who.friends);
@@ -245,18 +272,42 @@ export function WhosGoing({
                   {muse.pick.people.map((pick) => {
                     const person = everyone.find((candidate) => candidate.id === pick.id);
                     if (!person) return null;
+                    const company = who.openToCompany.some((candidate) => candidate.id === person.id);
                     return (
-                      <li key={pick.id} className="flex items-center gap-[10px]">
+                      <li key={pick.id} className="flex items-start gap-[10px]">
                         <Avatar person={person} size={30} />
                         <span className="min-w-0 flex-1">
                           <span className="block font-display text-label font-bold">{person.name}</span>
                           <span className="block truncate text-meta text-muted">{pick.why}</span>
+                          {company && person.hello === "pending" && (
+                            <span className="mt-[2px] block text-meta text-muted">Hi sent. Waiting for {person.name} to say yes.</span>
+                          )}
+                          {company && person.hello === "accepted" && person.instagram && (
+                            <span className="mt-[4px] block text-meta font-semibold">
+                              <span className="flex items-center gap-[5px]">
+                                <InstagramPostIcon className="h-[15px] w-[15px] shrink-0" />
+                                {person.name} said yes: @{person.instagram}
+                              </span>
+                              <span className="block font-normal text-muted">{person.name} can see your Instagram too.</span>
+                            </span>
+                          )}
                         </span>
+                        {company && !person.hello && (
+                          <button
+                            type="button"
+                            disabled={helloBusy !== null}
+                            onClick={() => void sayHi(person.id)}
+                            className={buttonClass("secondary", "shrink-0")}
+                          >
+                            Say hi
+                          </button>
+                        )}
                       </li>
                     );
                   })}
                 </ul>
               )}
+              {helloError && <p className="mt-[8px] pl-[40px] text-meta font-semibold text-badge">{helloError}</p>}
             </div>
           ) : (
             <button
