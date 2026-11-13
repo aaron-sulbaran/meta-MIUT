@@ -16,7 +16,8 @@ import { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type 
 // the attendance store (t-vp0w). Open to company is a checkbox only (lisa).
 // Who's going leads with friends by name ("Aaron and Lisa are going"), which
 // opens a sheet of friends going (trish); Ask Muse says who to go with (demo
-// beat U3d); Looking for company is Muse's card at the end of it.
+// beat U3d); Looking for company is Muse's card at the end of it: new people
+// open to company who share interests, never friends, each with Say hi.
 
 type Response = { data: WhoIsGoing | null; error: string | null };
 type Seats = { capacity: number; left: number };
@@ -168,7 +169,6 @@ export function WhosGoing({
   const companyCount = who.openToCompany.length;
   // Everyone going but the viewer's friends, the company list included (trish).
   const moreCount = who.othersCount + companyCount;
-  const everyone = [...who.friends, ...who.openToCompany];
 
   return (
     <>
@@ -270,19 +270,18 @@ export function WhosGoing({
               {muse.pick.people.length > 0 && (
                 <ul className="mt-[10px] flex flex-col gap-[8px] pl-[40px]">
                   {muse.pick.people.map((pick) => {
-                    const person = everyone.find((candidate) => candidate.id === pick.id);
+                    const person = who.openToCompany.find((candidate) => candidate.id === pick.id);
                     if (!person) return null;
-                    const company = who.openToCompany.some((candidate) => candidate.id === person.id);
                     return (
                       <li key={pick.id} className="flex items-start gap-[10px]">
                         <Avatar person={person} size={30} />
                         <span className="min-w-0 flex-1">
                           <span className="block font-display text-label font-bold">{person.name}</span>
                           <span className="block truncate text-meta text-muted">{pick.why}</span>
-                          {company && person.hello === "pending" && (
+                          {person.hello === "pending" && (
                             <span className="mt-[2px] block text-meta text-muted">Hi sent. Waiting for {person.name} to say yes.</span>
                           )}
-                          {company && person.hello === "accepted" && person.instagram && (
+                          {person.hello === "accepted" && person.instagram && (
                             <span className="mt-[4px] block text-meta font-semibold">
                               <span className="flex items-center gap-[5px]">
                                 <InstagramPostIcon className="h-[15px] w-[15px] shrink-0" />
@@ -292,7 +291,7 @@ export function WhosGoing({
                             </span>
                           )}
                         </span>
-                        {company && !person.hello && (
+                        {!person.hello && (
                           <button
                             type="button"
                             disabled={helloBusy !== null}
@@ -323,7 +322,7 @@ export function WhosGoing({
                 <span className="block font-display text-label font-bold">
                   {muse.state === "asking" ? "Muse is checking who's going..." : "Looking for company"}
                 </span>
-                <span className="block text-meta text-muted">{muse.error ?? "Muse looks for friends and people to go with"}</span>
+                <span className="block text-meta text-muted">{muse.error ?? "Muse suggests people who share your interests"}</span>
               </span>
               <ChevronRightIcon className="h-[16px] w-[16px] shrink-0 text-muted" />
             </button>

@@ -2,11 +2,11 @@ import "server-only";
 import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
-import { friendsNamesLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
+import { sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
 
-// "Who do I know that's going?" on the event page (demo beat U3d): Muse reads
-// the event and who is going (friends, people with friends in common, people
-// open to company who share interests) and says who to go with, in a line or
+// Looking for company on the event page: Muse reads the event and the students
+// going who are open to company and share interests (not the viewer's friends,
+// who the page already lists), and suggests who to say hi to, in a line or
 // two, naming up to three people with a short reason each.
 
 export const GoingPickSchema = z.object({
@@ -20,19 +20,17 @@ export type GoingPick = z.infer<typeof GoingPickSchema>;
 const GOING_STRUCTURED_OUTPUT = museStructuredOutput("who_to_go_with", GoingPickSchema);
 
 const SYSTEM = [
-  "You help a student decide who to go to a campus event with.",
-  "You get the event and who is going: friends, people who have friends in common with the student, and people open to company who share interests.",
-  'Return JSON only: {"line":"one or two short sentences to the student, friends first by name, warm and plain, no emoji, no dashes","people":[{"id","why"}]}.',
-  "people: up to 3, best first, only ids from the list. why: under 60 characters, like Your friend, or Friends with Lisa, likes film.",
-  "If no friend is going, suggest the best person open to company. Never invent people or facts.",
-  "The page already shows which friends are going, right above your line. Do not restate it (no 'X and Y are going'): say who to go with and why, like a friend would.",
+  "You suggest new people a student could meet at a campus event and maybe become friends with.",
+  "You get the event and the students going who are open to company and share interests with the student. None of them are the student's friends yet.",
+  'Return JSON only: {"line":"one or two short sentences to the student: who to say hi to and what you have in common, warm and plain, no emoji, no dashes","people":[{"id","why"}]}.',
+  "people: up to 3, best match first, only ids from the list. why: under 60 characters, like You both like film, or Friends with Lisa, likes film.",
+  "Never mention or suggest the student's friends, and never invent people or facts.",
 ].join(" ");
 
-function describe(person: GoingPerson, kind: "friend" | "company") {
+function describe(person: GoingPerson) {
   return {
     id: person.id,
     name: person.name,
-    kind,
     year: person.year,
     major: person.major,
     sharedInterests: person.shared,
@@ -41,30 +39,24 @@ function describe(person: GoingPerson, kind: "friend" | "company") {
   };
 }
 
-/** What the fixture says when Muse is not reachable: friends first, else the best match open to company. */
+/** What the fixture says when Muse is not reachable: the best matches looking for company. */
 export function goingFixture(who: WhoIsGoing): GoingPick {
-  const friendsLine = friendsNamesLine(who.friends);
-  if (friendsLine) {
-    return {
-      line: `Ask ${who.friends.slice(0, 2).map((friend) => friend.name).join(" or ")} to walk over with you.`,
-      people: who.friends.slice(0, 3).map((friend) => ({ id: friend.id, why: "Your friend" })),
-    };
-  }
   const best = who.openToCompany[0];
-  if (best) {
-    const why = best.mutual?.length ? `Friends with ${best.mutual[0]}` : sharedLine(best.shared);
-    return { line: `None of your friends yet, but ${best.name} is looking for company. ${why}.`, people: [{ id: best.id, why }] };
-  }
-  return { line: "Nobody you know is going yet. Be the first, and your friends will see it.", people: [] };
+  if (!best) return { line: "Nobody is looking for company here yet. Mark Going and Open to company so others can say hi.", people: [] };
+  const people = who.openToCompany.slice(0, 3).map((person) => ({
+    id: person.id,
+    why: person.mutual?.length ? `Friends with ${person.mutual[0]}` : sharedLine(person.shared),
+  }));
+  return { line: `Say hi to ${best.name}. ${people[0]!.why}.`, people };
 }
 
 export async function whoToGoWith(event: CampusEvent, who: WhoIsGoing, viewerName: string): Promise<MuseJobResult<GoingPick>> {
-  const listed = [...who.friends.map((person) => describe(person, "friend")), ...who.openToCompany.map((person) => describe(person, "company"))];
+  const listed = who.openToCompany.map(describe);
   const ids = new Set(listed.map((person) => person.id));
   return runMuseJob({
     request: {
       system: SYSTEM,
-      prompt: `Student: ${viewerName}\nEvent: ${JSON.stringify({ title: event.title, description: event.description, place: event.place.name })}\nGoing (${who.goingCount} in all): ${JSON.stringify(listed)}`,
+      prompt: `Student: ${viewerName}\nEvent: ${JSON.stringify({ title: event.title, description: event.description, place: event.place.name })}\nGoing: ${who.goingCount} in all. Open to company and sharing interests: ${JSON.stringify(listed)}`,
       structuredOutput: GOING_STRUCTURED_OUTPUT,
     },
     outputSchema: GoingPickSchema,
