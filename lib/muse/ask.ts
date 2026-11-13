@@ -6,6 +6,7 @@ import { formatDateLine, isInWindow } from "@/lib/events/time";
 import type { Turn } from "@/lib/muse/conversation";
 import type { InterestMemory } from "@/lib/muse/memory";
 import type { SocialContext } from "@/lib/social/muse-friends";
+import { storyAskFixture } from "@/lib/demo/story-fixtures";
 import { askFixture } from "@/lib/muse/fixtures/ask";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 import type { StudentContext } from "@/lib/muse/profile";
@@ -136,7 +137,8 @@ export async function askAboutEvents(
       structuredOutput: ASK_STRUCTURED_OUTPUT,
     },
     outputSchema: AskOutputSchema,
-    fixture: askFixture,
+    // The demo's re-plan to Lisa falls back to the story event between them, with the invite.
+    fixture: () => storyAskFixture(input.question, open) ?? askFixture(),
     accept: (output) => rejectUnknownIds(output, knownIds),
   });
   if (result.error !== null) return result;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CloseIcon,
   CommentIcon,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/icons";
 import { FeedSeparator } from "@/components/ui/card";
 import { getFacebookHref } from "@/components/ui/header";
+import { FEED_REFRESH_EVENT } from "@/components/ui/tab-bar";
 
 // PLACEHOLDER: mock News Feed posts so Home reads like Facebook below the
 // events. Invented authors; nature photos from Unsplash (Unsplash License).
@@ -202,6 +203,20 @@ export function FeedPosts() {
     else next.add(id);
     setLiked(next);
   }
+
+  // Tapping Home on Home brings two posts you have not seen to the top; the
+  // oldest at the bottom go back in line so the feed keeps its length.
+  useEffect(() => {
+    function refresh() {
+      const fresh = queue.slice(0, 2).map((post) => ({ ...post, time: "Just now" }));
+      const all = [...fresh, ...shown];
+      const kept = all.slice(0, Math.max(shown.length, POSTS.length));
+      setShown(kept);
+      setQueue([...queue.slice(fresh.length), ...all.slice(kept.length)]);
+    }
+    window.addEventListener(FEED_REFRESH_EVENT, refresh);
+    return () => window.removeEventListener(FEED_REFRESH_EVENT, refresh);
+  }, [shown, queue]);
 
   // The X hides a post and the next one in line takes its place.
   function hide(id: string) {

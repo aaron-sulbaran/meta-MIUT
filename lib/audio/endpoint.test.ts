@@ -37,4 +37,10 @@ describe("createEndpointer", () => {
     const push = createEndpointer(RATE);
     expect(feed(push, 0.03, 3000)).toBe("waiting");
   });
+
+  it("still hears the end when she is already talking at the tap", () => {
+    const push = createEndpointer(RATE);
+    expect(feed(push, 0.2, 2000)).toBe("speaking");
+    expect(feed(push, 0.002, PAUSE_MS + 200)).toBe("done");
+  });
 });

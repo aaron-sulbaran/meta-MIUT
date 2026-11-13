@@ -557,6 +557,8 @@ export function EventsMap({
   schedule = [],
   autoAsk = null,
   holdReveal = false,
+  promisedStopId = null,
+  storyEventId = null,
 }: {
   cards: MapCard[];
   studentSpot: Point;
@@ -576,6 +578,10 @@ export function EventsMap({
   autoAsk?: string | null;
   /** The alert path loaded ahead by the /demo stage (?reveal=wait): Muse's plan waits for the stage's reveal. */
   holdReveal?: boolean;
+  /** The stop the class-ended alert promised; it leads the walk home. */
+  promisedStopId?: string | null;
+  /** The event the demo follows; a friend re-plan lands on it (flagged when Muse picked another). */
+  storyEventId?: string | null;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1051,6 +1057,8 @@ export function EventsMap({
           startLabel={startLabel}
           holdReveal={holdReveal}
           autoAsk={autoAsk}
+          promisedStopId={promisedStopId}
+          storyEventId={storyEventId}
           onRoute={setRoute}
           onPreviewSpot={setPreviewSpot}
         />

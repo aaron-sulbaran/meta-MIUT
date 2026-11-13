@@ -85,8 +85,14 @@ export function StageNotes() {
     const poll = startStagePoll(async () => {
       try {
         const response = await fetch("/api/demo/stage", { cache: "no-store" });
-        const body = (await response.json()) as { data: { index: number } | null };
-        if (!stopped && body.data) setIndex(body.data.index);
+        const body = (await response.json()) as { data: { index: number; deck?: { name: string; step: number } | null } | null };
+        if (!stopped && body.data) {
+          setIndex(body.data.index);
+          // The shared record carries the deck step too, for a console on another machine.
+          const deck = body.data.deck;
+          const onBeat = BEATS[body.data.index];
+          if (deck && onBeat?.deck === deck.name) setDeckStep({ beatId: onBeat.id, step: deck.step });
+        }
         return body.data?.index ?? null;
       } catch {
         return null;

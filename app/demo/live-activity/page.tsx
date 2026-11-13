@@ -1,3 +1,4 @@
+import { demoClock } from "@/lib/demo/clock";
 import { connection } from "next/server";
 import { LiveActivityLockScreen } from "@/components/demo/live-activity";
 import { nearestFreeBite } from "@/lib/demo/free-bite";
@@ -15,7 +16,7 @@ export default async function LiveActivityPage({ searchParams }: { searchParams:
   await connection();
   const { time } = await searchParams;
   const pinned = time && Number.isFinite(Date.parse(time)) ? time : null;
-  const now = pinned ? new Date(pinned) : new Date();
+  const now = pinned ? new Date(pinned) : demoClock();
   const student = loadDemoStudent();
   const events = await getEventStore().listEvents();
   return (

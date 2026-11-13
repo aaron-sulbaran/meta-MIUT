@@ -1,5 +1,7 @@
 import type { AskPlanLink } from "@/components/map/events-map";
 import { EventsMap, type MapCard, type MapChip } from "@/components/map/events-map";
+import { nearestFreeBite } from "@/lib/demo/free-bite";
+import { pickStoryEvent } from "@/lib/demo/story";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine, freePerk, isOpenFree } from "@/lib/events/time";
 import { classJustEnded } from "@/lib/map/class-start";
@@ -93,6 +95,10 @@ export async function MapHome({
       schedule={student.schedule}
       autoAsk={autoAsk}
       holdReveal={holdReveal}
+      // The alert path: the stop the class-ended alert promised leads the walk, and a friend
+      // re-plan lands on the event the demo follows when there is one (lib/demo/story.ts).
+      promisedStopId={autoPlan === "home" ? (nearestFreeBite(events, student.home, planAt ? new Date(planAt) : now)?.eventId ?? null) : null}
+      storyEventId={autoPlan === "home" ? (pickStoryEvent(events)?.id ?? null) : null}
     />
   );
 }
