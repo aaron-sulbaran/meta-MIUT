@@ -42,9 +42,9 @@ export const PEOPLE: Person[] = [
 // they mark going themselves (Jolyn from the map or Ask Muse, Lisa from the
 // invite), so Trish (User 3) sees them appear.
 export const PERSONAS: Person[] = [
-  { id: "sample-student", name: "Jolyn", year: "Second-year", major: "Computer Science", interests: ["rock climbing", "free food", "hackathons", "film"], instagram: "sample_jolyn" },
+  { id: "sample-student", name: "Jolyn", year: "Second-year", major: "Computer Science", interests: ["board games", "rock climbing", "free food", "hackathons", "film"], instagram: "sample_jolyn" },
   { id: "lisa", name: "Lisa", year: "Second-year", major: "Comparative Media Studies", interests: ["film", "free food", "music"], instagram: "sample_lisa", spot: { placeName: "Kendall Square", lat: 42.3626, lng: -71.0843 } },
-  { id: "user3", name: "Trish", year: "First-year", major: "Undeclared", interests: ["free food", "film", "hackathons"], instagram: "sample_trish" },
+  { id: "user3", name: "Trish", year: "First-year", major: "Undeclared", interests: ["free food", "film", "hackathons", "board games"], instagram: "sample_trish" },
 ];
 
 export const PERSONA_IDS = new Set(PERSONAS.map((person) => person.id));

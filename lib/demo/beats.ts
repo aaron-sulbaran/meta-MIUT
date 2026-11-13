@@ -27,7 +27,9 @@ export type InFrameMessage =
   // U3e: the event page says hi for Trish when her phone has not.
   | { type: "demo-say-hi" }
   // U2c to U2f: Lisa's invite landing moves to its next step in place, no reload.
-  | { type: "demo-step"; step: "account" | "ready" | "event" | "joined" };
+  | { type: "demo-step"; step: "account" | "ready" | "event" | "joined" }
+  // U3f: Jolyn and Lisa say yes on the event page when their phones have not.
+  | { type: "demo-say-yes" };
 
 // now is the run's clock: stamped when the first live beat opens, so every
 // screen (the flyer, the organizer's draft, the walk home) shows the same
@@ -146,6 +148,7 @@ export const ACT_LABELS: Record<BeatAct, string> = {
 
 const whosGoingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.whosGoing(storyEventId) : null);
 const saidHiPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.saidHi(storyEventId) : null);
+const saidYesPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.saidYes(storyEventId) : null);
 const lisaJoinedPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaJoined(storyEventId, "sample-student") : null);
 const lisaLandingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaLanding(storyEventId, "sample-student") : null);
 const lisaStepPath =
@@ -435,11 +438,23 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "Muse says hi for her",
-    caption: "It writes the hello from what they share and sends it. Jolyn and Lisa say yes.",
-    note: "Trish: tap Say hi to Jolyn and Lisa (or press Next). Read Muse's line out loud, then point at Jolyn's and Lisa's phones.",
+    caption: `It writes the hello from what they share and sends it to ${CAST.user1.name} and ${CAST.user2.name}.`,
+    note: `Trish: tap Say hi to ${CAST.user1.name} and ${CAST.user2.name} (or press Next). Read Muse's line out loud. ${CAST.user1.name}, ${CAST.user2.name}: it arrives on your phones; tap Say hi back.`,
     path: saidHiPath,
     // On the stage, the page already open says hi in place (or shows the hi Trish's phone sent).
     inFrame: { from: "U3d", message: { type: "demo-say-hi" } },
+  },
+  {
+    id: "U3f",
+    act: "user3",
+    persona: "user3",
+    kind: "app",
+    title: "Going together",
+    caption: `${CAST.user1.name} and ${CAST.user2.name} say hi back. The three of them are going together.`,
+    note: `Point at the projector: each name says yes, then all three are going together. A yes not tapped on a phone yet is recorded by this Next.`,
+    path: saidYesPath,
+    // On the stage, the same page records both yeses in place (or shows the ones the phones sent).
+    inFrame: { from: "U3e", message: { type: "demo-say-yes" } },
   },
   {
     // After the skit: what Muse just did, six moments with their real screens, models, and

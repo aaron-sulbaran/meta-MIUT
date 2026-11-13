@@ -1,6 +1,7 @@
 "use client";
 
 import { SourceBadge } from "@/components/ui/card";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 import { useEffect, useRef, useState } from "react";
 import { MuseFace } from "@/components/map/muse-menu";
 import { buttonClass } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { EVENT_FULL_ERROR } from "@/lib/attendance/schema";
 import { getViewerId } from "@/lib/attendance/viewer";
 import { HANDOFF } from "@/lib/demo/staged";
 import { SAVE_FAILED } from "@/lib/http";
-import { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
+import { friendsGoingLine, friendsNamesLine, ownReason, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
 
 // The event page's going button and Who's going section, in the measured
 // Facebook look (hub kb/facebook-ui.md). One going button sits under the title
@@ -26,7 +27,9 @@ import { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type 
 type Response = { data: WhoIsGoing | null; error: string | null };
 type Seats = { capacity: number; left: number };
 type MusePick = { line: string; people: { id: string; why: string }[] };
-type MuseResponse = { data: (MusePick & { who: WhoIsGoing }) | null; error: string | null; source?: "muse" | "fixture" };
+type MuseResponse = { data: (MusePick & { who: WhoIsGoing }) | null; error: string | null; source?: "muse" | "fixture"; ms?: number };
+// Muse's working state stays on screen at least this long, even when the answer is already there.
+const MUSE_WORKING_MS = 1500;
 // Say hi: Muse writes the hello, then it goes to everyone named (POST /api/social/hello with write).
 type HelloResponse = Response & { hello?: { message: string; source: "muse" | "fixture"; ms: number | null } | null };
 type Hi = { names: string[]; state: "writing" | "sent" | "error"; message?: string; source?: "muse" | "fixture"; ms?: number | null };
@@ -34,6 +37,8 @@ type SentHello = { data: { to: string[]; names: string[]; message: string | null
 // How long "Muse is writing" shows when a hi sent from another screen of the same person arrives.
 const WRITING_BEAT_MS = 1400;
 const SENT_POLL_MS = 1500;
+// How often a page waiting on a yes checks for one.
+const YES_POLL_MS = 1200;
 const framed = () => typeof window !== "undefined" && window.self !== window.top;
 
 /** "Lisa", "Lisa and Jolyn", "Lisa, Jolyn and Maya". */
@@ -109,6 +114,7 @@ export function WhosGoing({
   autoSayHi = false,
   onJoin,
   onCompany,
+  autoSayYes = false,
 }: {
   initial: WhoIsGoing;
   rsvp?: boolean;
@@ -122,6 +128,8 @@ export function WhosGoing({
   onJoin?: () => Promise<boolean>;
   /** Told after Open to company is saved. */
   onCompany?: (open: boolean) => void;
+  /** Demo hook (?yes=1, beat U3f): once the hi is sent, Jolyn and Lisa say yes (a laptop-only run). */
+  autoSayYes?: boolean;
 }) {
   const [who, setWho] = useState(initial);
   const [seats, setSeats] = useState(initialSeats);
@@ -138,7 +146,7 @@ export function WhosGoing({
     const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     hiRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "center" });
   }, [hi]);
-  const [muse, setMuse] = useState<{ state: "idle" | "asking" | "done"; pick: MusePick | null; error: string | null; recorded?: boolean }>({
+  const [muse, setMuse] = useState<{ state: "idle" | "asking" | "done"; pick: MusePick | null; error: string | null; recorded?: boolean; ms?: number }>({
     state: "idle",
     pick: null,
     error: null,
@@ -193,7 +201,7 @@ export function WhosGoing({
 
   async function askMuse() {
     setMuse({ state: "asking", pick: null, error: null });
-    const result = await post<MuseResponse>(`${goingUrl}/muse`, {});
+    const [result] = await Promise.all([post<MuseResponse>(`${goingUrl}/muse`, {}), new Promise((resolve) => setTimeout(resolve, MUSE_WORKING_MS))]);
     if (!result.data) {
       setMuse({ state: "idle", pick: null, error: result.error ?? "Muse could not check right now." });
       return;
@@ -203,10 +211,11 @@ export function WhosGoing({
     const picked = new Set(result.data.people.map((person) => person.id));
     const rest = result.data.who.openToCompany
       .filter((person) => !picked.has(person.id))
-      .map((person) => ({ id: person.id, why: sharedLine(person.shared) }));
+      .map((person) => ({ id: person.id, why: ownReason(person, result.data!.who.openToCompany) }));
     // A recorded answer (Muse unreachable) says so, like every other Muse screen.
     const recorded = "source" in result && result.source === "fixture";
-    setMuse({ state: "done", pick: { line: result.data.line, people: [...result.data.people, ...rest] }, error: null, recorded });
+    const ms = "ms" in result && typeof result.ms === "number" ? result.ms : undefined;
+    setMuse({ state: "done", pick: { line: result.data.line, people: [...result.data.people, ...rest] }, error: null, recorded, ms });
   }
 
   const sectionRef = useRef<HTMLElement>(null);
@@ -320,6 +329,49 @@ export function WhosGoing({
     });
   }, [sayHiWanted, hi, muse.state, who.openToCompany]);
 
+  // Someone said hi and is waiting on a yes: follow it, so a yes from Jolyn's or Lisa's phone shows in a second or two.
+  const waitingOnYes = who.openToCompany.some((person) => person.hello === "pending");
+  useEffect(() => {
+    if (!waitingOnYes) return;
+    const timer = setInterval(() => {
+      void fetch(goingUrl, { cache: "no-store" })
+        .then((response) => response.json() as Promise<Response>)
+        .then((latest) => {
+          if (latest.data) setWho(latest.data);
+        })
+        .catch(() => {});
+    }, YES_POLL_MS);
+    return () => clearInterval(timer);
+  }, [waitingOnYes, goingUrl]);
+
+  // The stage's Next after the hi (U3f, {type: "demo-say-yes"}) or a fresh ?yes=1: with no phones
+  // in the room, Jolyn and Lisa say yes here, recorded the same way as their Say hi back.
+  const [sayYesWanted, setSayYesWanted] = useState(autoSayYes);
+  const sayYesSent = useRef(false);
+  useEffect(() => {
+    if (!framed()) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      if ((event.data as { type?: unknown } | null)?.type === "demo-say-yes") setSayYesWanted(true);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  useEffect(() => {
+    if (!sayYesWanted || sayYesSent.current || hi?.state !== "sent") return;
+    sayYesSent.current = true;
+    void post<{ data: unknown; error: string | null }>("/api/social/hellos", { eventId: who.eventId, all: true }).then(() =>
+      fetch(goingUrl, { cache: "no-store" })
+        .then((response) => response.json() as Promise<Response>)
+        .then((latest) => {
+          if (latest.data) setWho(latest.data);
+        })
+        .catch(() => {}),
+    );
+  }, [sayYesWanted, hi, who.eventId, goingUrl]);
+  const greeted = who.openToCompany.filter((person) => person.hello);
+  const allSaidYes = greeted.length > 0 && greeted.every((person) => person.hello === "accepted");
+
   const namesLine = friendsNamesLine(who.friends);
   const companyCount = who.openToCompany.length;
   // Everyone going but the viewer's friends, the company list included (trish).
@@ -406,9 +458,14 @@ export function WhosGoing({
                 <MuseBadge size={30} />
                 <p className="min-w-0 flex-1 text-body font-medium" aria-live="polite">
                   {muse.pick.line}
-                  {muse.recorded && (
+                  {muse.recorded ? (
                     <span className="mt-[2px] block">
                       <SourceBadge source="fixture" />
+                    </span>
+                  ) : (
+                    <span className="mt-[4px] flex items-center gap-[5px] text-meta font-semibold text-muted">
+                      <MetaAiMark size={14} arrive />
+                      Muse · Live{typeof muse.ms === "number" ? `, ${(muse.ms / 1000).toFixed(1)} s` : ""}
                     </span>
                   )}
                 </p>
@@ -492,6 +549,11 @@ export function WhosGoing({
                         ) : hi.source === "fixture" ? (
                           <SourceBadge source="fixture" />
                         ) : null}
+                        {allSaidYes && (
+                          <p className="mt-[8px] font-display text-label font-bold text-primary">
+                            {joinNames(["You", ...greeted.map((person) => person.name)])} are going together.
+                          </p>
+                        )}
                       </>
                     )}
                   </div>
@@ -499,17 +561,27 @@ export function WhosGoing({
               )}
               {helloError && <p className="mt-[8px] pl-[40px] text-meta font-semibold text-badge">{helloError}</p>}
             </div>
+          ) : muse.state === "asking" ? (
+            <div className="flex w-full items-center gap-[10px] p-3" role="status" aria-live="polite">
+              <MuseBadge size={30} />
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-label font-bold">Muse is looking at who&apos;s going</span>
+                <span className="block text-meta text-muted">
+                  Comparing your interests with the {companyCount === 1 ? "1 student" : `${companyCount} students`} looking for company...
+                </span>
+              </span>
+              <MetaAiMark size={20} working />
+            </div>
           ) : (
             <button
               type="button"
               onClick={() => void askMuse()}
-              disabled={muse.state === "asking"}
-              className="flex w-full items-center gap-[10px] p-3 text-left disabled:opacity-80"
+              className="flex w-full items-center gap-[10px] p-3 text-left"
             >
               <MuseBadge size={30} />
               <span className="min-w-0 flex-1">
                 <span className="block font-display text-label font-bold">
-                  {muse.state === "asking" ? "Muse is checking who's going..." : "Looking for company"}
+                  Looking for company
                 </span>
                 <span className="block text-meta text-muted">{muse.error ?? "Muse suggests people who share your interests"}</span>
               </span>

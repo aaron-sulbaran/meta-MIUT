@@ -2,22 +2,41 @@
 
 import { useEffect, useState } from "react";
 import { CastAvatar } from "@/components/demo/cast-avatar";
+import { buttonClass } from "@/components/ui/button";
 import { CAST, type CastId } from "@/lib/demo/beats";
 import { STORY } from "@/lib/demo/story-data";
 
 // The end of the pitch on Jolyn's and Lisa's phones: while Trish is on, their
 // waiting screens check for a hi, and when Muse sends hers, it arrives here
-// ("Trish said hi") with the line Muse wrote. All three end up connected.
+// ("Trish said hi") with the line Muse wrote. Say hi back is their yes: Trish's
+// event page (and the projector's copy) flips to "said yes", and all three are going together.
 
 // Who each waiting phone is in the going lists (lib/social/fixtures/people.ts).
 const PERSON_OF_CAST: Partial<Record<CastId, string>> = { user1: "sample-student", user2: "lisa" };
 const POLL_MS = 2000;
 
-type Hello = { from: string; fromName: string; message: string | null; at: number };
+type Hello = { eventId: string; from: string; fromName: string; message: string | null; at: number; answered?: boolean };
 
 export function HelloArrival({ cast, watching }: { cast: CastId; watching: boolean }) {
   const person = PERSON_OF_CAST[cast];
   const [hello, setHello] = useState<Hello | null>(null);
+  const [answer, setAnswer] = useState<"idle" | "sending" | "error">("idle");
+
+  async function sayHiBack() {
+    if (!hello || !person) return;
+    setAnswer("sending");
+    const response = await fetch("/api/social/hellos", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventId: hello.eventId, from: hello.from, to: person }),
+    }).catch(() => null);
+    if (!response?.ok) {
+      setAnswer("error");
+      return;
+    }
+    setAnswer("idle");
+    setHello({ ...hello, answered: true });
+  }
 
   useEffect(() => {
     if (!person || !watching) return;
@@ -50,6 +69,19 @@ export function HelloArrival({ cast, watching }: { cast: CastId; watching: boole
         <span className="block font-display text-label font-bold">{CAST.user3.name} said hi</span>
         {hello.message && <span className="mt-[2px] block text-[14px] leading-[1.3] text-ink">{hello.message}</span>}
         <span className="mt-[4px] block text-meta text-muted">{STORY.title} · open to company</span>
+        {hello.answered ? (
+          <span className="mt-[8px] block font-display text-label font-bold text-primary">You said hi back. You&apos;re going together.</span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void sayHiBack()}
+            disabled={answer === "sending"}
+            className={buttonClass("primary", "mt-[8px]")}
+          >
+            {answer === "sending" ? "Saying hi..." : "Say hi back"}
+          </button>
+        )}
+        {answer === "error" && <span className="mt-[4px] block text-meta font-semibold text-badge">Could not save that. Try again.</span>}
       </span>
     </div>
   );

@@ -58,6 +58,11 @@ describe("demo beats", () => {
     expect(inFrameMessage(beat("U3a3"), HANDOFF.reels(1), context)).toBeNull();
   });
 
+  it("closes on the same event page: U3f records Jolyn's and Lisa's yes in place", () => {
+    expect(beat("U3f").path!(context)).toBe(HANDOFF.saidYes("evt-story"));
+    expect(inFrameMessage(beat("U3f"), HANDOFF.saidHi("evt-story"), context)).toEqual({ type: "demo-say-yes" });
+  });
+
   it("ends Trish's act on the same event page: U3e says hi in place", () => {
     expect(beat("U3e").path!(context)).toBe(HANDOFF.saidHi("evt-story"));
     expect(inFrameMessage(beat("U3e"), HANDOFF.whosGoing("evt-story"), context)).toEqual({ type: "demo-say-hi" });

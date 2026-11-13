@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
-import { sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
+import { ownReason, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
 
 // Looking for company on the event page: Muse reads the event and the students
 // going who are open to company and share interests (not the viewer's friends,
@@ -24,16 +24,24 @@ const SYSTEM = [
   "You get the event and the students going who are open to company and share interests with the student. None of them are the student's friends yet.",
   'Return JSON only: {"line":"one or two short sentences to the student: who to say hi to and what you have in common, warm and plain, no emoji, no dashes","people":[{"id","why"}]}.',
   "people: up to 3, best match first, only ids from the list. why: under 60 characters, like You both like film, or Friends with Lisa, likes film.",
+  "Each why is different and specific to that person: lead with their sharedOnlyWithThem when it has any, never the same why twice.",
   "Never mention or suggest the student's friends, and never invent people or facts.",
 ].join(" ");
 
-function describe(person: GoingPerson) {
+/** Interests the student shares with this person and with no one else listed: what makes each reason specific. */
+function onlyWith(person: GoingPerson, listed: GoingPerson[]): string[] {
+  const others = new Set(listed.filter((other) => other.id !== person.id).flatMap((other) => other.shared));
+  return person.shared.filter((interest) => !others.has(interest));
+}
+
+function describe(person: GoingPerson, listed: GoingPerson[]) {
   return {
     id: person.id,
     name: person.name,
     year: person.year,
     major: person.major,
     sharedInterests: person.shared,
+    sharedOnlyWithThem: onlyWith(person, listed),
     mutualFriends: person.mutual ?? [],
     note: person.note ?? null,
   };
@@ -45,13 +53,13 @@ export function goingFixture(who: WhoIsGoing): GoingPick {
   if (!best) return { line: "Nobody is looking for company here yet. Mark Going and Open to company so others can say hi.", people: [] };
   const people = who.openToCompany.slice(0, 3).map((person) => ({
     id: person.id,
-    why: person.mutual?.length ? `Friends with ${person.mutual[0]}` : sharedLine(person.shared),
+    why: person.mutual?.length ? `Friends with ${person.mutual[0]}` : ownReason(person, who.openToCompany),
   }));
   return { line: `Say hi to ${best.name}. ${people[0]!.why}.`, people };
 }
 
 export async function whoToGoWith(event: CampusEvent, who: WhoIsGoing, viewerName: string): Promise<MuseJobResult<GoingPick>> {
-  const listed = who.openToCompany.map(describe);
+  const listed = who.openToCompany.map((person) => describe(person, who.openToCompany));
   const ids = new Set(listed.map((person) => person.id));
   return runMuseJob({
     request: {
@@ -64,3 +72,21 @@ export async function whoToGoWith(event: CampusEvent, who: WhoIsGoing, viewerNam
     accept: (output) => (output.people.every((person) => ids.has(person.id)) ? null : "Muse named someone who is not going"),
   });
 }
+
+/**
+ * Two picks with the same reason read as a template. When any reason repeats, each person
+ * gets their own: what the student shares only with them, else everything they share.
+ */
+export function distinctReasons(pick: GoingPick, who: WhoIsGoing): GoingPick {
+  const whys = pick.people.map((person) => person.why.trim().toLowerCase());
+  if (new Set(whys).size === whys.length) return pick;
+  return {
+    ...pick,
+    people: pick.people.map((picked) => {
+      const person = who.openToCompany.find((candidate) => candidate.id === picked.id);
+      if (!person) return picked;
+      return { ...picked, why: ownReason(person, who.openToCompany) };
+    }),
+  };
+}
+

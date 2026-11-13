@@ -7,7 +7,7 @@ import type { AskOutput } from "@/lib/muse/ask";
 import type { CrawlInput, CrawlPick } from "@/lib/muse/crawl";
 import type { ExtractOutput } from "@/lib/muse/extract";
 import { EVERYONE } from "@/lib/social/fixtures/people";
-import { sharedLine, type WhoIsGoing } from "@/lib/social/types";
+import { ownReason, type WhoIsGoing } from "@/lib/social/types";
 
 // Recorded answers for the demo's own story, used only when Muse falls back on
 // the demo path (the story's flyer, the re-plan to Lisa). They tell the same
@@ -157,7 +157,7 @@ export function withStoryCompany<Pick extends CompanyPick>(pick: Pick, event: Ca
   const everyoneNamed = company.every((person) => names(pick.line, person.name));
   if (sameIds && strangers.length === 0 && everyoneNamed) return pick;
   const why = new Map(pick.people.map((person) => [person.id, person.why]));
-  const people = company.map((person) => ({ id: person.id, why: why.get(person.id) ?? sharedLine(person.shared) }));
+  const people = company.map((person) => ({ id: person.id, why: why.get(person.id) ?? ownReason(person, company) }));
   // Muse's own words stay when they already name just these people.
   if (strangers.length === 0 && everyoneNamed) return { ...pick, people };
   const list = company.map((person) => person.name);

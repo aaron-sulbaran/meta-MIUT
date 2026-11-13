@@ -44,3 +44,11 @@ export function sharedLine(shared: string[]): string {
   if (shared.length <= 1) return `You both like ${shared[0] ?? ""}`.trim();
   return `You both like ${shared.slice(0, -1).join(", ")} and ${shared.at(-1)}`;
 }
+
+/** What the viewer shares with this person: first the interests no one else listed shares with them, so two reasons never read the same. */
+export function ownReason(person: Pick<GoingPerson, "id" | "shared">, listed: Pick<GoingPerson, "id" | "shared">[]): string {
+  const others = new Set(listed.filter((other) => other.id !== person.id).flatMap((other) => other.shared));
+  const own = person.shared.filter((interest) => !others.has(interest));
+  return sharedLine(own.length > 0 ? own : person.shared);
+}
+
