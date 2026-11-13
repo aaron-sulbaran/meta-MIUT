@@ -1,0 +1,16 @@
+// Event comments shapes, client-safe.
+
+export const COMMENT_MAX_LENGTH = 280;
+
+export type EventComment = {
+  id: string;
+  authorId: string;
+  name: string;
+  text: string;
+  /** ISO time it was posted. */
+  at: string;
+  /** Posted by the viewer. */
+  mine: boolean;
+};
+
+export type EventComments = { eventId: string; comments: EventComment[] };
