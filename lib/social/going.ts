@@ -26,10 +26,17 @@ export const ACCEPT_AFTER_MS = 4000;
 /** Hellos by key, with when they were sent, and the line Muse wrote for each. */
 type SocialState = { going: Map<string, Map<string, GoingEntry>>; hellos: Map<string, number>; notes: Map<string, string> };
 
-const globalForSocial = globalThis as unknown as { __socialState?: SocialState };
+const globalForSocial = globalThis as unknown as { __socialState?: Partial<SocialState> };
+/**
+ * Filled in on every read: a dev server that keeps running while newer code arrives (or
+ * state left by an older version) can hold an object missing a field added since.
+ */
 function state(): SocialState {
-  globalForSocial.__socialState ??= { going: new Map(), hellos: new Map(), notes: new Map() };
-  return globalForSocial.__socialState;
+  const held = (globalForSocial.__socialState ??= {});
+  if (!(held.going instanceof Map)) held.going = new Map();
+  if (!(held.hellos instanceof Map)) held.hellos = new Map();
+  if (!(held.notes instanceof Map)) held.notes = new Map();
+  return held as SocialState;
 }
 
 /** The event the demo follows (lib/demo/story-data.ts): its going list is set for the ending. */

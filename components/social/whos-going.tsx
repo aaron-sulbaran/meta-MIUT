@@ -9,6 +9,7 @@ import { updateAttendance } from "@/lib/attendance/client";
 import { EVENT_FULL_ERROR } from "@/lib/attendance/schema";
 import { getViewerId } from "@/lib/attendance/viewer";
 import { HANDOFF } from "@/lib/demo/staged";
+import { SAVE_FAILED } from "@/lib/http";
 import { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
 
 // The event page's going button and Who's going section, in the measured
@@ -40,16 +41,18 @@ function joinNames(names: string[]): string {
 }
 
 async function post<T>(url: string, body: unknown): Promise<T | { data: null; error: string }> {
+  let response: globalThis.Response;
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    return (await response.json()) as T;
   } catch {
     return { data: null, error: "Network error" };
   }
+  // The server answered, so this is not the network: an error page that is not JSON reads plainly.
+  return (await response.json().catch(() => ({ data: null, error: SAVE_FAILED }))) as T | { data: null; error: string };
 }
 
 // Soft tints for people's initials: no photos of people in the app.

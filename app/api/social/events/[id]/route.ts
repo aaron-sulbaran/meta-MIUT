@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getEventStore } from "@/lib/events/store";
-import { readJsonBody } from "@/lib/http";
+import { readJsonBody, savingRoute } from "@/lib/http";
 import { loadSocial, saveSocial, setGoing, whoIsGoing } from "@/lib/social/going";
 import { currentViewer } from "@/lib/social/viewer";
 
@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest, context: RouteContext<"/api/soc
   return Response.json({ data: whoIsGoing(event, viewer.id, viewer.interests), error: null });
 }
 
-export async function POST(request: NextRequest, context: RouteContext<"/api/social/events/[id]">) {
+export const POST = savingRoute("going", async function post(request: NextRequest, context: RouteContext<"/api/social/events/[id]">) {
   const { id } = await context.params;
   const body = await readJsonBody(request, GoingUpdateSchema);
   if (body.error !== null) return Response.json({ data: null, error: body.error }, { status: 400 });
@@ -34,4 +34,4 @@ export async function POST(request: NextRequest, context: RouteContext<"/api/soc
   setGoing(event, viewer.id, body.data);
   await saveSocial(event);
   return Response.json({ data: whoIsGoing(event, viewer.id, viewer.interests), error: null });
-}
+});
