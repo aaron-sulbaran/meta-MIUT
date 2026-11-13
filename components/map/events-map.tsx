@@ -829,7 +829,7 @@ export function EventsMap({
     const map = mapRef.current;
     const MarkerClass = markerClassRef.current;
     if (!mapReady || !map || !MarkerClass || !previewSpot) return;
-    const marker = new MarkerClass({ element: routeMarkerElement("", true, true) }).setLngLat([previewSpot.lng, previewSpot.lat]).addTo(map);
+    const marker = new MarkerClass({ element: routeMarkerElement("", true, "friend") }).setLngLat([previewSpot.lng, previewSpot.lat]).addTo(map);
     const points = [studentSpot, previewSpot];
     map.fitBounds(
       [
