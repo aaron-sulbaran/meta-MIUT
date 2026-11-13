@@ -26,6 +26,7 @@ export async function MapHome({
   autoPlan = null,
   planAt = null,
   askPlan = null,
+  autoAsk = null,
 }: {
   events: CampusEvent[];
   now: Date;
@@ -35,6 +36,8 @@ export async function MapHome({
   planAt?: string | null;
   /** A walk Ask Muse planned (?plan=ask&note=&to=): open with it drawn. */
   askPlan?: AskPlanLink | null;
+  /** Demo hook (?auto=1): a question Ask Muse asks on its own once the map is up. */
+  autoAsk?: string | null;
 }) {
   const student = loadDemoStudent();
   const { ranking, tiles, rest } = await forYouFeed(student, events, now, await loadInterestMemory(DEMO_USER_ID, now));
@@ -84,6 +87,7 @@ export async function MapHome({
       planAt={planAt}
       askPlan={askPlan}
       startLabel={lastClass ? `Out of ${lastClass}` : null}
+      autoAsk={autoAsk}
     />
   );
 }

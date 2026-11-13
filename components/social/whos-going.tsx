@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MuseFace } from "@/components/map/muse-menu";
 import { buttonClass } from "@/components/ui/button";
 import { ChevronRightIcon, CloseIcon, InstagramPostIcon, WaveIcon } from "@/components/ui/icons";
@@ -86,11 +86,14 @@ export function WhosGoing({
   initial,
   rsvp = false,
   seats: initialSeats = null,
+  autoAsk = false,
 }: {
   initial: WhoIsGoing;
   rsvp?: boolean;
   /** Spots on an RSVP event with a limit; null when there is no limit. */
   seats?: Seats | null;
+  /** Demo hook (?auto=1, beat U3d): ask Muse who to go with on arrival and bring the answer into view. */
+  autoAsk?: boolean;
 }) {
   const [who, setWho] = useState(initial);
   const [seats, setSeats] = useState(initialSeats);
@@ -144,6 +147,23 @@ export function WhosGoing({
       .map((person) => ({ id: person.id, why: sharedLine(person.shared) }));
     setMuse({ state: "done", pick: { line: result.data.line, people: [...result.data.people, ...rest] }, error: null });
   }
+
+  const sectionRef = useRef<HTMLElement>(null);
+  const autoAsked = useRef(false);
+  useEffect(() => {
+    if (!autoAsk || autoAsked.current) return;
+    const timer = setTimeout(() => {
+      autoAsked.current = true;
+      void askMuse();
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAsk]);
+  useEffect(() => {
+    if (!autoAsk || muse.state !== "done") return;
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    sectionRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "nearest" });
+  }, [autoAsk, muse.state]);
 
   async function sayHi(personId: string) {
     setHelloBusy(personId);
@@ -223,7 +243,7 @@ export function WhosGoing({
 
       <div aria-hidden className="my-[18px] h-px bg-hairline" />
 
-      <section aria-labelledby="whos-going-heading" className="px-3">
+      <section ref={sectionRef} aria-labelledby="whos-going-heading" className="scroll-mt-[64px] scroll-mb-[150px] px-3">
         <div className="flex items-baseline justify-between">
           <h2 id="whos-going-heading" className="font-display text-title font-bold">
             Who&apos;s going

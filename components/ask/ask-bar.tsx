@@ -113,6 +113,7 @@ export function AskBar({
   placeholder,
   docked = false,
   onPlan,
+  autoAsk,
 }: {
   events: CampusEvent[];
   nowIso: string;
@@ -122,6 +123,8 @@ export function AskBar({
   docked?: false | "screen" | "panel";
   /** When set, plan_night goes to the host (the map draws the route) instead of a list here; invite is set when the student also asked to invite a friend. */
   onPlan?: (plan: AskPlan, question: string, options: { invite: boolean }) => void;
+  /** Demo hook (?auto=1 on the map): type this question into the box, then ask it, once. */
+  autoAsk?: string;
 }) {
   const router = useRouter();
   const [question, setQuestion] = useState("");
@@ -305,6 +308,33 @@ export function AskBar({
     },
     [perform],
   );
+
+  // The demo's scripted line, typed into the box where people can read it, then
+  // asked for real. Typing over it, or the mic, stays one tap away.
+  const autoAsked = useRef(false);
+  const askRef = useRef(ask);
+  useEffect(() => {
+    askRef.current = ask;
+  }, [ask]);
+  useEffect(() => {
+    if (!autoAsk || autoAsked.current) return;
+    const instant = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let shown = instant ? autoAsk.length : 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const step = () => {
+      shown = Math.min(autoAsk.length, shown + 3);
+      setQuestion(autoAsk.slice(0, shown));
+      if (shown < autoAsk.length) timer = setTimeout(step, 28);
+      else
+        timer = setTimeout(() => {
+          // Marked only as it is asked, so a remount mid-typing starts over instead of stalling.
+          autoAsked.current = true;
+          void askRef.current(autoAsk);
+        }, 450);
+    };
+    timer = setTimeout(step, instant ? 0 : 300);
+    return () => clearTimeout(timer);
+  }, [autoAsk]);
 
   const onClip = useCallback(
     async (wav: Blob) => {

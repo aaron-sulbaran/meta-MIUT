@@ -2,14 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { StagedMark } from "@/components/demo/instagram";
-import { MuseMark } from "@/components/ui/icons";
+import { BrandMark } from "@/components/demo/brand-mark";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { FreeBite } from "@/lib/demo/free-bite";
 import { handOff } from "@/lib/demo/staged";
 
 // U1a: a phone's lock screen with a Live Activity from Muse, the moment Aaron
 // walks out of class. Drawn for the demo (no system logos, a gradient instead of
-// a photo); its words come from real data. One tap opens the map with the walk
+// a photo; the app icon is Facebook's official logo); its words come from real data. One tap opens the map with the walk
 // home planned.
 
 function campus(iso: string, options: Intl.DateTimeFormatOptions): string {
@@ -64,9 +64,7 @@ export function LiveActivityLockScreen({
           className="w-full rounded-[24px] bg-black/45 p-4 text-left backdrop-blur-xl motion-safe:animate-[la-in_420ms_ease-out]"
         >
           <span className="flex items-center gap-2 text-[13px] text-white/70">
-            <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[6px] bg-[#0866ff]">
-              <MuseMark className="h-[15px] w-[15px] text-white" />
-            </span>
+            <BrandMark name="facebook" size={22} />
             Muse · Facebook Events
             <span className="ml-auto">now</span>
           </span>

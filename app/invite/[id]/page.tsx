@@ -12,16 +12,16 @@ import { currentViewer } from "@/lib/social/viewer";
 // U2b and U2c): "Aaron invited you" under Meta's "Your Meta Account is here"
 // sheet, one tap, then the event, "Aaron knows you're going", and what came
 // over from Instagram (components/invite/invite-landing.tsx). The account is
-// staged; marking Going is real.
+// staged; marking Going is real. ?state=joined (U2c) opens on the joined state.
 export default async function InvitePage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; state?: string }>;
 }) {
   await connection();
-  const [{ id }, { from }] = await Promise.all([params, searchParams]);
+  const [{ id }, { from, state }] = await Promise.all([params, searchParams]);
   const event = await getEventStore().getEvent(id);
   if (!event) notFound();
 
@@ -50,6 +50,7 @@ export default async function InvitePage({
       viewerName={viewer.name}
       viewerInstagram={viewerInstagram}
       friendNames={friendNames}
+      initialJoined={state === "joined"}
       poster={<Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />}
     />
   );

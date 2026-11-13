@@ -31,7 +31,7 @@ import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
 // scrolls the strip to its card. X hides an event ("Not for me") and, after
 // the Undo window, Muse learns from it. Directions opens walking directions.
 // One Muse button at the top right fans out to Ask Muse (a popup over the map)
-// and Food crawl (the planner sheet). /?plan=home opens with Muse's walk from
+// and Food Crawl (the planner sheet). /?plan=home opens with Muse's walk from
 // class to home already planned, for the "just out of class" alert.
 // Tiles: OpenFreeMap "liberty" (OpenStreetMap data, no key), restyled on load.
 
@@ -41,6 +41,15 @@ const STUDENT_ZOOM = 14.6;
 // Below this zoom only the selected event shows its name pill, so close
 // bubbles do not pile up their labels.
 const LABEL_ZOOM = 16.2;
+// The card strip's size. Everything that floats just above the strip (recenter,
+// the Undo toast, the map credit) is placed from these, so a taller card moves
+// them up with it instead of overlapping.
+const CARD_HEIGHT = 144;
+const STRIP_BOTTOM = 10;
+function aboveStrip(gap: number): string {
+  return `calc(var(--tabbar-height) + var(--tabbar-gap) + ${STRIP_BOTTOM + CARD_HEIGHT + gap}px)`;
+}
+
 const DISMISSED_KEY = "map:dismissed";
 // How long Undo stays up before Muse learns from a Not for me.
 const UNDO_MS = 5000;
@@ -476,9 +485,19 @@ export type AskPlanLink = { note: string; toEventId: string | null; invite?: boo
 /** To the event asked about, else to a friend named in the request, else home. */
 function startFromAsk(link: AskPlanLink, events: CampusEvent[]): CrawlStart {
   const event = link.toEventId ? events.find((candidate) => candidate.id === link.toEventId) : undefined;
-  // The note names the event's place, so the walk ends there and not at a place that only sounds like it.
-  if (event) return { kind: "friend", to: { lat: event.place.lat, lng: event.place.lng }, label: event.place.name, note: `${link.note} (${event.title} at ${event.place.name})`, friendName: null };
   const friend = friendNamedIn(link.note);
+  // The note names the event's place, so the walk ends there and not at a place that only sounds like it.
+  // A friend named too ("find one between me and Lisa and invite her") still gets the invite.
+  if (event)
+    return {
+      kind: "friend",
+      to: { lat: event.place.lat, lng: event.place.lng },
+      label: event.place.name,
+      note: `${link.note} (${event.title} at ${event.place.name})`,
+      friendName: friend?.name ?? null,
+      friendId: friend?.id ?? null,
+      sendInvite: friend !== null && link.invite === true,
+    };
   return friend
     ? { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name, friendId: friend.id, sendInvite: link.invite === true }
     : { kind: "home", note: link.note };
@@ -493,6 +512,7 @@ export function EventsMap({
   askPlan = null,
   planAt = null,
   startLabel = null,
+  autoAsk = null,
 }: {
   cards: MapCard[];
   studentSpot: Point;
@@ -506,6 +526,8 @@ export function EventsMap({
   planAt?: string | null;
   /** How the walk's start reads, like "Out of Data Structures". */
   startLabel?: string | null;
+  /** Demo hook (?auto=1): once the walk is up, open Ask Muse and ask this. */
+  autoAsk?: string | null;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -531,6 +553,17 @@ export function EventsMap({
   );
   const [askOpen, setAskOpen] = useState(false);
   const [route, setRoute] = useState<Route | null>(null);
+  // Open once, a beat after the first walk is drawn, so the room sees the plan change.
+  const autoAskOpened = useRef(false);
+  const hasRoute = route !== null;
+  useEffect(() => {
+    if (!autoAsk || autoAskOpened.current || (!hasRoute && autoPlan === "home")) return;
+    const timer = setTimeout(() => {
+      autoAskOpened.current = true;
+      setAskOpen(true);
+    }, 1400);
+    return () => clearTimeout(timer);
+  }, [autoAsk, hasRoute, autoPlan]);
   const routeMarkersRef = useRef<Marker[]>([]);
   // The stop whose popup is open, tied to the route it belongs to, so a new
   // route (or none) closes it without an effect.
@@ -569,14 +602,13 @@ export function EventsMap({
           style: STYLE_URL,
           center: [studentSpot.lng, studentSpot.lat],
           zoom: STUDENT_ZOOM,
-          attributionControl: { compact: true },
+          // No "i" credit button on the map (Lisa); the required OpenStreetMap
+          // credit is a small line instead (see the JSX below).
+          attributionControl: false,
           dragRotate: false,
           pitchWithRotate: false,
         });
         map.touchZoomRotate.disableRotation();
-        // Lift the map credit above the card strip and tab bar so it stays visible.
-        const corner = container.querySelector<HTMLElement>(".maplibregl-ctrl-bottom-right");
-        if (corner) corner.style.bottom = "calc(var(--tabbar-height) + var(--tabbar-gap) + 196px)";
         mapRef.current = map;
 
         const dot = document.createElement("div");
@@ -598,7 +630,6 @@ export function EventsMap({
 
         map.on("load", () => {
           if (!map) return;
-          container.querySelector(".maplibregl-compact-show")?.classList.remove("maplibregl-compact-show");
           softenBaseMap(map);
           frameStudent(map, studentSpot, cards, false);
           setMapReady(true);
@@ -886,7 +917,7 @@ export function EventsMap({
 
       {!crawlOpen && !askOpen && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
 
-      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} />}
+      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} autoAsk={autoAsk ?? undefined} />}
 
       {peekStop && peekPoint && peekIndex !== null && route && (() => {
         const left = Math.min(Math.max(peekPoint.x - PEEK_WIDTH / 2, 10), peekPoint.width - PEEK_WIDTH - 10);
@@ -928,7 +959,7 @@ export function EventsMap({
         onClick={recenter}
         aria-label="Recenter on my location"
         className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-card text-ink shadow-md active:scale-95"
-        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 144px)", display: crawlOpen ? "none" : undefined }}
+        style={{ bottom: aboveStrip(12), display: crawlOpen ? "none" : undefined }}
       >
         <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden fill="none" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="7" />
@@ -941,7 +972,7 @@ export function EventsMap({
         <div
           role="status"
           className="absolute left-3 z-10 flex items-center gap-3 rounded-full bg-ink px-[14px] py-[8px] text-meta font-semibold text-white shadow-md"
-          style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 150px)" }}
+          style={{ bottom: aboveStrip(12) }}
         >
           <span className="max-w-[170px] truncate">Hidden: {lastDismissed.title}</span>
           <button type="button" onClick={undoDismiss} className="text-primary-soft underline">
@@ -961,6 +992,16 @@ export function EventsMap({
         </p>
       )}
 
+      {/* OpenStreetMap's license asks for a visible credit; a quiet line, not a button. */}
+      {!crawlOpen && (
+        <p
+          className="pointer-events-none absolute left-3 z-10 text-[9px] font-medium text-black/35"
+          style={{ bottom: aboveStrip(4) }}
+        >
+          © OpenStreetMap
+        </p>
+      )}
+
       <ol
         ref={stripRef}
         onScroll={onStripScroll}
@@ -975,12 +1016,13 @@ export function EventsMap({
         onKeyDown={() => (interacted.current = true)}
         aria-label="Events on the map"
         className="no-scrollbar absolute inset-x-0 z-10 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-3 px-3 pb-1"
-        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 10px)", display: crawlOpen ? "none" : undefined }}
+        style={{ bottom: `calc(var(--tabbar-height) + var(--tabbar-gap) + ${STRIP_BOTTOM}px)`, display: crawlOpen ? "none" : undefined }}
       >
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
             <article
-              className="relative flex h-[144px] items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
+              className="relative flex items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
+              style={{ height: CARD_HEIGHT }}
             >
               <LogoTile card={card} />
               <div className="min-w-0 flex-1">
