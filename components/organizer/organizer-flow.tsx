@@ -104,7 +104,8 @@ export function OrganizerFlow({
       if (post) {
         setMaking({
           phase: "done",
-          tookMs: Date.now() - run,
+          // The real time Muse took, also when the /demo stage started the call early (lib/demo/head-start.ts).
+          tookMs: answer.museMs ?? Date.now() - run,
           live: answer.source === "muse",
           draft: upcoming[0] ?? all[0] ?? null,
           fallbackReason: answer.fallbackReason ?? null,

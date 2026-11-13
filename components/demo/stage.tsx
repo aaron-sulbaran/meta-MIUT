@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { CastAvatar } from "@/components/demo/cast-avatar";
 import { DeckHost } from "@/components/demo/deck-host";
 import { FilmPlayer, type FilmControls } from "@/components/demo/film-player";
+import { useHeadStart } from "@/components/demo/head-start";
 import { PHONE_OUTER_HEIGHT, PHONE_OUTER_WIDTH, PhoneFrame } from "@/components/demo/phone-frame";
 import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
@@ -233,6 +234,7 @@ export function Stage() {
     };
   }, [storyDue, storyEventId]);
   const beatSrc = beatScreen(beat, { storyEventId, now: runStartedAt });
+  useHeadStart(beat, { storyEventId, now: runStartedAt });
 
   const showPersonCard = useCallback((id: CastId | null) => {
     personCardRef.current = id;

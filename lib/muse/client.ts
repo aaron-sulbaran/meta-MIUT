@@ -1,4 +1,5 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { z } from "zod";
 
 // Muse (Meta Model API) client. Server side only; the key never reaches the browser.
@@ -197,7 +198,18 @@ function describeHttpError(status: number, message: string | null, apiKey: strin
   return `Muse returned HTTP ${status}: ${safeMessage}`;
 }
 
+// Muse switched off for one request (the demo's time budget, lib/demo/head-start.ts): every
+// call inside answers with `reason` as an error, so each job takes its own fixture path.
+const museOff = new AsyncLocalStorage<string>();
+
+/** Runs `run` with Muse switched off; its jobs fall back to their fixtures, saying `reason`. */
+export function withoutMuse<T>(reason: string, run: () => Promise<T>): Promise<T> {
+  return museOff.run(reason, run);
+}
+
 export async function callMuse(request: MuseRequest, options: MuseCallOptions = {}): Promise<MuseCallResult> {
+  const offReason = museOff.getStore();
+  if (offReason !== undefined) return { data: null, error: offReason, meta: null };
   const config = readMuseConfig();
   if (config.error !== null) return { data: null, error: config.error, meta: null };
 
@@ -225,6 +237,7 @@ export async function callMuse(request: MuseRequest, options: MuseCallOptions = 
     meta.httpStatus = response.status;
     const responseText = await response.text();
     meta.latencyMs = Math.round(performance.now() - startedAt);
+    console.info(`[legs] muse ${request.structuredOutput?.name ?? "text"} ${meta.latencyMs} ms, HTTP ${response.status}`);
 
     if (!response.ok) {
       const message = museAdapter.readErrorMessage(responseText);
@@ -244,6 +257,7 @@ export async function callMuse(request: MuseRequest, options: MuseCallOptions = 
     return { data: parsed.text, error: null, meta };
   } catch (cause) {
     meta.latencyMs = Math.round(performance.now() - startedAt);
+    console.info(`[legs] muse ${request.structuredOutput?.name ?? "text"} ${meta.latencyMs} ms, failed`);
     return {
       data: null,
       error: `Muse call failed: ${cause instanceof Error ? cause.message : String(cause)}`,

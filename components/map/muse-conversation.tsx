@@ -29,6 +29,7 @@ import {
   type RouteStop,
 } from "@/lib/map/crawl-route";
 import { friendNamedIn, type FriendSpot } from "@/lib/map/friend-spots";
+import { WALK_HOME } from "@/lib/demo/walk-home";
 import type { AskReply, MuseRouteResponse } from "@/lib/muse/types";
 
 // The Muse card on the map, as one conversation that never unmounts (hub
@@ -87,6 +88,7 @@ type Pick = { eventId: string; title: string; placeName: string; reason: string 
 type CurateApi = {
   data: { summary: string; picks: { event: { id: string; title: string; place: { name: string } }; reason: string }[] } | null;
   source?: Source;
+  museMs?: number | null;
 };
 // How long each source line shows while the curate call runs, so people can read it.
 const SOURCE_STEP_MS = 820;
@@ -105,8 +107,8 @@ const MUSE_TOGGLE = "muse:toggle";
 const MUSE_STATE = "muse:state";
 // Tells the alert nudge to stay away while the card is up (components/demo/nearby-watcher-gate.tsx).
 export const MUSE_CARD = "muse:card";
-// Home for the demo student until the profile carries a dorm (the same spot the crawl planner uses).
-const HOME = { name: "Maseeh Hall", lat: 42.3575, lng: -71.0934 };
+// Home for the demo student (lib/demo/walk-home.ts, so the stage's head start asks the same walk).
+const HOME = WALK_HOME;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -616,7 +618,8 @@ export function MuseConversation({
       startMs,
     );
     show(home);
-    setLegs({ source: result.body?.source ?? "muse", planMs: result.ms });
+    // The real time Muse took, also when the /demo stage started the call early (lib/demo/head-start.ts).
+    setLegs({ source: result.body?.source ?? "muse", planMs: result.body?.museMs ?? result.ms });
     setPhase({ kind: "ready" });
     say(homeLine(home));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -658,7 +661,7 @@ export function MuseConversation({
     setLegs({
       source: result.body?.source ?? "muse",
       planMs: 0,
-      curateMs: result.ms,
+      curateMs: result.body?.museMs ?? result.ms,
     });
     setPhase({ kind: "ready" });
     // Muse's own line about her, from the real answer; her picks are the rows below.

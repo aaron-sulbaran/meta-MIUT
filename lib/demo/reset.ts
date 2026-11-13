@@ -7,6 +7,7 @@ import { resetInterestMemory } from "@/lib/muse/memory";
 import { resetNearbyAlerts } from "@/lib/muse/nearby";
 import { resetSaid, SAID_PREFIX } from "@/lib/demo/said";
 import { resetCurateCache } from "@/lib/curate/cache";
+import { HEAD_START_PREFIX, resetHeadStart } from "@/lib/demo/head-start";
 import { resetComments } from "@/lib/social/comments";
 import { resetSocial } from "@/lib/social/going";
 import { deleteStatePrefixes, resetClaims } from "@/lib/store/state";
@@ -29,6 +30,9 @@ export const DEMO_STATE_PREFIXES = [
   "claim:shared-answer:",
   // One hello written per person per event, whichever screen asks (app/api/social/hello).
   "claim:hello-write:",
+  // The demo's slow live answers the stage asked for early, and the budget's recorded ones (lib/demo/head-start.ts).
+  HEAD_START_PREFIX,
+  `claim:${HEAD_START_PREFIX}`,
   // Invites already sent (app/api/social/invites dedupe), so a rehearsal right after a reset sends again.
   "claim:invite:",
   // What a presenter said on the Muse card and Muse's answer (lib/demo/said.ts), kept per run.
@@ -55,6 +59,7 @@ export async function resetDemo(now = new Date()): Promise<StoreResult<DemoReset
   resetComments();
   resetClaims();
   resetCurateCache();
+  resetHeadStart();
   resetSaid();
 
   return { data: { events: reseeded.data, clearedState: cleared.data }, error: null };

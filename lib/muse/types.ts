@@ -27,6 +27,9 @@ export type MuseRouteResponse<T> = {
   error: string | null;
   source?: AnswerSource;
   fallbackReason?: string | null;
+  // The real time the Muse call took on the server, when the route shares one answer
+  // (the /demo stage's head start, lib/demo/head-start.ts); null for a recorded answer.
+  museMs?: number | null;
 };
 
 // An event the student is likely to care about, from compileCandidates.
