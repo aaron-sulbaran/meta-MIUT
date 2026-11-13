@@ -50,8 +50,6 @@ const SHOTS = {
   async walkhome(page, shot) {
     await page.goto(base + '/?plan=home&time=' + encodeURIComponent(AT), { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForTimeout(16000);
-    await page.getByRole('button', { name: /close|dismiss|not now/i }).last().click().catch(() => {});
-    await page.waitForTimeout(1200);
     await hideDev(page);
     await shot('walkhome');
   },

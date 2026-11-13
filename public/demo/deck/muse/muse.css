@@ -20,7 +20,7 @@
   top: 0;
   width: 560px;
   opacity: 0;
-  transform-origin: 50% 0%;
+  transform-origin: 0% 0%;
 }
 
 .post-flyer {
@@ -48,14 +48,15 @@
 
 .box .n {
   position: absolute;
-  left: -16px;
-  top: -16px;
-  width: 34px;
-  height: 34px;
+  left: -34px;
+  top: 50%;
+  margin-top: -14px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--blue);
   color: #fff;
-  font: 700 20px/34px var(--text);
+  font: 700 17px/28px var(--text);
   text-align: center;
 }
 
@@ -65,6 +66,17 @@
   font-size: 27px;
   line-height: 1.38;
   color: #d5d8de;
+}
+
+.post-caption .ig {
+  width: 32px;
+  height: 32px;
+  vertical-align: -6px;
+  margin-right: 10px;
+}
+
+.post-caption {
+  opacity: 0;
 }
 
 .post-caption b {
@@ -169,7 +181,7 @@
 }
 
 .row .lab {
-  font-size: 22px;
+  font-size: 24px;
   color: #65676b;
 }
 
@@ -177,8 +189,9 @@
   margin-top: 2px;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 34px;
-  letter-spacing: -0.01em;
+  font-size: 44px;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
   opacity: 0;
 }
 
@@ -221,10 +234,10 @@
 
 .ring {
   position: absolute;
-  left: 2%;
-  width: 96%;
-  top: 17.6%;
-  height: 25.6%;
+  left: 2.2%;
+  width: 95.6%;
+  top: 33.4%;
+  height: 33.4%;
   opacity: 0;
 }
 
@@ -256,52 +269,57 @@
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  gap: 32px;
+  padding: 0 220px;
 }
 
 .who {
   position: relative;
-  width: 400px;
-  height: 520px;
-  border-radius: 34px;
-  background: linear-gradient(180deg, #1d2232 0%, #14161d 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 30px 80px rgba(0, 0, 0, 0.5);
-  padding: 248px 40px 40px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 60px;
+  padding: 34px 0 30px;
   opacity: 0;
-  overflow: hidden;
 }
 
-.who .bar {
-  position: absolute;
-  left: 40px;
-  right: 40px;
-  top: 0;
-  height: 8px;
-  border-radius: 0 0 6px 6px;
-  background: var(--blue);
-  box-shadow: 0 0 40px 8px rgba(8, 102, 255, 0.45);
-  transform-origin: 50% 0%;
+.who .role {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 66px;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  white-space: nowrap;
 }
 
 .who .name {
   font-family: var(--display);
-  font-weight: 700;
-  font-size: 92px;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  font-weight: 600;
+  font-size: 66px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--blue);
+  white-space: nowrap;
 }
 
-.who .role {
-  margin-top: 18px;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 40px;
-  line-height: 1.15;
-  color: var(--gray);
-  min-height: 92px;
+.who .rule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  transform-origin: 0 50%;
+}
+
+/* The posted screen sits over the review screen in the same phone and fades in. */
+.phone .screen {
+  position: relative;
+}
+
+.phone .screen img.over {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
 }

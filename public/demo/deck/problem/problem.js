@@ -161,7 +161,7 @@
       notes: "We asked 50 Gen Z students: what would actually get you back on Facebook?",
       build(seg, ctx) {
         ctx.show(seg, "s1");
-        ctx.ft(seg, "#s1-eyebrow", { opacity: 0, y: 16, letterSpacing: "0.26em" }, { opacity: 1, y: 0, letterSpacing: "0.16em", duration: 1.3, ease: "power2.out" }, 0);
+        ctx.ft(seg, "#s1-eyebrow", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 1.2, ease: "power2.out" }, 0);
         ctx.ft(seg, "#s1-caret", { x: S1.caret.centerX, y: S1.caret.y1, opacity: 1 }, { x: S1.chars[0].left - 14, duration: 0.5, ease: "power2.inOut" }, 0.55);
         typeQuestion(seg, ctx, 1.1);
       },
@@ -288,14 +288,16 @@
   function riseWords(seg, ctx, sel, at, dur) {
     const words = $$(`${sel} > .w`);
     ctx.ft(seg, sel, { opacity: 0 }, { opacity: 1, duration: 0.01 }, at);
+    /* Every word starts hidden with the line, or a late word would show early and then pop. */
+    seg.set(words, { opacity: 0, y: 46 }, at);
     words.forEach((w, i) => {
       const delay = at + 0.5 * Math.pow(i / Math.max(words.length - 1, 1), 0.85);
       ctx.ft(seg, w, { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: dur || 0.85, ease: "power3.out" }, delay);
     });
   }
 
-  const BAND_TILE = "inset(32.5% 46.35% 32.5% 46.35% round 36px)";
-  const BAND_DOT = "inset(50% 50% 50% 50% round 36px)";
+  const BAND_TILE = "inset(49.4% 0% 49.4% 0% round 0px)";
+  const BAND_DOT = "inset(49.4% 50% 49.4% 50% round 0px)";
   const BAND_FULL = "inset(0% 0% 0% 0% round 0px)";
   const BAND_LINE = "inset(50% 0% 50% 0% round 0px)";
 
@@ -324,9 +326,9 @@
           ctx.ft(seg, l.sel, { x: l.x + l.dx, y: l.y + 110, rotation: l.r * 2.4, scale: 0.84 }, { x: l.x, y: l.y, rotation: l.r, scale: 1, duration: 1.05, ease: "power3.out" }, d);
         });
         ctx.sfx(seg, "whoosh", { dur: 0.7, level: 0.12 }, 0.08);
-        /* The tile pops in where an icon would sit, then bursts into the band. */
-        ctx.ft(seg, "#s2-band", { clipPath: BAND_DOT }, { clipPath: BAND_TILE, duration: 0.3, ease: "back.out(2.2)" }, 0.95);
-        ctx.ft(seg, "#s2-band", { clipPath: BAND_TILE }, { clipPath: BAND_FULL, duration: 0.6, ease: "expo.inOut" }, 1.22);
+        /* A line draws across the middle, then opens into the band. */
+        ctx.ft(seg, "#s2-band", { clipPath: BAND_DOT }, { clipPath: BAND_TILE, duration: 0.42, ease: "expo.out" }, 0.9);
+        ctx.ft(seg, "#s2-band", { clipPath: BAND_TILE }, { clipPath: BAND_FULL, duration: 0.55, ease: "expo.inOut" }, 1.22);
         ctx.ft(seg, "#s2-word", { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1.12, duration: 0.42, ease: "power3.out" }, 1.4);
         seg.to("#s2-word", { scale: 1, duration: 0.4, ease: "power2.inOut" }, 1.82);
         ctx.sfx(seg, "impact", { level: 0.9 }, 1.48);
@@ -588,7 +590,8 @@
       notes: "...it's already over.",
       build(seg, ctx) {
         ctx.show(seg, "s3");
-        ctx.ft(seg, "#s3-stamp", { opacity: 0, scale: 2.3, rotation: -16 }, { opacity: 0.94, scale: 1, rotation: -16, duration: 0.2, ease: "power4.in" }, 0.08);
+        ctx.ft(seg, "#s3-stamp", { opacity: 0, scale: 2.3, rotation: -16 }, { opacity: 1, scale: 1, rotation: -16, duration: 0.2, ease: "power4.in" }, 0.08);
+        ctx.ft(seg, "#s3-hero img", { filter: "brightness(1)" }, { filter: "brightness(0.55)", duration: 0.35, ease: "power2.out" }, 0.28);
         ctx.ft(seg, "#s3-hero", { scale: 0.96 }, { scale: 0.94, duration: 0.07, ease: "power2.out" }, 0.28);
         seg.to("#s3-hero", { scale: 0.96, duration: 0.45, ease: "elastic.out(1, 0.5)" }, 0.35);
         ctx.ft(seg, "#cam", { x: 0 }, { x: 9, duration: 0.04, ease: "none", repeat: 3, yoyo: true }, 0.28);
@@ -618,28 +621,36 @@
      the extracted lines repeat what the flyer itself says. */
   const READ = [
     {
-      key: "pizza",
-      file: "evt-test-demo-stata-pizza",
-      cx: 520,
-      boxes: [[135, 190, 505, 295], [275, 312, 365, 345], [150, 352, 490, 382], [222, 398, 418, 446]],
-      title: "Pizza Study Break at Stata",
-      meta: "2 PM · Stata Center lobby",
-    },
-    {
-      key: "boba",
-      file: "evt-test-demo-kendall-boba",
-      cx: 960,
-      boxes: [[125, 190, 515, 298], [250, 312, 390, 346], [145, 353, 495, 382], [222, 398, 418, 446]],
-      title: "Free Boba in Kendall Square",
-      meta: "2:30 PM · Kendall Plaza",
-    },
-    {
       key: "hack",
       file: "evt-test-demo-stata-hack-info",
-      cx: 1400,
+      cx: 520,
       boxes: [[125, 165, 515, 325], [277, 340, 363, 374], [210, 380, 430, 410], [222, 425, 418, 473]],
       title: "Spring Hackathon Info Session",
       meta: "3 PM · Stata Center, 32-155",
+      tag: "Free food",
+      /* Lands where it really shows up: the middle tile of the feed's Top 3. */
+      to: [711, 376],
+    },
+    {
+      key: "boulder",
+      file: "evt-test-demo-z-center-bouldering",
+      cx: 960,
+      boxes: [[185, 193, 455, 295], [257, 315, 383, 345], [180, 355, 460, 380], [223, 398, 417, 446]],
+      title: "Intro to Bouldering",
+      meta: "3:30 PM · Z-Center Climbing Wall",
+      tag: "Free swag",
+      to: [716, 718],
+    },
+    {
+      key: "pizza",
+      file: "evt-test-demo-stata-pizza",
+      cx: 1400,
+      boxes: [[135, 190, 505, 295], [275, 312, 365, 345], [150, 352, 490, 382], [222, 398, 418, 446]],
+      title: "Pizza Study Break at Stata",
+      meta: "2 PM · Stata Center lobby",
+      tag: "Free food",
+      /* The map's walk home: Muse's first stop. */
+      to: [1150, 682],
     },
   ];
   const ROW = { size: 380, top: 200 };
@@ -652,7 +663,7 @@
     { kind: "ig", x: 1080, y: 560, w: 320, r: 4 },
     { kind: "chat", x: 520, y: 760, w: 420, r: -2 },
   ];
-  const SCATTER = { pizza: [610, 330, -9], boba: [1130, 160, 7], hack: [880, 560, -5] };
+  const SCATTER = { pizza: [1130, 160, 7], boulder: [610, 330, -9], hack: [880, 560, -5] };
   const S5 = { read: [], noise: [] };
 
   function prepareScene5() {
@@ -681,7 +692,7 @@
       f.boxEls = f.boxes.map(([x1, y1, x2, y2]) => {
         const b = document.createElement("div");
         b.className = "box";
-        const pad = 8;
+        const pad = 4;
         Object.assign(b.style, { left: `${x1 * k - pad}px`, top: `${y1 * k - pad}px`, width: `${(x2 - x1) * k + pad * 2}px`, height: `${(y2 - y1) * k + pad * 2}px` });
         el.appendChild(b);
         return b;
@@ -689,10 +700,15 @@
       field.appendChild(el);
       const card = document.createElement("div");
       card.className = "xcard";
-      card.innerHTML = `<div class="xt">${f.title}</div><div class="xm">${f.meta}</div><span class="xf">Free food</span>`;
+      card.innerHTML = `<div class="xt">${f.title}</div><div class="xm">${f.meta}</div><span class="xf">${f.tag}</span>`;
       field.appendChild(card);
+      const ping = document.createElement("div");
+      ping.className = "ping";
+      field.appendChild(ping);
+      gsap.set(ping, { x: f.to[0] - 60, y: f.to[1] - 60 });
       f.el = el;
       f.card = card;
+      f.ping = ping;
       S5.read.push(f);
     });
     S5.noise.forEach(({ el, n }) => gsap.set(el, { x: n.x, y: n.y, rotation: n.r }));
@@ -700,9 +716,8 @@
       const [sx, sy, sr] = SCATTER[f.key];
       gsap.set(f.el, { x: sx, y: sy, rotation: sr });
     });
-    gsap.set("#s5-lamp", { x: 550, y: 560 });
-    gsap.set("#s5-flyer", { x: 1030, y: 580 });
-    gsap.set("#s5-link", { x: 890 + 10, y: 786 });
+    gsap.set("#s5-lamp", { x: 620, y: 512 });
+    gsap.set("#s5-flyer", { x: 990, y: 540 });
     gsap.set("#s5-feed", { x: 960 - 420 - 24, y: 107 });
     gsap.set("#s5-map", { x: 960 + 24, y: 107 });
   }
@@ -715,17 +730,17 @@
       build(seg, ctx) {
         ctx.show(seg, "s5");
         ctx.hush(seg, 0.01);
-        ctx.ft(seg, "#s5-lamp", { opacity: 0, x: -420, rotation: -10 }, { opacity: 1, x: 550, rotation: -3, duration: 1.4, ease: "power3.out" }, 0.1);
-        ctx.ft(seg, "#s5-flyer", { opacity: 0, x: 1960, rotation: 10 }, { opacity: 1, x: 1030, rotation: 3, duration: 1.4, ease: "power3.out" }, 0.18);
+        /* The listing and the flyer slide in from opposite sides and meet: finding things, finding things to do. */
+        ctx.ft(seg, "#s5-lamp", { opacity: 0, x: -420, rotation: -10 }, { opacity: 1, x: 620, rotation: -4, duration: 1.4, ease: "power3.out" }, 0.1);
+        ctx.ft(seg, "#s5-flyer", { opacity: 0, x: 1960, rotation: 10 }, { opacity: 1, x: 990, rotation: 4, duration: 1.4, ease: "power3.out" }, 0.18);
         ctx.sfx(seg, "whoosh", { dur: 0.9, level: 0.1 }, 0.1);
-        ctx.ft(seg, "#s5-link", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.5, ease: "power3.out" }, 1.3);
-        ctx.sfx(seg, "tap", { f: 1320, level: 0.1 }, 1.3);
         ctx.ft(seg, "#s5-q1", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, 0.55);
         ctx.ft(seg, "#s5-q2", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, 0.8);
       },
       idle(api) {
         /* Idle loops only ever touch inner wrappers the timeline never animates. */
-        api.loop("#s5-link i", { opacity: 0.55, duration: 1.4 });
+        api.loop("#s5-lamp .l-card", { y: -6, rotation: -0.6, duration: 3.1 });
+        api.loop("#s5-flyer img", { y: 6, rotation: 0.6, duration: 3.5 });
       },
     },
     {
@@ -737,8 +752,7 @@
         ["#s5-q1", "#s5-q2"].forEach((sel, i) => ctx.ft(seg, sel, { opacity: 1, y: 0 }, { opacity: 0, y: -30, duration: 0.45, ease: "power2.in" }, i * 0.05));
         ctx.ft(seg, "#s5-lamp", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.9, duration: 0.45, ease: "power2.in" }, 0.05);
         ctx.ft(seg, "#s5-flyer", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.9, duration: 0.45, ease: "power2.in" }, 0.05);
-        ctx.ft(seg, "#s5-link", { opacity: 1 }, { opacity: 0, duration: 0.3 }, 0);
-        /* Chaos returns: everything scattered, slightly tilted. */
+                /* Chaos returns: everything scattered, slightly tilted. */
         const appear = [0.25, 0.32, 0.4, 0.44, 0.5, 0.55];
         S5.noise.forEach(({ el, n }, i) => {
           const h = n.kind === "flyer" ? n.w * (n.ratio || 1) : 160;
@@ -771,16 +785,27 @@
           ctx.ft(seg, f.card, { opacity: 0, x: f.cx - 190, y: ROW.top + ROW.size + 70 }, { opacity: 1, y: ROW.top + ROW.size + 34, duration: 0.6, ease: "power3.out" }, pass + 0.45);
           ctx.sfx(seg, "tap", { f: 1500 + f.cx / 4, level: 0.09 }, pass + 0.45);
         });
-        /* The events land where students look: the feed, with the map beside it. */
-        const land = 4.55;
+        /* The phones rise, then each event flies to where it really appears: the feed or the map. */
+        const land = 4.45;
         S5.read.forEach((f, i) => {
-          const tx = 960 - 420 - 24 + 200 - (f.cx - ROW.size / 2);
-          ctx.ft(seg, f.el, { opacity: 1, scale: 1, x: f.cx - ROW.size / 2, y: ROW.top }, { opacity: 0, scale: 0.42, x: f.cx - ROW.size / 2 + tx * 0.6, y: ROW.top + 60, duration: 0.75, ease: "power2.in" }, land + i * 0.04);
-          ctx.ft(seg, f.card, { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.6, duration: 0.6, ease: "power2.in" }, land + i * 0.04);
+          ctx.ft(seg, f.card, { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.7, duration: 0.45, ease: "power2.in" }, land - 0.1 + i * 0.03);
+          f.boxEls.forEach((b) => ctx.ft(seg, b, { opacity: 1 }, { opacity: 0, duration: 0.3 }, land - 0.1));
+          const fromX = f.cx - ROW.size / 2;
+          const s1 = 0.2;
+          ctx.ft(
+            seg,
+            f.el,
+            { opacity: 1, scale: 1, x: fromX, y: ROW.top },
+            { opacity: 0, scale: s1, x: f.to[0] - ROW.size / 2, y: f.to[1] - ROW.size / 2, duration: 0.95, ease: "power3.inOut" },
+            land + 0.55 + i * 0.12,
+          );
+          ctx.ft(seg, f.ping, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.out" }, land + 1.35 + i * 0.12);
+          seg.to(f.ping, { opacity: 0, scale: 1.6, duration: 0.5, ease: "power1.out" }, land + 1.65 + i * 0.12);
+          ctx.sfx(seg, "tap", { f: 1400 + i * 180, level: 0.1 }, land + 1.35 + i * 0.12);
         });
-        ctx.ft(seg, "#s5-feed", { opacity: 0, y: 1120, rotation: -3 }, { opacity: 1, y: 107, rotation: 0, duration: 1.1, ease: "power3.out" }, land + 0.2);
-        ctx.ft(seg, "#s5-map", { opacity: 0, y: 1180, rotation: 3 }, { opacity: 1, y: 107, rotation: 0, duration: 1.1, ease: "power3.out" }, land + 0.34);
-        ctx.sfx(seg, "whoosh", { dur: 0.8, level: 0.1, from: 400, to: 1800 }, land + 0.2);
+        ctx.ft(seg, "#s5-feed", { opacity: 0, y: 1120, rotation: -3 }, { opacity: 1, y: 107, rotation: 0, duration: 1.0, ease: "power3.out" }, land);
+        ctx.ft(seg, "#s5-map", { opacity: 0, y: 1180, rotation: 3 }, { opacity: 1, y: 107, rotation: 0, duration: 1.0, ease: "power3.out" }, land + 0.12);
+        ctx.sfx(seg, "whoosh", { dur: 0.8, level: 0.1, from: 400, to: 1800 }, land);
       },
       idle(api) {
         api.loop("#s5-feed .screen img", { y: -6, duration: 3.6 });
@@ -792,8 +817,8 @@
       notes: "No more searching through hundreds of posts. No more missing out.",
       build(seg, ctx) {
         ctx.show(seg, "s5");
-        ctx.ft(seg, "#s5-feed", { opacity: 1, scale: 1, x: 960 - 420 - 24 }, { opacity: 0, scale: 2.6, x: 960 - 420 - 24 - 260, duration: 0.7, ease: "power3.in" }, 0);
-        ctx.ft(seg, "#s5-map", { opacity: 1, scale: 1, x: 960 + 24 }, { opacity: 0, scale: 2.6, x: 960 + 24 + 260, duration: 0.7, ease: "power3.in" }, 0);
+        ctx.ft(seg, "#s5-feed", { opacity: 1, scale: 1 }, { opacity: 0, scale: 1.5, duration: 0.6, ease: "power3.in" }, 0);
+        ctx.ft(seg, "#s5-map", { opacity: 1, scale: 1 }, { opacity: 0, scale: 1.5, duration: 0.6, ease: "power3.in" }, 0);
         ctx.ft(seg, "#s5-fb", { opacity: 0, scale: 0.4, rotation: -20 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.7, ease: "back.out(1.7)" }, 0.62);
         ctx.ft(seg, "#s5-title", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.9, ease: "power3.out" }, 0.78);
         ctx.ft(seg, "#s5-tag", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, 1.35);

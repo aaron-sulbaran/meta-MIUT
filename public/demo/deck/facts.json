@@ -78,13 +78,13 @@
     },
     {
       "step": "muse-organizes",
-      "text": "Extracted fields: Pizza Study Break at Stata, 2 PM, Stata Center lobby; Free Boba in Kendall Square, 2:30 PM, Kendall Plaza; Spring Hackathon Info Session, 3 PM, Stata Center, 32-155; Free food",
+      "text": "Extracted fields: Spring Hackathon Info Session, 3 PM, Stata Center, 32-155, Free food; Intro to Bouldering, 3:30 PM, Z-Center Climbing Wall, Free swag; Pizza Study Break at Stata, 2 PM, Stata Center lobby, Free food",
       "source": "Each line repeats what that flyer itself says. An illustration of what Muse extracts, not a recorded Muse call."
     },
     {
       "step": "muse-organizes",
-      "text": "Events feed and map",
-      "source": "Real captures of this app at 390 x 844 (local dev server, seeded data, recorded Muse answers; the feed shows its own 'Recorded answer' label)."
+      "text": "Events feed and the map with Muse's walk home",
+      "source": "Real captures of this app at 390 x 844: the List view (/?view=list) and the walk home (/?plan=home) on the 3:05 PM demo clock, seeded data, recorded Muse answers labeled as such. Each flyer lands where its event really appears: Spring Hackathon in the Top 3, Intro to Bouldering in the list, Pizza Study Break as the walk's first stop."
     },
     {
       "step": "events-reimagined",
@@ -95,28 +95,28 @@
   "muse": [
     {
       "step": "instagram-post",
-      "text": "The club's Instagram post: Board Game Night, MIT Board Game Club",
-      "source": "Real capture of this app's staged Instagram screen (/demo/instagram/post, labeled staged for the demo), at a 7 PM demo clock. The event is the skit's story event (lib/demo/story-data.ts)."
+      "text": "The club's Instagram post: Board Game Night, MIT Board Game Club, today 3:30 to 5:30 PM",
+      "source": "Real capture of this app's staged Instagram screen (/demo/instagram/post, labeled staged for the demo) on the 3:05 PM demo clock. The event is the skit's story event (lib/demo/story-data.ts)."
     },
     {
       "step": "share-and-read",
-      "text": "Flyer and caption",
-      "source": "The app's drawn demo flyer (/demo/flyer.png) and the story caption (lib/demo/staged.ts storyCaption), 7:00 to 9:00 PM. Sharing a post into a Facebook event is the proposed feature, shown as Muse reading the post, not as something Instagram does today."
+      "text": "Flyer and caption, with the official Instagram glyph by the handle",
+      "source": "The app's drawn demo flyer (/demo/flyer.png) and the story caption (lib/demo/staged.ts storyCaption) on the same clock. Sharing a post into a Facebook event is the proposed feature, shown as Muse reading the post, not as something Instagram does today."
     },
     {
       "step": "fields",
-      "text": "What it is: Board Game Night; When: Today, 7:00 PM to 9:00 PM; Where: MIT Museum, 314 Main St; Free food: Dumplings; Who can come: Open to everyone",
-      "source": "The app's own five draft fields (components/organizer) filled with the story event's values; boxes sit where each line is printed (components/demo/moments/flyer-regions.ts). Drawn, not a capture: without a Muse key the review screen falls back to a recorded example for a different event."
+      "text": "What it is: Board Game Night; Free food: Free dumplings while they last; When: Today, 3:30 PM to 5:30 PM; Where: MIT Museum, 314 Main St; Who can come: Open to everyone",
+      "source": "The values the app's own review screen shows for this post (captured at /organizer?handoff=story), drawn large; boxes sit where each line is printed on the flyer (components/demo/moments/flyer-regions.ts)."
     },
     {
       "step": "post-it",
-      "text": "Posted to Facebook Events, as MIT Board Game Club",
-      "source": "Real capture of this app (/organizer?state=posted) at the 7 PM demo clock."
+      "text": "Review screen, Post to Facebook Events, then Posted to Facebook Events as MIT Board Game Club, Today at 3:30 PM",
+      "source": "Real captures of this app: /organizer?handoff=story (recorded example, labeled) and /organizer?state=posted, on the 3:05 PM demo clock."
     },
     {
       "step": "for-students",
-      "text": "Events feed and map",
-      "source": "Real captures of this app (/?view=list and /), seeded data, recorded Muse answers. The blue rings are drawn highlights."
+      "text": "Your event feed: Board Game Night first, Free dumplings, and it matches what you follow",
+      "source": "Real capture of this app's first curated feed (/curate), sample data, recorded answer labeled. The blue ring is a drawn highlight."
     },
     {
       "step": "less-work",
@@ -125,7 +125,7 @@
     },
     {
       "step": "cast",
-      "text": "Jing, Event organizer; Jolyn, Facebook Events power user; Lisa, New to Facebook; Trish, New to Facebook Events",
+      "text": "Event organizer, Jing; Facebook Events power user, Jolyn; New to Facebook, Lisa; New to Facebook Events, Trish",
       "source": "The cast as decided 2026-11-13 (lib/demo/beats.ts CAST)."
     }
   ]
