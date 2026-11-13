@@ -1,11 +1,12 @@
 import { walkMinutes } from "@/lib/geo";
+import { travel } from "@/lib/crawl/order";
 
 // The map's side of the food crawl. Muse plans the route (POST /api/muse/crawl,
 // lib/muse/crawl.ts, Trish); this keeps the plan editable on the map: re-time
 // it after a stop is removed or added, place an added stop where it costs the
 // least walking, and hand the whole route to Google Maps for directions.
-// Re-timing walks every hop, like the crawl does for short campus hops. Swap in
-// the crawl's shared ordering helper once it lives outside server-only code.
+// Re-timing uses the crawl's own travel times (lib/crawl/order.ts), so switching
+// Walk and Transit re-times the same stops without asking Muse again.
 
 export type Point = { lat: number; lng: number };
 export type TravelMode = "walk" | "transit" | "drive";
@@ -44,39 +45,39 @@ export type Route = { from: Point; stops: RouteStop[]; destination: RouteEnd; to
 export const STOP_MINUTES = 15;
 const MINUTE = 60_000;
 
-/** Recompute every hop and arrival from the start time, walking between points. */
-export function retime(route: Route, startMs: number): Route {
+/** Recompute every hop and arrival from the start time, by foot or with the T for long hops. */
+export function retime(route: Route, startMs: number, mode: TravelMode = "walk"): Route {
   let here: Point = route.from;
   let at = startMs;
   let total = 0;
   const stops = route.stops.map((stop) => {
-    const minutes = walkMinutes(here, stop);
-    total += minutes;
+    const hop = travel(here, stop, mode);
+    total += hop.minutes;
     const opens = stop.startsAt ? Date.parse(stop.startsAt) : Number.NEGATIVE_INFINITY;
-    at = Math.max(at + minutes * MINUTE, opens);
-    const next = { ...stop, walkMinutes: minutes, mode: "walk" as const, arriveAt: new Date(at).toISOString() };
+    at = Math.max(at + hop.minutes * MINUTE, opens);
+    const next = { ...stop, walkMinutes: hop.minutes, mode: hop.mode, arriveAt: new Date(at).toISOString() };
     at += STOP_MINUTES * MINUTE;
     here = stop;
     return next;
   });
-  const last = walkMinutes(here, route.destination);
-  total += last;
+  const last = travel(here, route.destination, mode);
+  total += last.minutes;
   const destination = {
     ...route.destination,
-    walkMinutes: last,
-    mode: "walk" as const,
-    arriveAt: new Date(at + last * MINUTE).toISOString(),
+    walkMinutes: last.minutes,
+    mode: last.mode,
+    arriveAt: new Date(at + last.minutes * MINUTE).toISOString(),
   };
   return { ...route, stops, destination, totalWalkMinutes: total };
 }
 
 /** Drop one stop and re-time the rest. */
-export function removeStop(route: Route, index: number, startMs: number): Route {
-  return retime({ ...route, stops: route.stops.filter((_, position) => position !== index) }, startMs);
+export function removeStop(route: Route, index: number, startMs: number, mode: TravelMode = "walk"): Route {
+  return retime({ ...route, stops: route.stops.filter((_, position) => position !== index) }, startMs, mode);
 }
 
 /** Put a new stop where it adds the least walking, then re-time. */
-export function insertStop(route: Route, stop: RouteStop, startMs: number): Route {
+export function insertStop(route: Route, stop: RouteStop, startMs: number, mode: TravelMode = "walk"): Route {
   const points: Point[] = [route.from, ...route.stops, route.destination];
   let best = 0;
   let bestCost = Number.POSITIVE_INFINITY;
@@ -90,7 +91,7 @@ export function insertStop(route: Route, stop: RouteStop, startMs: number): Rout
     }
   }
   const stops = [...route.stops.slice(0, best), stop, ...route.stops.slice(best)];
-  return retime({ ...route, stops }, startMs);
+  return retime({ ...route, stops }, startMs, mode);
 }
 
 /** True when the walk reaches the stop after (or within 10 minutes of) its end. */
