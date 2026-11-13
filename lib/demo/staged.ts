@@ -80,6 +80,8 @@ export const HANDOFF = {
   organizerPosted: (atIso: string | null) => withClock(`${ORGANIZER_HANDOFF}&state=posted`, atIso),
   // U1b: the map with Muse's walk home planned from the demo clock (?time= pins it).
   walkHome: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}`,
+  // U1b loaded ahead by the stage: Muse plans at once but shows its work only on {source: "demo-stage", type: "reveal"}.
+  walkHomeHeld: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}&reveal=wait`,
   // U1c: the same map, then Ask Muse asks the re-plan line by itself (typed, real call).
   replanLisa: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}&auto=1`,
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
