@@ -71,7 +71,7 @@ export function SideMenu() {
               type="button"
               aria-label="Close menu"
               onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-black/40"
+              className="absolute inset-0 bg-[rgba(0,0,0,0.4)]"
             />
             <nav
               aria-label="Menu"
