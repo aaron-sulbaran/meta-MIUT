@@ -415,7 +415,7 @@ export function CrawlPlanner({
                       const target = placeEnding(name, events);
                       if (target) choose(target);
                     }}
-                    className="rounded-full bg-button px-[10px] py-[4px] text-meta font-semibold text-ink"
+                    className="max-w-full truncate rounded-full bg-button px-[10px] py-[4px] text-meta font-semibold text-ink"
                   >
                     {name}
                   </button>
