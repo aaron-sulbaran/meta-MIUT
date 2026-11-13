@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { buttonClass } from "@/components/ui/button";
 import { InstagramPostIcon } from "@/components/ui/icons";
-import { friendsGoingLine, type WhoIsGoing } from "@/lib/social/types";
+import { friendsGoingLine, sharedLine, type WhoIsGoing } from "@/lib/social/types";
 
 // The event page's Who's going section: friends going first, then students
 // going who are open to company, with Say hi. Going and Open to company are
@@ -119,6 +119,7 @@ export function WhosGoing({ initial }: { initial: WhoIsGoing }) {
       {who.openToCompany.length > 0 && (
         <>
           <h3 className="mt-[16px] font-display text-label font-bold">Looking for company</h3>
+          <p className="text-meta text-muted">Top students going by interests you share</p>
           <ul className="mt-[8px] flex flex-col gap-[10px]">
             {who.openToCompany.map((person) => (
               <li key={person.id} className="flex items-start gap-[10px] rounded-card border border-hairline p-[10px]">
@@ -128,7 +129,7 @@ export function WhosGoing({ initial }: { initial: WhoIsGoing }) {
                   <p className="text-meta font-semibold text-muted">
                     {person.year} · {person.major}
                   </p>
-                  {person.shared.length > 0 && <p className="mt-[2px] text-meta">Both into {person.shared.join(", ")}</p>}
+                  <p className="mt-[2px] text-meta">{sharedLine(person.shared)}</p>
                   {person.note && <p className="mt-[2px] text-meta text-muted">&ldquo;{person.note}&rdquo;</p>}
                   {person.instagram && (
                     <p className="mt-[4px] flex items-center gap-[5px] text-meta font-semibold">

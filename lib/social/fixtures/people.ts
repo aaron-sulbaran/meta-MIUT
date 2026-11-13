@@ -20,6 +20,12 @@ export const PEOPLE: Person[] = [
   { id: "zoe", name: "Zoe", year: "Second-year", major: "Kinesiology", interests: ["yoga", "wellness", "rock climbing"], instagram: "sample_zoe" },
   { id: "kai", name: "Kai", year: "First-year", major: "Music", interests: ["music", "film", "free food"], instagram: "sample_kai" },
   { id: "lena", name: "Lena", year: "Fourth-year", major: "Business", interests: ["careers", "free food", "wellness"], instagram: "sample_lena" },
+  { id: "omar", name: "Omar", year: "Third-year", major: "Mechanical Engineering", interests: ["rock climbing", "hackathons", "free food"], instagram: "sample_omar" },
+  { id: "jade", name: "Jade", year: "Second-year", major: "Comparative Media Studies", interests: ["film", "music", "studying"], instagram: "sample_jade" },
+  { id: "eli", name: "Eli", year: "First-year", major: "Physics", interests: ["studying", "coding", "free food"], instagram: "sample_eli" },
+  { id: "rosa", name: "Rosa", year: "Graduate", major: "Urban Planning", interests: ["careers", "fitness", "film"], instagram: "sample_rosa" },
+  { id: "theo", name: "Theo", year: "Second-year", major: "Mathematics", interests: ["hackathons", "film", "rock climbing"], instagram: "sample_theo" },
+  { id: "nina", name: "Nina", year: "Third-year", major: "Brain and Cognitive Sciences", interests: ["wellness", "music", "free food"], instagram: "sample_nina" },
 ];
 
 export const FRIENDS: Record<string, string[]> = {

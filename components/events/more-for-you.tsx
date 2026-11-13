@@ -4,7 +4,8 @@ import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
 import type { LikelyEvent } from "@/lib/muse/types";
 
-// Every other event this week the student is likely to care about, best first.
+// Every other event in the next 7 days the student is likely to care about,
+// what is on now first, then the soonest.
 // Why each matched stays inside the agent. Sits under the Top 3 on For you.
 export function MoreForYou({ likely, events, now }: { likely: LikelyEvent[]; events: CampusEvent[]; now: Date }) {
   const eventsById = new Map(events.map((event) => [event.id, event]));
