@@ -8,14 +8,16 @@ import { ChevronLeftIcon, MenuIcon } from "@/components/ui/icons";
 
 const bar = "sticky top-0 z-20 bg-card pt-[env(safe-area-inset-top)]";
 
-/** Home feed: menu, the wordmark set in type, actions. */
-export function HomeHeader({ wordmark, actions }: { wordmark: string; actions?: ReactNode }) {
+/** Home feed: menu, the wordmark set in type, actions. Pass menu to make the bars live. */
+export function HomeHeader({ wordmark, actions, menu }: { wordmark: string; actions?: ReactNode; menu?: ReactNode }) {
   return (
     <header className={bar}>
       <div className="flex h-[52px] items-center pl-[10px] pr-[8px]">
-        <span aria-hidden className="mr-[10px] flex h-[22px] w-[22px] items-center text-ink">
-          <MenuIcon className="h-[22px] w-[22px]" />
-        </span>
+        {menu ?? (
+          <span aria-hidden className="mr-[10px] flex h-[22px] w-[22px] items-center text-ink">
+            <MenuIcon className="h-[22px] w-[22px]" />
+          </span>
+        )}
         <span className="pb-[3px] font-display text-[29px] leading-[34px] font-extrabold tracking-[-0.05em] text-primary">{wordmark}</span>
         <HeaderActions>{actions}</HeaderActions>
       </div>
