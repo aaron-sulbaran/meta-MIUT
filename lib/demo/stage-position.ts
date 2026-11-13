@@ -31,6 +31,14 @@ export const StagePositionSchema = z.object({
   runAt: z.string().optional(),
   movedAt: z.string().optional(),
   furthest: z.number().int().min(0).optional(),
+  // Who made the last beat move: "stage" (a /demo stage tab's own goto: a stage that
+  // follows applies it as a beat move) or "control" (the remote's Next and Back, a
+  // presenter phone: a stage on a deck or film steps it first). Missing reads as "control".
+  by: z.enum(["stage", "control"]).optional(),
+  // The stage tab that made the last stage move (the presenting stage). Only it puts the record
+  // back after it steps a deck for the remote, so a stage that only follows never hides that move
+  // from the presenting stage. Missing: any stage may.
+  tab: z.string().max(64).optional(),
   // The step a deck beat is on (the stage reports it from the deck's "step"
   // message), so a phone can show that step's presenter notes. Belongs to beat
   // `index` only: any move drops it. Optional, so older records still parse.
@@ -50,9 +58,13 @@ export const StagePositionSchema = z.object({
     .nullish(),
 });
 export type StagePosition = z.infer<typeof StagePositionSchema>;
+export type MoveBy = NonNullable<StagePosition["by"]>;
 
 export const StageMoveSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("goto"), index: z.number().int().min(0) }),
+  // `undo`: a stage putting the record back after it stepped a deck for the remote's move to
+  // beat `undo`. Applied only while the record still sits on that move, so a late or second
+  // stage's undo never pulls back a move made since.
+  z.object({ action: z.literal("goto"), index: z.number().int().min(0), undo: z.number().int().min(0).optional(), tab: z.string().min(1).max(64).optional() }),
   z.object({ action: z.literal("next") }),
   z.object({ action: z.literal("back") }),
 ]);
@@ -122,6 +134,8 @@ export function applyDeckStep(current: StagePosition | null, report: DeckStep, n
     index: report.at,
     seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
     at: now.toISOString(),
+    ...(current?.by ? { by: current.by } : {}),
+    ...(current?.tab ? { tab: current.tab } : {}),
     deck: { name: report.name, step: report.step, ...(report.steps ? { steps: report.steps } : {}) },
     ...(current?.signal ? { signal: current.signal } : {}),
   };
@@ -139,8 +153,19 @@ function runFields(current: StagePosition | null, index: number, now: Date, move
 }
 const memory = globalThis as typeof globalThis & { __demoStagePosition?: StagePosition };
 
+/** The presenting stage tab after a move: a stage's own goto names it; anything else keeps it. */
+function tabOf(current: StagePosition | null, move: StageMove): string | undefined {
+  return (move.action === "goto" ? move.tab : undefined) ?? current?.tab;
+}
+
 /** The position after a move, clamped to the beats that exist. A deck step stays only while the beat does. */
-export function applyMove(current: StagePosition | null, move: StageMove, beatCount: number, now: Date): StagePosition {
+export function applyMove(
+  current: StagePosition | null,
+  move: StageMove,
+  beatCount: number,
+  now: Date,
+  by: MoveBy = move.action === "goto" ? "stage" : "control",
+): StagePosition {
   const from = current?.index ?? 0;
   const wanted = move.action === "goto" ? move.index : move.action === "next" ? from + 1 : from - 1;
   const index = Math.max(0, Math.min(beatCount - 1, wanted));
@@ -149,6 +174,8 @@ export function applyMove(current: StagePosition | null, move: StageMove, beatCo
     index,
     seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
     at: now.toISOString(),
+    by,
+    ...(tabOf(current, move) ? { tab: tabOf(current, move) } : {}),
     ...(current?.deck && current.index === index ? { deck: current.deck } : {}),
     ...(current?.signal && current.index === index ? { signal: current.signal } : {}),
   };
@@ -212,8 +239,17 @@ export function resetPhonesSeen(): void {
   stamps.__demoPhoneSeen = {};
 }
 
+/** True when a stage's undo (see StageMoveSchema) still applies to the record. */
+export function undoApplies(current: StagePosition | null, undo: number): boolean {
+  return current !== null && current.index === undo && current.by !== "stage";
+}
+
 export async function moveStage(move: StageMove, now = new Date()): Promise<StagePosition> {
-  return savePosition(applyMove(await readStored(), move, BEATS.length, now));
+  const current = await readStored();
+  if (move.action === "goto" && move.undo !== undefined && !undoApplies(current, move.undo)) {
+    return current ?? applyMove(null, { action: "goto", index: move.index }, BEATS.length, now);
+  }
+  return savePosition(applyMove(current, move, BEATS.length, now));
 }
 
 // A presenter's own phone (/demo/phone/<slug>): it moves the stage only on its
@@ -234,7 +270,7 @@ export async function movePhone(
   const current = await readStored();
   const decision = decidePhoneMove(current?.index ?? 0, move);
   if (!decision.ok) return { data: current, moved: false, reason: decision.reason };
-  return { data: await savePosition(applyMove(current, { action: "goto", index: decision.index }, BEATS.length, now)), moved: true };
+  return { data: await savePosition(applyMove(current, { action: "goto", index: decision.index }, BEATS.length, now, "control")), moved: true };
 }
 
 // Which presenter phones are open: each phone's polls stamp it, at most every

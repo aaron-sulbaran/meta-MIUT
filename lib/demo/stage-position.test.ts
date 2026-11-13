@@ -1,8 +1,44 @@
 import { describe, expect, it } from "vitest";
 import { stageOnLoad } from "@/lib/demo/beat-context";
-import { StageMoveSchema, applyMove } from "@/lib/demo/stage-position";
+import { StageMoveSchema, applyDeckStep, applyMove, undoApplies } from "@/lib/demo/stage-position";
 
 const NOW = new Date("2026-11-13T15:00:00Z");
+
+describe("who moved the stage", () => {
+  it("marks a stage's goto as a stage move and the remote's Next and Back as control", () => {
+    const at3 = applyMove(null, { action: "goto", index: 3 }, 16, NOW);
+    expect(at3.by).toBe("stage");
+    expect(applyMove(at3, { action: "next" }, 16, NOW).by).toBe("control");
+    expect(applyMove(at3, { action: "back" }, 16, NOW).by).toBe("control");
+    expect(applyMove(at3, { action: "goto", index: 4 }, 16, NOW, "control").by).toBe("control");
+  });
+
+  it("names the presenting stage tab from its own goto and keeps it through remote moves and deck steps", () => {
+    const byA = applyMove(null, { action: "goto", index: 0, tab: "tab-a" }, 16, NOW);
+    expect(byA.tab).toBe("tab-a");
+    const remote = applyMove(byA, { action: "next" }, 16, NOW);
+    expect(remote.tab).toBe("tab-a");
+    expect(applyDeckStep(remote, { action: "deck", at: 1, name: "muse", step: 0 }, NOW)?.tab).toBe("tab-a");
+    expect(applyMove(remote, { action: "goto", index: 2, tab: "tab-b" }, 16, NOW).tab).toBe("tab-b");
+  });
+
+  it("keeps who moved when the deck step is reported", () => {
+    const next = applyMove(applyMove(null, { action: "goto", index: 0 }, 16, NOW), { action: "next" }, 16, NOW);
+    expect(applyDeckStep(next, { action: "deck", at: 1, name: "muse", step: 0 }, NOW)?.by).toBe("control");
+  });
+
+  it("lets a stage undo the remote's move only while the record still sits on it", () => {
+    const at0 = applyMove(null, { action: "goto", index: 0 }, 16, NOW);
+    const remoteNext = applyMove(at0, { action: "next" }, 16, NOW);
+    expect(undoApplies(remoteNext, 1)).toBe(true);
+    // The presenter's stage already undid it, or its deck ended and it moved on: a following stage's undo does nothing.
+    const undone = applyMove(remoteNext, { action: "goto", index: 0 }, 16, NOW);
+    expect(undoApplies(undone, 1)).toBe(false);
+    const movedOn = applyMove(remoteNext, { action: "goto", index: 1 }, 16, NOW);
+    expect(undoApplies(movedOn, 1)).toBe(false);
+    expect(undoApplies(null, 1)).toBe(false);
+  });
+});
 
 describe("the stage position", () => {
   it("moves next and back from where it is, inside the beats", () => {
