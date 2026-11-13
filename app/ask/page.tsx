@@ -2,7 +2,6 @@ import { connection } from "next/server";
 import { AskBar } from "@/components/ask/ask-bar";
 import { SubPageHeader } from "@/components/ui/header";
 import { getEventStore } from "@/lib/events/store";
-import { RECORDED_QUESTION } from "@/lib/muse/fixtures/ask";
 
 export default async function AskPage() {
   await connection();
@@ -11,7 +10,7 @@ export default async function AskPage() {
   return (
     <>
       <SubPageHeader title="Ask Muse" backHref="/" backLabel="Back to Events" />
-      <AskBar events={events} nowIso={now.toISOString()} placeholder={RECORDED_QUESTION} />
+      <AskBar events={events} nowIso={now.toISOString()} docked />
     </>
   );
 }

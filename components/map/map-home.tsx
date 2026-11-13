@@ -1,3 +1,4 @@
+import type { AskPlanLink } from "@/components/map/events-map";
 import { EventsMap, type MapCard, type MapChip } from "@/components/map/events-map";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
@@ -25,6 +26,7 @@ export async function MapHome({
   now,
   autoPlan = null,
   planAt = null,
+  askPlan = null,
 }: {
   events: CampusEvent[];
   now: Date;
@@ -32,6 +34,8 @@ export async function MapHome({
   autoPlan?: "home" | null;
   /** A set campus time (ISO) the map's walks plan from (?time=, for the demo). */
   planAt?: string | null;
+  /** A walk Ask Muse planned (?plan=ask&note=&to=): open with it drawn. */
+  askPlan?: AskPlanLink | null;
 }) {
   const student = loadDemoStudent();
   const ranking = await personalizeEvents(student, events, now, await loadInterestMemory(DEMO_USER_ID, now));
@@ -62,7 +66,7 @@ export async function MapHome({
     ];
   });
 
-  return <EventsMap cards={cards} studentSpot={student.home} askEvents={events} nowIso={now.toISOString()} autoPlan={autoPlan} planAt={planAt} />;
+  return <EventsMap cards={cards} studentSpot={student.home} askEvents={events} nowIso={now.toISOString()} autoPlan={autoPlan} planAt={planAt} askPlan={askPlan} />;
 }
 
 export function MapHomeSkeleton() {

@@ -3,6 +3,8 @@ import { readJsonBody } from "@/lib/http";
 import { AskInputSchema, askAboutEvents } from "@/lib/muse/ask";
 import { clearTurns, loadTurns, saveTurns } from "@/lib/muse/conversation";
 import { friendContext } from "@/lib/map/friend-spots";
+import { socialContext } from "@/lib/social/muse-friends";
+import { currentViewer } from "@/lib/social/viewer";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { compileCandidates } from "@/lib/muse/candidates";
 import { DEMO_USER_ID, loadInterestMemory, saveSignals } from "@/lib/muse/memory";
@@ -25,7 +27,8 @@ export async function POST(request: Request) {
   // demo): Muse reads where they are, so "closer to both of us" needs no follow-up.
   const friend = friendContext(body.data.question);
   const asked = friend ? { ...body.data, question: `${body.data.question}\n${friend}` } : body.data;
-  const result = await askAboutEvents(asked, events, now, student, history, memory, likely);
+  const social = await socialContext(await currentViewer(), events, now);
+  const result = await askAboutEvents(asked, events, now, student, history, memory, likely, social);
   if (result.error !== null) return Response.json(result, { status: 502 });
 
   const at = now.toISOString();

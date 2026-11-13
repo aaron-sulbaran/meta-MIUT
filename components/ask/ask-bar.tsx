@@ -74,11 +74,15 @@ export function AskBar({
   events,
   nowIso,
   placeholder,
+  docked = false,
   onPlan,
 }: {
   events: CampusEvent[];
   nowIso: string;
-  placeholder: string;
+  /** An example question; the box then reads Ask Muse, like "...". */
+  placeholder?: string;
+  /** The text box sits at the bottom of the screen under the conversation (the Ask Muse page). */
+  docked?: boolean;
   /** When set, plan_night goes to the host (the map draws the route) instead of a list here. */
   onPlan?: (plan: AskPlan, question: string) => void;
 }) {
@@ -174,6 +178,10 @@ export function AskBar({
           return { note: "Drafting your event" };
         case "plan_night": {
           if (!reply.plan) return { note: null };
+          const link = {
+            label: "Open the walk on the map",
+            href: `/?plan=ask&note=${encodeURIComponent(question.slice(0, 300))}${id ? `&to=${encodeURIComponent(id)}` : ""}`,
+          };
           if (onPlan) {
             onPlan(reply.plan, question);
             return { note: "Planning it on the map" };
@@ -184,12 +192,12 @@ export function AskBar({
               headers: { "content-type": "application/json" },
               body: JSON.stringify({ ...reply.plan, toLabel: "home" }),
             });
-            if (response.status === 404) return { note: "The night planner isn't live yet" };
+            if (!response.ok) return { note: null, link };
             const body = (await response.json()) as CrawlReply;
-            if (!body.data) return { note: "Couldn't plan your night right now" };
-            return { note: body.data.pitch, planIds: body.data.stops.map((stop) => stop.eventId) };
+            if (!body.data) return { note: null, link };
+            return { note: body.data.pitch, planIds: body.data.stops.map((stop) => stop.eventId), link };
           } catch {
-            return { note: "Couldn't plan your night right now" };
+            return { note: null, link };
           }
         }
       }
@@ -219,7 +227,7 @@ export function AskBar({
         error = "Network error. Try again.";
       }
       if (reply) freshRef.current = false;
-      setThread((current) => [...current, { id, question: text, reply, error, done: [], planIds: [], links: [] }].slice(-4));
+      setThread((current) => [...current, { id, question: text, reply, error, done: [], planIds: [], links: [] }].slice(docked ? -20 : -4));
       setPhase("idle");
       if (!reply) return;
 
@@ -290,6 +298,10 @@ export function AskBar({
     listen();
   }
   const busy = phase !== "idle";
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (docked && thread.length > 0) endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [docked, thread]);
 
   function submit(formEvent: FormEvent) {
     formEvent.preventDefault();
@@ -311,39 +323,47 @@ export function AskBar({
       ? "Stopped listening. Tap the mic to talk again."
       : phase === "transcribing" ? "Hearing you…" : phase === "asking" ? "Muse is on it…" : null;
 
-  return (
-    <section aria-label="Ask Muse" className="px-3 pt-[10px]" onClickCapture={keepIfOpeningEvent}>
+  const formEl = (
       <form onSubmit={submit} className="flex items-center gap-2 rounded-full bg-wash py-[6px] pl-3 pr-[6px]">
-        <MuseMark className="h-5 w-5 shrink-0 text-primary" />
-        <label htmlFor="ask-muse-bar" className="sr-only">
-          Ask Muse about events
-        </label>
-        <input
-          id="ask-muse-bar"
-          value={question}
-          onChange={(change) => setQuestion(change.target.value)}
-          placeholder={thread.at(-1)?.reply?.followUp ? "Answer Muse…" : `Ask Muse, like "${placeholder}"`}
-          enterKeyHint="send"
-          disabled={busy || voice.recording}
-          className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-muted"
-        />
-        {voice.supported && (
-          <button
-            type="button"
-            onClick={tapMic}
-            disabled={busy}
-            aria-label={voice.recording ? "Stop and ask" : "Ask by voice"}
-            aria-pressed={voice.recording}
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${voice.recording ? "bg-primary text-white" : "text-muted"} disabled:opacity-50`}
-          >
-            <MicIcon className="h-[18px] w-[18px]" />
-          </button>
-        )}
-      </form>
-
-      <div aria-live="polite">
+      <MuseMark className="h-5 w-5 shrink-0 text-primary" />
+      <label htmlFor="ask-muse-bar" className="sr-only">
+        Ask Muse about events
+      </label>
+      <input
+        id="ask-muse-bar"
+        value={question}
+        onChange={(change) => setQuestion(change.target.value)}
+        placeholder={thread.at(-1)?.reply?.followUp ? "Answer Muse…" : placeholder ? `Ask Muse, like "${placeholder}"` : "Ask Muse"}
+        enterKeyHint="send"
+        disabled={busy || voice.recording}
+        className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-muted"
+      />
+      {voice.supported && (
+        <button
+          type="button"
+          onClick={tapMic}
+          disabled={busy}
+          aria-label={voice.recording ? "Stop and ask" : "Ask by voice"}
+          aria-pressed={voice.recording}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${voice.recording ? "bg-primary text-white" : "text-muted"} disabled:opacity-50`}
+        >
+          <MicIcon className="h-[18px] w-[18px]" />
+        </button>
+      )}
+    </form>
+  );
+  const statusEl = (
+    <>
         {status && <p className="mt-[6px] px-1 text-meta text-muted">{status}</p>}
         {(voice.error ?? voiceError) && <p className="mt-[6px] px-1 text-meta text-[#e41e3f]">{voice.error ?? voiceError}</p>}
+    </>
+  );
+
+  return (
+    <section aria-label="Ask Muse" className={docked ? "flex flex-col px-3 pt-[10px]" : "px-3 pt-[10px]"} onClickCapture={keepIfOpeningEvent}>
+      {!docked && formEl}
+      <div aria-live="polite">
+        {!docked && statusEl}
         {thread.length > 0 && (
           <div className="mt-[8px] rounded-card border border-hairline bg-card p-3">
             <div className="flex justify-end">
@@ -387,7 +407,14 @@ export function AskBar({
             </ol>
           </div>
         )}
+        <div ref={endRef} />
       </div>
+      {docked && (
+        <div className="sticky bottom-[calc(var(--tabbar-height)+var(--tabbar-gap)+8px)] mt-2 bg-page pb-1 pt-1">
+          {statusEl}
+          {formEl}
+        </div>
+      )}
     </section>
   );
 }
