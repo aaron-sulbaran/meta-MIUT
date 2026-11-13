@@ -1,0 +1,152 @@
+/* Recap deck: what Muse just did, after the skit. */
+
+.r-intro {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 330px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+.r-mark {
+  width: 120px;
+  height: 120px;
+}
+
+.r-intro .r-mark {
+  opacity: 0;
+}
+
+.r-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 120px;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  opacity: 0;
+}
+
+.r-header {
+  position: absolute;
+  left: 920px;
+  top: 112px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 40px;
+  color: var(--gray);
+  opacity: 0;
+}
+
+.r-progress {
+  position: absolute;
+  left: 920px;
+  top: 186px;
+  display: flex;
+  gap: 14px;
+  opacity: 0;
+}
+
+.r-progress i {
+  position: relative;
+  display: block;
+  width: 128px;
+  height: 8px;
+  border-radius: 4px;
+  background: #262932;
+  overflow: hidden;
+}
+
+.r-progress i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--blue);
+  transform: scaleX(var(--fill, 0));
+  transform-origin: 0 50%;
+}
+
+#r-phone .screen {
+  position: relative;
+}
+
+#r-phone .screen img {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.r-col {
+  position: absolute;
+  left: 920px;
+  top: 250px;
+  width: 900px;
+  height: 640px;
+}
+
+.moment {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 900px;
+  opacity: 0;
+}
+
+.m-label {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 96px;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  min-height: 210px;
+}
+
+.m-model {
+  margin-top: 44px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 50px;
+  letter-spacing: -0.02em;
+}
+
+.m-model img {
+  width: 54px;
+  height: 54px;
+}
+
+.m-time {
+  margin-top: 26px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 104px;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  color: var(--blue);
+}
+
+.r-close {
+  gap: 34px;
+}
+
+.r-close .r-mark,
+#r-close-a,
+#r-close-b {
+  opacity: 0;
+}
+
+#r-close-a {
+  font-size: 100px;
+}
+
+.r-close-b {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 58px;
+  letter-spacing: -0.015em;
+  color: var(--gray);
+}

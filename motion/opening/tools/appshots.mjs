@@ -11,6 +11,12 @@ const AT = process.env.DECK_AT || '2026-11-13T23:35:00.000Z';
 mkdirSync(outDir, { recursive: true });
 
 const hideDev = async (page) => page.addStyleTag({ content: 'nextjs-portal{display:none!important}' }).catch(() => {});
+const REPLAN = "Wait, actually I'm not going home, I was gonna hang out with Lisa. Can you find an event closer to both of us and send Lisa the invite?";
+const asTrish = (page) => page.context().addCookies([{ name: 'demo-persona', value: 'user3', url: base }]);
+const storyId = async (page) => {
+  const story = await (await page.request.get(base + '/api/demo/story?at=' + encodeURIComponent(AT))).json().catch(() => null);
+  return story?.data?.id ?? story?.data?.event?.id ?? null;
+};
 const SHOTS = {
   async home(page, shot) {
     await page.goto(base + '/', { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -69,6 +75,50 @@ const SHOTS = {
       await shot(`replan-${ms}`);
     }
   },
+  /* Jolyn's words arrive the way the stage sends them from her phone: a heard message into the framed map. */
+  async voice(page, shot) {
+    const html = `<!doctype html><html><body style="margin:0"><iframe id="f" src="${base}/?plan=home&time=${encodeURIComponent(AT)}" style="border:0;width:390px;height:844px"></iframe></body></html>`;
+    await page.route(base + '/__host', (route) => route.fulfill({ contentType: 'text/html', body: html }));
+    await page.goto(base + '/__host', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(14000);
+    const frame = page.locator('#f');
+    await page.evaluate(() => document.getElementById('f').contentWindow.postMessage({ source: 'demo-stage', type: 'listening', on: true }, location.origin));
+    await page.waitForTimeout(1500);
+    await frame.screenshot({ path: shotPath('voice-listening') });
+    await page.evaluate((text) => document.getElementById('f').contentWindow.postMessage({ source: 'demo-stage', type: 'heard', text }, location.origin), REPLAN);
+    let last = 0;
+    for (const ms of [1500, 4000, 8000, 14000]) {
+      await page.waitForTimeout(ms - last);
+      last = ms;
+      await frame.screenshot({ path: shotPath(`voice-${ms}`) });
+    }
+  },
+  async first(page, shot) {
+    await asTrish(page);
+    await page.goto(base + '/?first=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await hideDev(page);
+    let last = 0;
+    for (const ms of [6000, 10000, 16000]) {
+      await page.waitForTimeout(ms - last);
+      last = ms;
+      await shot(`first-${ms}`);
+    }
+  },
+  async going(page, shot) {
+    await asTrish(page);
+    const id = await storyId(page);
+    await page.goto(base + '/events/' + encodeURIComponent(id) + '?auto=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await hideDev(page);
+    await page.waitForTimeout(9000);
+    await shot('going-before');
+    await page.getByRole('button', { name: /say hi/i }).first().click().catch(() => {});
+    let last = 0;
+    for (const ms of [2500, 6000, 10000]) {
+      await page.waitForTimeout(ms - last);
+      last = ms;
+      await shot(`going-${ms}`);
+    }
+  },
   async whosgoing(page, shot) {
     const story = await (await page.request.get(base + '/api/demo/story?at=' + encodeURIComponent(AT))).json().catch(() => null);
     const id = story?.data?.id ?? story?.data?.event?.id;
@@ -113,6 +163,7 @@ for (const name of names) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   const shot = (n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
+  globalThis.shotPath = (n) => path.join(outDir, `${n}.png`);
   try {
     await SHOTS[name](page, shot);
     console.log('ok', name);

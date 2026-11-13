@@ -113,5 +113,47 @@
       "text": "Event Organizer, Jing; Facebook Events Power User, Jolyn; New to Facebook, Lisa; New to Facebook Events, Trish",
       "source": "The final cast and title-case roles (lib/demo/beats.ts CAST)."
     }
+  ],
+  "recap": [
+    {
+      "step": "what-muse-did",
+      "text": "What Muse just did",
+      "source": "Aaron's decision via the lead (2026-11-13): a recap after the skit in the organizers' How AI powers it slot."
+    },
+    {
+      "step": "moment-1",
+      "text": "Read the club's flyer; Muse Ember; about 2 seconds",
+      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Flyer read (/api/muse/extract with the Board Game Night flyer and caption): 1.9, 2.0, 2.1, 2.5 s and one 10.1 s outlier; screen stamps 2.3 and 2.5 s. Model: muse-ember-1.0 (lib/muse/client.ts). Screen: /organizer?handoff=story, captured live (Read in 2.5 s)."
+    },
+    {
+      "step": "moment-2",
+      "text": "Planned her walk home; Muse Ember; about 5 seconds",
+      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Walk home (/api/muse/crawl): 3.9, 4.3, 4.3, 5.2 s and one 10.8 s; screen stamps 4.5, 7.1, 7.6, 11.1 s; median of all 5.2 s. Model: muse-ember-1.0. Screen: /?plan=home, captured live (planned 7.1 s)."
+    },
+    {
+      "step": "moment-3",
+      "text": "Heard what she said; Muse Voice Transcribe; about 3 seconds",
+      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Transcription (/api/muse/transcribe with the spoken re-plan line, synthesized to a 16 kHz WAV): 2.6, 2.6, 2.6, 2.7, 2.9 s. Model: muse-voice-transcribe-1.0 (lib/muse/transcribe.ts). Screen: the stage's map after a heard message, words marked Said."
+    },
+    {
+      "step": "moment-4",
+      "text": "Re-planned, sent the invite; Muse Ember; about 2 seconds",
+      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Re-plan answer (/api/muse/ask with the scripted line): 1.3, 1.5, 1.8, 1.9, 2.6 s; screen stamp 2.6 s. Model: muse-ember-1.0. Screen: /?plan=home&auto=1 (Sent to Lisa). Provisional capture: retaken after the matching-picks fix."
+    },
+    {
+      "step": "moment-5",
+      "text": "Built her first feed; Muse Ember; about 4 seconds",
+      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Trish's first picks (/api/curate over the seeded sources): 2.2, 2.6, 3.5, 3.9, 4.5 s; screen stamp 4.8 s; median of all 3.7 s. Model: muse-ember-1.0. Screen: /?first=1 as Trish (Live from Muse, picked 4.8 s)."
+    },
+    {
+      "step": "moment-6",
+      "text": "Found people, wrote the hello; Muse Ember; about 2 seconds",
+      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Who to go with (/api/social/events/[id]/muse as Trish): 1.5, 1.5, 1.7, 1.7, 1.9 s. The written hello (/api/social/hello, write once per person): 2.3 s, and 1.0 s on the captured screen. Model: muse-ember-1.0. Screen: the story event page as Trish (Written by Muse, Live, 1.0 s). Provisional capture: retaken when Jolyn and Lisa both show."
+    },
+    {
+      "step": "live-calls",
+      "text": "Six live calls to Meta's Muse models. A recorded answer always says so on screen.",
+      "source": "Every moment above ran against the live models in the measurements. The product labels any recorded fallback on screen (SourceBadge, Recorded labels), per AGENTS.md."
+    }
   ]
 }
