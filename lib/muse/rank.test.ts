@@ -3,7 +3,7 @@ import type { StudentProfile } from "@/lib/events/schema";
 import { loadSeedEvents, loadSeedStudent } from "@/lib/events/seed";
 import { compileCandidates, scheduleClash } from "@/lib/muse/candidates";
 import { buildInterestMemory, getInterestMemory, resetInterestMemory } from "@/lib/muse/memory";
-import { forYouOrder, personalizeEvents, soonestFirst } from "@/lib/muse/rank";
+import { forYouFeed, forYouOrder, personalizeEvents, soonestFirst } from "@/lib/muse/rank";
 import { isInWindow } from "@/lib/events/time";
 
 // Thursday 10:00 in Austin.
@@ -128,6 +128,38 @@ describe("personalizeEvents without a key", () => {
     const result = await personalizeEvents(profile, events, now, buildInterestMemory("new", [], now));
     expect(result.data!.picks).toHaveLength(3);
     expect(result.data!.likely).toEqual([]);
+  });
+});
+
+describe("forYouFeed, the order the list and the map share", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    resetInterestMemory();
+  });
+
+  it("gives three Top 3 tiles, then every other upcoming event once", async () => {
+    vi.stubEnv("MUSE_API_KEY", "");
+    const feed = await forYouFeed(student, events, now, getInterestMemory("demo", now));
+    const tileIds = feed.tiles.map((tile) => tile.eventId);
+    expect(tileIds).toHaveLength(3);
+    expect(feed.rest.map((event) => event.id)).not.toEqual(expect.arrayContaining([tileIds[0]]));
+    expect(new Set([...tileIds, ...feed.rest.map((event) => event.id)]).size).toBe(tileIds.length + feed.rest.length);
+  });
+
+  it("reuses Muse's picks for the next screen instead of asking again", async () => {
+    vi.stubEnv("MUSE_API_KEY", "test-key-not-real");
+    const picks = { picks: [{ eventId: "evt-acm-pizza-gdc", reason: "You follow ACM." }] };
+    const fetchMock = vi.fn(async () =>
+      Response.json({ choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify(picks) }, finish_reason: "stop" }] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const memory = getInterestMemory("demo", now);
+    const list = await forYouFeed(student, events, now, memory);
+    const map = await forYouFeed(student, events, now, memory);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(map.tiles).toEqual(list.tiles);
+    expect(list.tiles[0]?.eventId).toBe("evt-acm-pizza-gdc");
   });
 });
 

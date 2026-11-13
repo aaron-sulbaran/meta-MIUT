@@ -4,12 +4,10 @@ import { Poster } from "@/components/ui/poster";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
-import { walkMinutes } from "@/lib/geo";
 import { organizerLogo } from "@/lib/map/organizer-logos";
 import { MoreForYou } from "@/components/events/more-for-you";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
-import { compileCandidates } from "@/lib/muse/candidates";
-import { forYouOrder, personalizeEvents } from "@/lib/muse/rank";
+import { forYouFeed } from "@/lib/muse/rank";
 import { DEMO_USER_ID, loadInterestMemory } from "@/lib/muse/memory";
 import { friendsGoingLine, loadSocial, whoIsGoing } from "@/lib/social/going";
 import { demoViewer } from "@/lib/social/viewer";
@@ -30,20 +28,11 @@ const ONE_LINE = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "elli
 export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Date }) {
   const student = loadDemoStudent();
   const memory = await loadInterestMemory(DEMO_USER_ID, now);
-  const ranking = await personalizeEvents(student, events, now, memory);
+  const { ranking, tiles, rest: more } = await forYouFeed(student, events, now, memory);
   await loadSocial(ranking.data?.picks.map((pick) => pick.eventId) ?? []);
   const eventsById = new Map(events.map((event) => [event.id, event]));
   const viewer = demoViewer();
-
-  const pickedIds = new Set(ranking.data?.picks.map((pick) => pick.eventId));
-  const ordered = forYouOrder(compileCandidates(student, memory, events, now, "upcoming"), events, now, pickedIds);
-  const picks = ranking.data?.picks ?? [];
-  const fill = ordered.slice(0, Math.max(0, 3 - picks.length));
-  const tiles = [
-    ...picks.map((pick) => ({ eventId: pick.eventId, walkMinutes: pick.walkMinutes })),
-    ...fill.map((event) => ({ eventId: event.id, walkMinutes: walkMinutes(student.home, event.place) })),
-  ];
-  const more = ordered.slice(fill.length);
+  const fill = tiles.slice(ranking.data?.picks.length ?? 0);
 
   return (
     <>
