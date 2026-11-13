@@ -62,6 +62,8 @@ export function WhosGoing({
     if (result.data) setWho(result.data);
   }
 
+  // Everyone going but the viewer's friends: the company list below plus the rest.
+  const moreCount = who.othersCount + (showCompany ? 0 : who.openToCompany.length);
   const goingUrl = `/api/social/events/${encodeURIComponent(who.eventId)}`;
   const setGoing = (going: boolean, open = who.viewer.open) =>
     run(goingUrl, { going, open, ...(open && note.trim() ? { note: note.trim() } : {}) });
@@ -125,10 +127,22 @@ export function WhosGoing({
                   onChange={(change) => setNote(change.target.value)}
                   className="min-w-0 flex-1 rounded-card border border-hairline px-[10px] py-[6px] text-body"
                 />
-                <button type="button" disabled={busy} onClick={() => setGoing(true, true)} className={buttonClass("secondary")}>
-                  Save
+                <button
+                  type="button"
+                  disabled={busy || note.trim() === (who.viewer.note ?? "")}
+                  onClick={() => setGoing(true, true)}
+                  className={buttonClass("secondary")}
+                >
+                  {note.trim() !== "" && note.trim() === who.viewer.note ? "Saved" : "Save"}
                 </button>
               </div>
+            )}
+            {who.viewer.open && (
+              <p className="mt-[6px] text-meta text-muted">
+                {who.viewer.note
+                  ? `Students going see: \u201c${who.viewer.note}\u201d`
+                  : "Students going see you are looking for company."}
+              </p>
             )}
           </div>
         )}
@@ -136,9 +150,10 @@ export function WhosGoing({
 
       {showCompany && <CompanyList who={who} busy={busy} run={run} />}
 
-      {who.othersCount > 0 && (
+      {moreCount > 0 && (
         <p className="mt-[10px] text-meta text-muted">
-          + {who.othersCount} more {who.othersCount === 1 ? "student" : "students"} going
+          + {moreCount} more {moreCount === 1 ? "student" : "students"} going
+          {!showCompany && who.openToCompany.length > 0 ? `, ${who.openToCompany.length} looking for company` : ""}
         </p>
       )}
       {error && <p className="mt-[8px] text-meta text-muted">{error}</p>}
