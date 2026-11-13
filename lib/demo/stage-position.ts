@@ -27,12 +27,13 @@ export const StagePositionSchema = z.object({
   // `index` only: any move drops it. Optional, so older records still parse.
   deck: z.object({ name: z.string().min(1).max(64), step: z.number().int().min(0), steps: z.number().int().min(1).optional() }).nullish(),
   // The latest thing a presenter's phone heard on their beat (U1c: the mic opened
-  // or closed, or the transcript came back), so the stage can mirror it live.
+  // or closed, the transcript came back, or hearing failed with the line it showed),
+  // so the stage can mirror it live and never sits on Listening.
   // Belongs to beat `index` only: any move to another beat drops it.
   signal: z
     .object({
       from: z.string(),
-      kind: z.enum(["listening", "said"]),
+      kind: z.enum(["listening", "said", "failed"]),
       on: z.boolean().optional(),
       text: z.string().max(600).optional(),
       at: z.string(),
@@ -65,7 +66,7 @@ export const PhoneSignalSchema = z.object({
   action: z.literal("signal"),
   from: z.enum(PHONE_CAST as [CastId, ...CastId[]]),
   at: z.number().int().min(0),
-  kind: z.enum(["listening", "said"]),
+  kind: z.enum(["listening", "said", "failed"]),
   on: z.boolean().optional(),
   text: z.string().max(600).optional(),
 });

@@ -2,7 +2,8 @@ import "server-only";
 import { z } from "zod";
 import { CAMPUS_NAME, CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { AccessSchema, ConfidenceSchema } from "@/lib/events/schema";
-import { isStoryCaption, storyExtractFixture, withStoryTitle } from "@/lib/demo/story-fixtures";
+import { demoClock } from "@/lib/demo/clock";
+import { isStoryCaption, storyExtractFixture, withStoryTimes, withStoryTitle } from "@/lib/demo/story-fixtures";
 import { extractFixture } from "@/lib/muse/fixtures/extract";
 import type { MuseRequest } from "@/lib/muse/client";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
@@ -153,9 +154,14 @@ export async function extractEventDrafts(
   input: ExtractInput,
   now = new Date(),
 ): Promise<MuseJobResult<ExtractListOutput>> {
+  // The demo story's flyer and caption are drawn on the demo clock (3:05 PM campus time), so
+  // Muse is told that clock's "now", not the server's: at a real 5 AM the story would otherwise
+  // be read against a morning it was never posted in.
+  const story = isStoryCaption(input.caption);
+  const clock = story ? demoClock(now) : now;
   const job = () =>
     runMuseJob({
-      request: buildExtractRequest(input, now),
+      request: buildExtractRequest(input, clock),
       outputSchema: ExtractListOutputSchema,
       // The demo story's own flyer falls back to its own recorded draft, never the sample post.
       fixture: () => ({ events: [isStoryCaption(input.caption) ? storyExtractFixture(input.caption) : extractFixture(now)] }),
@@ -165,7 +171,7 @@ export async function extractEventDrafts(
   if (result.source === "fixture" && result.fallbackReason === SCHEMA_MISMATCH) result = await job();
   if (result.data === null || result.source !== "muse") return result;
   const finish = (draft: ExtractOutput) => {
-    const grounded = groundDraft(withStoryTitle(draft, input.caption), input.caption);
+    const grounded = groundDraft(story ? withStoryTimes(withStoryTitle(draft, input.caption), input.caption, clock) : draft, input.caption);
     return input.spoken ? applySpokenDefaults(grounded, now) : grounded;
   };
   return { ...result, data: { events: result.data.events.map(finish) } };

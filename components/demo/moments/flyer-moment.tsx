@@ -186,7 +186,7 @@ export function FlyerMoment({
               </span>
             ) : state.phase === "done" && state.draft ? (
               <span>
-                Read in {(state.tookMs / 1000).toFixed(1)} s{live ? "" : " · Recorded example"}
+                {live ? `Read in ${(state.tookMs / 1000).toFixed(1)} s` : "Recorded example"}
               </span>
             ) : (
               <span>Muse found no event in this post</span>

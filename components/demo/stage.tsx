@@ -28,7 +28,7 @@ import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 // follows any newer move within about a second. The laptop stays the master:
 // if that store or the network fails, the stage keeps running on its keys.
 // When the person changes, a card says who is on now for about two seconds (Next skips it);
-// within one person the phone cross-fades. Reset and the beat list stay off
+// within one person the phone cuts to the next screen once it has loaded. Reset and the beat list stay off
 // the projected view: they live on /demo/console and the remote (keys still work).
 
 const FOOTER_HEIGHT = 72;
@@ -37,7 +37,8 @@ const PERSON_CARD_FADE_MS = 300;
 const PERSON_CARD_HOLD_MS = 1500;
 const PERSON_CARD_MS = PERSON_CARD_HOLD_MS + 2 * PERSON_CARD_FADE_MS;
 const CARD_FADE_PCT = Math.round((PERSON_CARD_FADE_MS / PERSON_CARD_MS) * 100);
-const FADE_MS = 200;
+// A cut between screens: a cross-fade showed two different screens half over each other.
+const FADE_MS = 0;
 const CHANNEL = "demo-stage";
 const TOKEN_KEY = "demo-reset-token";
 
@@ -46,7 +47,7 @@ type StageMessage = { type: "goto"; index: number } | { type: "reset" } | { type
 // Where a move came from: this window, another window on this browser, or the store (a phone remote).
 type MoveSource = "local" | "channel" | "remote";
 // The shared stage record: where the show is, a deck's step, and what the presenter's phone heard.
-type StageSignal = { from: string; kind: "listening" | "said"; on?: boolean; text?: string; at: string };
+type StageSignal = { from: string; kind: "listening" | "said" | "failed"; on?: boolean; text?: string; at: string };
 type StagePosition = { index: number; seq: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
 
 const POSITION_URL = "/api/demo/stage";
@@ -198,6 +199,9 @@ export function Stage() {
   const revealKeyRef = useRef<string | null>(null);
   // The newest phone signal already passed into the stage's phone.
   const lastSignalRef = useRef<string | null>(null);
+  // True once the phone on screen was asked a request in its own words (spoken here or
+  // on the presenter's phone): the beat that continues it never sends the scripted line over them.
+  const spokenRef = useRef(false);
   const zRef = useRef(0);
   // Screens loaded ahead that have finished loading, by path.
   const [loadedAhead, setLoadedAhead] = useState<string[]>([]);
@@ -299,8 +303,12 @@ export function Stage() {
         if (!stopped && signal && signal.at !== lastSignalRef.current && position.index === indexRef.current && beatCast(BEATS[indexRef.current]) === signal.from) {
           lastSignalRef.current = signal.at;
           const phone = lastFrameRef.current?.contentWindow;
+          if (signal.kind === "failed") phone?.postMessage({ source: "demo-stage", type: "failed", text: signal.text ?? "" }, window.location.origin);
           if (signal.kind === "listening") phone?.postMessage({ source: "demo-stage", type: "listening", on: signal.on === true }, window.location.origin);
-          if (signal.kind === "said" && signal.text) phone?.postMessage({ source: "demo-stage", type: "heard", text: signal.text }, window.location.origin);
+          if (signal.kind === "said" && signal.text) {
+            phone?.postMessage({ source: "demo-stage", type: "heard", text: signal.text }, window.location.origin);
+            spokenRef.current = true;
+          }
         }
         return indexRef.current;
       });
@@ -338,11 +346,12 @@ export function Stage() {
       const message = inFrameMessage(beat, locationRef.current, { storyEventId, now: runStartedAt });
       const phone = lastFrameRef.current?.contentWindow;
       if (!personaChanged && message && phone) {
-        phone.postMessage(message, window.location.origin);
+        if (!(message.type === "demo-ask" && spokenRef.current)) phone.postMessage(message, window.location.origin);
         locationRef.current = beatSrc;
         return;
       }
       locationRef.current = beatSrc;
+      spokenRef.current = false;
       zRef.current += 1;
       const z = zRef.current;
       // Loaded ahead (U1b during U1a): take over that screen in place, with the same key,
@@ -383,7 +392,8 @@ export function Stage() {
   // a plain slide per section. Nothing shows until the checks answer, so it never flashes.
   const deck = beat.kind === "deck" && beat.deck ? deckPath(beat.deck) : null;
   const deckReady = useExists(deck);
-  const film = (beat.kind === "film" || beat.kind === "deck") && beat.film ? filmFiles(beat.film) : null;
+  // A deck that exists plays instead of its film, so the film files are looked for only without one.
+  const film = (beat.kind === "film" || beat.kind === "deck") && beat.film && (deck === null || deckReady === false) ? filmFiles(beat.film) : null;
   const filmReady = useExists(film?.video ?? null);
   const filmCues = useCues(film?.cues ?? null);
   const showDeck = deck !== null && deckReady === true;
@@ -447,6 +457,7 @@ export function Stage() {
       if (event.origin !== window.location.origin) return;
       const data = event.data as { source?: unknown; type?: unknown; path?: unknown } | null;
       // A screen passes the show to the next person (Lisa's "Open to company", Jolyn's "Sent to Lisa").
+      if (data?.source === "demo-screen" && data.type === "said") spokenRef.current = true;
       if (data?.source === "demo-screen" && data.type === "pass") {
         const start = nextActStart(index);
         if (start !== null) goTo(start);

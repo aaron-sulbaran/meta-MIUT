@@ -114,5 +114,8 @@ describe("what a presenter's phone heard", () => {
     expect(applyMove(said.position, { action: "goto", index: u1c }, BEATS.length, NOW).signal).toEqual(said.position.signal);
     expect(applyMove(said.position, { action: "next" }, BEATS.length, NOW).signal).toBeUndefined();
     expect(PhoneSignalSchema.safeParse({ action: "signal", from: "user1", at: 0, kind: "shouted" }).success).toBe(false);
+    // Hearing failed on her phone: recorded with the line it showed, so the stage stops Listening.
+    const failed = applyPhoneSignal(said.position, { action: "signal", from: "user1", at: u1c, kind: "failed", text: "I couldn't hear that." }, new Date(NOW.getTime() + 3));
+    expect(failed).toMatchObject({ ok: true, position: { signal: { kind: "failed", text: "I couldn't hear that." } } });
   });
 });

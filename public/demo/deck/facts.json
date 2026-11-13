@@ -94,29 +94,14 @@
   ],
   "muse": [
     {
-      "step": "instagram-post",
-      "text": "The club's Instagram post: Board Game Night, MIT Board Game Club, today 3:30 to 5:30 PM",
-      "source": "Real capture of this app's staged Instagram screen (/demo/instagram/post, labeled staged for the demo) on the 3:05 PM demo clock. The event is the skit's story event (lib/demo/story-data.ts)."
+      "step": "models",
+      "text": "Powered by Meta's Muse models: Muse Ember, reasoning, writing and reading flyers; Muse Voice Transcribe, voice input",
+      "source": "Jolyn's motion script v2, Scene 6. Checked against the code: every reasoning, writing and flyer-reading call uses muse-ember-1.0 (lib/muse/client.ts, the default MUSE_MODEL) and voice input uses muse-voice-transcribe-1.0 (lib/muse/transcribe.ts). The mark is Meta AI's real mark (public/brand/meta-ai.png), unmodified, moved only by rotation, scale and opacity."
     },
     {
-      "step": "share-and-read",
-      "text": "Flyer and caption, with the official Instagram glyph by the handle",
-      "source": "The app's drawn demo flyer (/demo/flyer.png) and the story caption (lib/demo/staged.ts storyCaption) on the same clock. Sharing a post into a Facebook event is the proposed feature, shown as Muse reading the post, not as something Instagram does today."
-    },
-    {
-      "step": "fields",
-      "text": "What it is: Board Game Night; Free food: Free dumplings while they last; When: Today, 3:30 PM to 5:30 PM; Where: MIT Museum, 314 Main St; Who can come: Open to everyone",
-      "source": "The values the app's own review screen shows for this post (captured live at /organizer?handoff=story, Muse read it in 2.3 s), drawn large; boxes sit where each line is printed on the flyer (components/demo/moments/flyer-regions.ts). The mark is Meta AI's real mark (public/brand/meta-ai.png), unmodified."
-    },
-    {
-      "step": "post-it",
-      "text": "Review screen, Post to Facebook Events, then Posted to Facebook Events as MIT Board Game Club, Today at 3:30 PM",
-      "source": "Real captures of this app with live Muse: /organizer?handoff=story and /organizer?state=posted, on the 3:05 PM demo clock."
-    },
-    {
-      "step": "for-students",
-      "text": "Your event feed, answered by Muse: Board Game Night first; you follow @mit_boardgames, got its newsletter, and bought Catan",
-      "source": "Real capture of this app's first curated feed (/curate) with live Muse over the seeded sample sources. The blue ring is a drawn highlight."
+      "step": "discovery",
+      "text": "Personalized AI discovery: the Events map and the List view with Top 3 for you today and More you might like",
+      "source": "Jolyn's motion script v2, Scene 6 (her labels read TOP 3 TODAY and MORE YOU MIGHT LIKE THIS WEEK; the screen uses the product's own labels so each callout matches the section it points at). Real captures of this app (/ and /?view=list) on a local production build with live Muse ranking, 2026-11-13 about 2 AM PT; to be retaken after the night's map changes."
     },
     {
       "step": "less-work",

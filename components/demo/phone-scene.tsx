@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/demo/brand-mark";
 import { CastAvatar } from "@/components/demo/cast-avatar";
+import { HelloArrival } from "@/components/demo/hello-arrival";
 import { PHONE_SLUG, beatScreen, inFrameMessage, nextActStart, phoneView, storyDue, type PhoneView } from "@/lib/demo/beat-context";
 import { CAST, type CastId } from "@/lib/demo/beats";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
@@ -65,6 +66,8 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   const locationRef = useRef<string | null>(null);
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  // True once this screen asked a request in the presenter's own words: the beat that continues it never sends the scripted line.
+  const spokenRef = useRef(false);
 
   const adopt = useCallback((next: Position | null) => {
     if (!next || next.seq < seqRef.current) return;
@@ -179,19 +182,20 @@ export function PhoneScene({ cast }: { cast: CastId }) {
     const message = personaChanged ? null : inFrameMessage(sceneBeat, locationRef.current, { storyEventId, now });
     const phone = iframeRef.current?.contentWindow;
     if (message && phone) {
-      phone.postMessage(message, window.location.origin);
+      if (!(message.type === "demo-ask" && spokenRef.current)) phone.postMessage(message, window.location.origin);
       locationRef.current = screen;
       tellBeat();
       return;
     }
     locationRef.current = screen;
+    spokenRef.current = false;
     setFrame({ src: screen, key: Date.now() });
   }, [sceneBeat, screen, storyEventId, now]);
 
   // What the screen heard (U1c: the mic opened or closed, the transcript came back): put it
   // in the stage record, so the projected stage shows it live. The stage refuses it off this person's beat.
   const signal = useCallback(
-    (kind: "listening" | "said", detail: { on?: boolean; text?: string }) => {
+    (kind: "listening" | "said" | "failed", detail: { on?: boolean; text?: string }) => {
       const at = indexRef.current;
       if (at === null) return;
       pollRef.current?.active();
@@ -211,7 +215,12 @@ export function PhoneScene({ cast }: { cast: CastId }) {
       const heard = event.data as { source?: unknown; type?: unknown; on?: unknown; text?: unknown } | null;
       if (heard?.source === "demo-screen") {
         if (heard.type === "listening" && typeof heard.on === "boolean") signal("listening", { on: heard.on });
-        if (heard.type === "said" && typeof heard.text === "string") signal("said", { text: heard.text.slice(0, 600) });
+        if (heard.type === "said" && typeof heard.text === "string") {
+          signal("said", { text: heard.text.slice(0, 600) });
+          spokenRef.current = true;
+        }
+        // Hearing failed (blocked mic, nothing heard, no transcript): the stage stops Listening and shows the same line.
+        if (heard.type === "failed" && typeof heard.text === "string") signal("failed", { text: heard.text.slice(0, 600) });
         // The screen passes the show to the next person (Lisa's "Open to company", Jolyn's "Sent to Lisa").
         if (heard.type === "pass") void move("pass");
         return;
@@ -305,6 +314,8 @@ function Waiting({ cast, view, online, now, onJoin }: { cast: CastId; view: Phon
 
       <section className="mt-[32px] flex flex-col gap-[12px]">
         {arrived && <JoinMoment cast={cast} now={now} onJoin={onJoin} />}
+        {/* Trish's act ends with her hi reaching Jolyn and Lisa here. */}
+        <HelloArrival cast={cast} watching={waiting?.onNow === "user3" || waiting?.phase === "after"} />
         {waiting?.upNext && !arrived && (
           <p role="status" className="rounded-card bg-primary-soft px-[16px] py-[14px] text-center font-display text-title font-bold text-link">
             You&apos;re up next

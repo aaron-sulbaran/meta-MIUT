@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getFacebookHref } from "@/components/ui/header";
 import { isStagedScreen } from "@/lib/demo/staged";
-import { Fragment, useState, type ComponentType, type MouseEvent } from "react";
+import { Fragment, useState, useSyncExternalStore, type ComponentType, type MouseEvent } from "react";
+import { personaFromCookieString, personaInitial } from "@/lib/social/persona";
 import {
   BellIcon,
   CalendarFilledIcon,
@@ -57,6 +58,8 @@ function InertTabIcon({ label, Icon, dot, count }: InertTab) {
 }
 
 export function TabBar() {
+  // The demo's phones each play someone (the demo-persona cookie): show their initial.
+  const initial = useSyncExternalStore(noSubscribe, cookieInitial, () => personaInitial(null));
   const pathname = usePathname();
   const onEvents = pathname === "/" || EVENTS_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const tabs = pathname.startsWith("/reference") ? REFERENCE_TABS : INERT_TABS;
@@ -105,13 +108,16 @@ export function TabBar() {
           </Fragment>
         ))}
         <Link href={getFacebookHref("profile")} aria-label="Profile" className="flex h-[39px] items-center justify-center">
-          <ProfileAvatar size={25} ring />
+          <ProfileAvatar size={25} ring initial={initial} />
         </Link>
       </div>
     </nav>
     </>
   );
 }
+
+const noSubscribe = () => () => {};
+const cookieInitial = () => personaInitial(personaFromCookieString(document.cookie));
 
 // No photos of people: the profile slot is an initial on a color field.
 export function ProfileAvatar({ size = 27, initial = "A", ring = false }: { size?: number; initial?: string; ring?: boolean }) {
