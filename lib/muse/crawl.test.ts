@@ -62,3 +62,26 @@ describe("food crawl", () => {
     expect(result.fallbackReason).toContain("two main");
   });
 });
+
+describe("food crawl with places the student names", () => {
+  beforeEach(() => vi.stubEnv("MUSE_API_KEY", ""));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("walks through each named place in order and ends at the last one", async () => {
+    const result = await planCrawl({ from, to, note: "I'm going to Harvard Square and then Baker at 7" }, all, NOW);
+    const plan = result.data!;
+    expect(plan.stops.filter((s) => s.kind === "plan").map((s) => s.title)).toEqual(["Harvard Square"]);
+    expect(plan.destination.name).toBe("Baker House");
+    const harvard = plan.stops.findIndex((s) => s.kind === "plan");
+    expect(plan.stops.slice(harvard + 1).every((s) => s.kind !== "plan")).toBe(true);
+  });
+
+  it("reads the arrive-by time after a place", async () => {
+    const { itineraryFixture } = await import("@/lib/muse/fixtures/crawl");
+    const { CRAWL_PLACES } = await import("@/lib/muse/crawl-places");
+    expect(itineraryFixture("harvard first, then baker by 7:30", CRAWL_PLACES).places).toEqual([
+      { name: "Harvard Square", arriveBy: null },
+      { name: "Baker House", arriveBy: "19:30" },
+    ]);
+  });
+});
