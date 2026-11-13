@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HANDOFF, isStagedScreen, storyCaption, storyTimeLine, storyTimes } from "@/lib/demo/staged";
+import { HANDOFF, hidesNearbyOptIn, isStagedScreen, storyCaption, storyTimeLine, storyTimes } from "@/lib/demo/staged";
 
 // Tests run on the frozen test campus (tests/fixtures/brand.ts, America/Chicago).
 const NOW = new Date("2026-11-13T22:02:00Z"); // 4:02 PM campus time
@@ -31,5 +31,18 @@ describe("staged screens", () => {
     expect(HANDOFF.organizer).toBe("/organizer?handoff=story");
     expect(HANDOFF.lisaLanding("evt-1", "sample-student")).toBe("/invite/evt-1?from=sample-student");
     expect(HANDOFF.curate).toBe("/curate");
+  });
+});
+
+describe("hidesNearbyOptIn", () => {
+  it("covers the demo, the invite, and curate, and nothing else", () => {
+    expect(hidesNearbyOptIn("/invite/abc")).toBe(true);
+    expect(hidesNearbyOptIn("/curate")).toBe(true);
+    expect(hidesNearbyOptIn("/demo")).toBe(true);
+    expect(hidesNearbyOptIn("/demo/instagram/post")).toBe(true);
+    expect(hidesNearbyOptIn("/")).toBe(false);
+    expect(hidesNearbyOptIn("/events/x")).toBe(false);
+    expect(hidesNearbyOptIn("/inviter")).toBe(false);
+    expect(hidesNearbyOptIn(null)).toBe(false);
   });
 });

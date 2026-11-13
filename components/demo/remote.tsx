@@ -91,7 +91,7 @@ export function StageRemote() {
       <main className="flex min-h-0 flex-1 flex-col justify-center gap-[8px] px-[20px]">
         {beat ? (
           <>
-            <p className="text-meta font-semibold tracking-[0.04em] text-muted uppercase">{ACT_LABELS[beat.act]}</p>
+            <p className="text-meta font-semibold text-muted">{ACT_LABELS[beat.act]}</p>
             {beat.kind !== "slide" && (
               <p className="self-start rounded-full bg-primary-soft px-[10px] py-[3px] font-display text-[13px] font-bold text-link">
                 {PERSONA_CAPTIONS[beat.persona ?? "aaron"]}

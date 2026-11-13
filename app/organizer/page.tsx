@@ -3,13 +3,12 @@ import { OrganizerFlow, type OrganizerHandoff } from "@/components/organizer/org
 import type { OrganizerOption } from "@/components/organizer/types";
 import { STORY_POST, flyerUrl, storyCaption } from "@/lib/demo/staged";
 import { getEventStore } from "@/lib/events/store";
-import { SAMPLE_FLYER_CAPTION } from "@/lib/muse/fixtures/extract";
 import { knownPlacesFrom } from "@/lib/organizer/place";
 
 // Organizer side: a flyer photo or a spoken line to a published event in one tap.
 // Places and titles come from the events already listed, so the screen follows
 // whichever campus the seed is set to. The organizer posts as their signed-in
-// club only, and the manual inputs are a greyed-out placeholder (Lisa). ?say= is a spoken line handed over
+// club only. There are no manual inputs: a draft comes from a post or Ask Muse. ?say= is a spoken line handed over
 // from Ask Muse; Muse drafts it right away. ?handoff=story is the demo's staged
 // Instagram post (O1, O2), also reached as ?from=instagram from the /demo stage: its
 // flyer and caption go straight to Muse, no picker;
@@ -37,7 +36,6 @@ export default async function OrganizerPage({
       places={knownPlacesFrom(events)}
       organizers={organizers}
       eventTitles={Object.fromEntries(events.map((event) => [event.id, event.title]))}
-      sampleCaption={SAMPLE_FLYER_CAPTION}
       said={typeof say === "string" ? say.trim().slice(0, 1000) : ""}
       handoff={story}
     />
