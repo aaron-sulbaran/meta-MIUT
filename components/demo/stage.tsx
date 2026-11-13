@@ -9,6 +9,7 @@ import { PHONE_OUTER_HEIGHT, PHONE_OUTER_WIDTH, PhoneFrame } from "@/components/
 import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
+import { entersAtLastStep } from "@/lib/demo/deck-entry";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
 import { beatCast, beatScreen, inFrameMessage, stageOnLoad, nextActStart } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
@@ -44,7 +45,7 @@ const FADE_MS = 0;
 const CHANNEL = "demo-stage";
 
 // deck-step tells the console (same browser) which deck step is on, for its notes.
-type StageMessage = { type: "goto"; index: number } | { type: "reset" } | { type: "deck-step"; beatId: string; step: number };
+type StageMessage = { type: "goto"; index: number; fresh?: boolean } | { type: "reset" } | { type: "deck-step"; beatId: string; step: number };
 // Where a move came from: this window, another window on this browser, or the store (a phone remote).
 type MoveSource = "local" | "channel" | "remote";
 // The shared stage record: where the show is, a deck's step, and what the presenter's phone heard.
@@ -244,7 +245,7 @@ export function Stage() {
   }, []);
 
   const goTo = useCallback(
-    (next: number, source: MoveSource = "local", skipSteps = false) => {
+    (next: number, source: MoveSource = "local", skipSteps = false, freshRun = false) => {
       const clamped = Math.max(0, Math.min(BEATS.length - 1, next));
       // On a deck, a film, or the opening's slides, one step forward or back moves between its cues first.
       const step = next - indexRef.current;
@@ -260,8 +261,8 @@ export function Stage() {
       }
       const target = BEATS[clamped];
       // A new person on screen: say who, briefly.
-      // Entering a stepped beat with Back starts it at its last cue.
-      setEnteredBack(clamped < indexRef.current);
+      // A single Back into a stepped beat starts it at its last cue; a jump or a fresh run starts at its first.
+      setEnteredBack(entersAtLastStep(indexRef.current, clamped, freshRun));
       if (target && target.kind !== "slide" && target.kind !== "film" && target.kind !== "deck") {
         const cast = castOf(target.persona);
         if (cast !== lastCastRef.current) {
@@ -272,7 +273,7 @@ export function Stage() {
       indexRef.current = clamped;
       setIndex(clamped);
       if (clamped > 0) setLeftStart(true);
-      if (source !== "channel") channelRef.current?.postMessage({ type: "goto", index: clamped } satisfies StageMessage);
+      if (source !== "channel") channelRef.current?.postMessage({ type: "goto", index: clamped, ...(freshRun ? { fresh: true } : {}) } satisfies StageMessage);
       if (source === "local") {
         void writePosition(clamped).then((position) => {
           if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
@@ -475,7 +476,7 @@ export function Stage() {
     setStaleNote(null);
     setConfirmFresh(false);
     setRunCount((count) => count + 1);
-    goTo(0, "local", true);
+    goTo(0, "local", true, true);
   }, [goTo]);
   useEffect(() => {
     startOverRef.current = startOver;
@@ -507,7 +508,11 @@ export function Stage() {
     const channel = new BroadcastChannel(CHANNEL);
     channelRef.current = channel;
     channel.onmessage = (message: MessageEvent<StageMessage>) => {
-      if (message.data.type === "goto") goTo(message.data.index, "channel");
+      if (message.data.type === "goto") {
+        // A fresh run started in another tab of this browser: land on the first beat's first step.
+        const fresh = message.data.fresh === true;
+        goTo(message.data.index, "channel", fresh, fresh);
+      }
       if (message.data.type === "reset") void resetDemo();
     };
     return () => channel.close();
