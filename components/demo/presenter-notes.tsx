@@ -2,12 +2,60 @@
 
 import { useEffect, useState } from "react";
 import { startStagePoll } from "@/lib/demo/stage-poll";
-import { BEATS, deckStepsPath, type Beat, type DeckStep } from "@/lib/demo/beats";
+import { BEATS, deckStepsPath, type Beat, type DeckLead, type DeckStep } from "@/lib/demo/beats";
 
 // What the presenter says and does, for the remote and the console only (never
 // the projected stage). A deck brings its own notes (steps.json beside it), the
 // step it last reported highlighted when this window knows it; without them the
-// opening lists its fallback sections, one note each.
+// opening lists its fallback sections, one note each. A step that says who leads
+// shows it: "Screen leads: stay quiet" with the note as a stage direction, or
+// "You" with the line large enough to read at arm's length; then what the next
+// click brings, in small type.
+
+const LEAD_LABEL: Record<DeckLead, string> = { screen: "Screen leads: stay quiet", speaker: "You" };
+
+/** A step's label: who leads it, or its title when it does not say. */
+function stepLabel(step: DeckStep): string {
+  return step.lead ? LEAD_LABEL[step.lead] : step.title;
+}
+
+/** The first few words of a note, for the look ahead. */
+function firstWords(text: string, count = 7): string {
+  const words = text.trim().split(/\s+/);
+  return words.length > count ? `${words.slice(0, count).join(" ")}...` : words.join(" ");
+}
+
+function CurrentStep({ step, next }: { step: DeckStep; next: DeckStep | undefined }) {
+  return (
+    <div className="flex flex-col gap-[8px] rounded-[12px] bg-primary-soft px-[14px] py-[12px]">
+      {step.lead === "screen" ? (
+        <>
+          <p className="w-fit rounded-full bg-ink px-[10px] py-[3px] font-display text-label font-bold text-card">{LEAD_LABEL.screen}</p>
+          <p className="text-body text-muted italic">{step.notes}</p>
+        </>
+      ) : step.lead === "speaker" ? (
+        <>
+          <p className="w-fit rounded-full bg-primary px-[10px] py-[3px] font-display text-label font-bold text-on-primary">{LEAD_LABEL.speaker}</p>
+          <p className="text-[24px] leading-[1.3] font-semibold text-ink">{step.notes}</p>
+        </>
+      ) : (
+        <>
+          <p className="font-display text-label font-bold">{step.title}</p>
+          <p className="text-body text-ink">{step.notes}</p>
+        </>
+      )}
+      <p className="border-t border-hairline pt-[6px] text-meta text-muted">
+        {next ? (
+          <>
+            Next: <span className="font-semibold">{stepLabel(next)}</span> · {firstWords(next.notes)}
+          </>
+        ) : (
+          "Last step of this deck"
+        )}
+      </p>
+    </div>
+  );
+}
 
 function useDeckSteps(beat: Beat): DeckStep[] | null {
   const [steps, setSteps] = useState<{ deck: string; steps: DeckStep[] | null } | null>(null);
@@ -19,7 +67,11 @@ function useDeckSteps(beat: Beat): DeckStep[] | null {
       .then((response) => (response.ok ? response.json() : null))
       .then((body: unknown) => {
         if (cancelled) return;
-        const valid = Array.isArray(body) ? body.filter((step): step is DeckStep => typeof step?.notes === "string" && typeof step?.title === "string") : null;
+        const valid = Array.isArray(body)
+          ? body
+              .filter((step): step is DeckStep => typeof step?.notes === "string" && typeof step?.title === "string")
+              .map((step) => ({ id: step.id, title: step.title, notes: step.notes, ...(step.lead === "screen" || step.lead === "speaker" ? { lead: step.lead } : {}) }))
+          : null;
         setSteps({ deck, steps: valid && valid.length > 0 ? valid : null });
       })
       .catch(() => !cancelled && setSteps({ deck, steps: null }));
@@ -30,20 +82,27 @@ function useDeckSteps(beat: Beat): DeckStep[] | null {
   return steps && steps.deck === beat.deck ? steps.steps : null;
 }
 
-export function PresenterNotes({ beat, deckStep = null }: { beat: Beat; deckStep?: number | null }) {
+/** `currentOnly` (the phone remote): once the deck step is known, only that step and the look ahead, readable at arm's length. */
+export function PresenterNotes({ beat, deckStep = null, currentOnly = false }: { beat: Beat; deckStep?: number | null; currentOnly?: boolean }) {
   const deckSteps = useDeckSteps(beat);
   if (deckSteps) {
+    const current = deckStep !== null ? deckSteps[deckStep] : undefined;
+    if (current && deckStep !== null && currentOnly) return <CurrentStep step={current} next={deckSteps[deckStep + 1]} />;
     return (
-      <ol className="flex flex-col gap-[8px]">
-        {deckSteps.map((step, index) => (
-          <li key={step.id} className={`rounded-[10px] px-[12px] py-[9px] ${index === deckStep ? "bg-primary-soft" : "bg-wash"}`}>
-            <p className="font-display text-label font-bold">
-              {index + 1}. {step.title}
-            </p>
-            <p className="mt-[2px] text-body text-ink">{step.notes}</p>
-          </li>
-        ))}
-      </ol>
+      <div className="flex flex-col gap-[10px]">
+        {current && deckStep !== null && <CurrentStep step={current} next={deckSteps[deckStep + 1]} />}
+        <ol className="flex flex-col gap-[8px]">
+          {deckSteps.map((step, index) => (
+            <li key={step.id} className={`rounded-[10px] px-[12px] py-[9px] ${index === deckStep ? "bg-primary-soft" : "bg-wash"}`}>
+              <p className="font-display text-label font-bold">
+                {index + 1}. {step.title}
+                {step.lead && <span className="ml-[6px] font-normal text-muted">· {step.lead === "screen" ? "Screen leads" : "You"}</span>}
+              </p>
+              <p className={`mt-[2px] text-body ${step.lead === "screen" ? "text-muted italic" : "text-ink"}`}>{step.notes}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
     );
   }
   if (beat.sections) {

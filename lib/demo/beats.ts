@@ -75,12 +75,15 @@ export function deckPath(deck: DeckName): string {
   return `/demo/deck/${deck}/index.html`;
 }
 
-/** A deck's presenter notes: an ordered array of {id, title, notes}, one per step. */
+/** A deck's presenter notes: an ordered array of {id, title, notes, lead?}, one per step. */
 export function deckStepsPath(deck: DeckName): string {
   return `/demo/deck/${deck}/steps.json`;
 }
 
-export type DeckStep = { id: string; title: string; notes: string };
+// Who leads a deck step: "screen" (the room reads or watches, the presenter stays quiet)
+// or "speaker" (the presenter says the line). Absent on older steps.
+export type DeckLead = "screen" | "speaker";
+export type DeckStep = { id: string; title: string; notes: string; lead?: DeckLead };
 
 /** Where a film beat's video and its cue points (an array of seconds) live. */
 export function filmFiles(film: FilmName): { video: string; cues: string } {

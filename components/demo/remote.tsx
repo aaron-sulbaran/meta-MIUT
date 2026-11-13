@@ -91,7 +91,7 @@ export function StageRemote() {
         </p>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col justify-center gap-[8px] overflow-y-auto px-[20px]">
+      <main className="flex min-h-0 flex-1 flex-col justify-center-safe gap-[8px] overflow-y-auto px-[20px]">
         {beat ? (
           <>
             {beat.kind === "slide" || beat.kind === "film" || beat.kind === "deck" ? (
@@ -104,7 +104,7 @@ export function StageRemote() {
             )}
             <h1 className="font-display text-root-title leading-[31px] font-bold">{beat.title}</h1>
             <p className="text-body text-muted">{beat.caption}</p>
-            <PresenterNotes beat={beat} deckStep={position?.deck && position.deck.name === beat.deck ? position.deck.step : null} />
+            <PresenterNotes beat={beat} deckStep={position?.deck && position.deck.name === beat.deck ? position.deck.step : null} currentOnly />
             <p className="mt-[10px] text-venue text-muted">{upNext ? `Next: ${upNext.title}` : "Last beat"}</p>
           </>
         ) : (
