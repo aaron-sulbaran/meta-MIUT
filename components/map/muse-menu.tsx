@@ -13,10 +13,14 @@ import { useEffect, useId, useRef, useState } from "react";
 export const SPROUT_SRC = "/muse/sprout.png";
 /** Sprout's full body on a transparent background, from sprout-portrait in muse-friends. */
 export const SPROUT_BODY_SRC = "/muse/sprout-body.png";
-/** Sprout waving, on a loop that never stops (Lisa's GIF, cut out to a transparent animated WebP), so he stands out as the thing to tap. */
-export const SPROUT_WAVE_SRC = "/muse/sprout-wave.webp";
-/** The wave's first frame, for viewers who ask for less motion. */
-export const SPROUT_WAVE_STILL_SRC = "/muse/sprout-wave-still.png";
+/**
+ * Sprout standing still and holding up M, I, (U), T one poster at a time,
+ * spelling the team name MI(U)T, on a loop (Lisa). Built from her waving GIF
+ * by scripts/mascot/build_miut_mascot.py; rerun it to change the posters.
+ */
+export const SPROUT_ANIMATED_SRC = "/muse/sprout-miut.webp";
+/** The loop's opening frame (Sprout, no poster), for viewers who ask for less motion. */
+export const SPROUT_STILL_SRC = "/muse/sprout-miut-still.png";
 // Set once Sprout has introduced himself, so the speech bubble shows only on a first visit.
 const INTRO_SEEN_KEY = "muse:intro-seen";
 
@@ -42,7 +46,7 @@ export function MuseFace({ size, className = "" }: { size: number; className?: s
 
 /** Sprout's whole body, no circle or background. */
 export function MuseBody({ size, className = "", animated = false }: { size: number; className?: string; animated?: boolean }) {
-  // If the wave cannot load (a dev server that has not picked up the new file,
+  // If the animation cannot load (a dev server that has not picked up the new file,
   // a stale deploy, an old browser), Sprout falls back to his still body
   // rather than a broken-image icon.
   const [failed, setFailed] = useState(false);
@@ -52,26 +56,26 @@ export function MuseBody({ size, className = "", animated = false }: { size: num
     const image = ref.current;
     if (image && image.complete && image.naturalWidth === 0) setFailed(true);
   }, []);
-  const wave = animated && !failed;
+  const play = animated && !failed;
   const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={ref}
-      src={wave ? SPROUT_WAVE_SRC : SPROUT_BODY_SRC}
+      src={play ? SPROUT_ANIMATED_SRC : SPROUT_BODY_SRC}
       alt=""
       width={size}
       height={size}
       draggable={false}
-      onError={wave ? () => setFailed(true) : undefined}
+      onError={play ? () => setFailed(true) : undefined}
       className={`block select-none object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] ${className}`}
       style={{ width: size, height: size }}
     />
   );
-  if (!wave) return img;
-  // The wave plays nonstop unless the viewer asked for less motion.
+  if (!play) return img;
+  // The poster loop plays unless the viewer asked for less motion.
   return (
     <picture>
-      <source srcSet={SPROUT_WAVE_STILL_SRC} media="(prefers-reduced-motion: reduce)" />
+      <source srcSet={SPROUT_STILL_SRC} media="(prefers-reduced-motion: reduce)" />
       {img}
     </picture>
   );
@@ -138,9 +142,10 @@ export function MuseHeaderButton({ mode }: { mode: "menu" | "link" }) {
       className="block transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1.3)] motion-reduce:transition-none"
       style={{ transform: open ? "rotate(-14deg) translate(-2px, 2px)" : "none" }}
     >
-      {/* Sprout waves the whole time, menu open or not, so he reads as
-          someone to tap, not decoration. */}
-      <MuseBody size={40} animated />
+      {/* Sprout holds up M, I, (U), T the whole time, menu open or not, so he
+          reads as someone to tap, not decoration; full button size so the
+          posters read. */}
+      <MuseBody size={44} animated />
     </span>
   );
   const bubble = intro && !open && (
