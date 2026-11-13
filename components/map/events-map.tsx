@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, monogram } from "@/components/map/category-icons";
+import { MAP_STYLE_URL } from "@/components/map/map-style";
 import type { AskPlan } from "@/components/ask/ask-bar";
 import { PEEK_HEIGHT, PEEK_WIDTH, StopPeek } from "@/components/map/stop-peek";
 import { CrawlPlanner, type CrawlStart } from "@/components/map/crawl-planner";
@@ -35,7 +36,7 @@ import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
 // class to home already planned, for the "just out of class" alert.
 // Tiles: OpenFreeMap "liberty" (OpenStreetMap data, no key), restyled on load.
 
-const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+const STYLE_URL = MAP_STYLE_URL;
 // Starting view before the map frames the student and their picks.
 const STUDENT_ZOOM = 14.6;
 // Below this zoom only the selected event shows its name pill, so close
