@@ -1,34 +1,20 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
 
-// Drawn pieces of Meta's account surfaces, after Aaron's references in the
-// hub (kb/meta-accounts-reference): the Meta lockup, round profile pictures
-// with a small app badge at the lower right, and Accounts Center rows. All
-// drawn here: no logo files and no real photos.
+// Pieces of Meta's account surfaces, after Aaron's references in the hub
+// (kb/meta-accounts-reference): Meta's official lockup (a file from Meta's
+// brand resources, Aaron's call), and drawn round profile pictures with a small
+// app badge at the lower right, and Accounts Center rows. No real photos.
 
 export const META_SYSTEM_FONT = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif";
 
-/** The Meta lockup: a drawn loop and the word, small and blue like Meta's sheets. */
-export function MetaLockup({ className = "" }: { className?: string }) {
-  return (
-    <span className={`inline-flex items-center gap-[5px] ${className}`}>
-      <svg viewBox="0 0 24 14" aria-hidden className="h-[13px] w-[22px]" fill="none">
-        <defs>
-          <linearGradient id="meta-loop" x1="0" y1="0" x2="24" y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#0081fb" />
-            <stop offset="1" stopColor="#0064e0" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M2 7c0-2.9 1.5-5 3.6-5 2.5 0 4.2 3.2 6.4 6.6C14.1 11.9 15.8 12 16.8 12c2 0 3.2-2 3.2-5s-1.3-5-3.2-5C14.8 2 13 4.5 12 7c-1.2 2.9-3.1 5-5.4 5C4 12 2 9.9 2 7Z"
-          stroke="url(#meta-loop)"
-          strokeWidth="2.6"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span className="text-[15px] font-semibold tracking-[-0.01em] text-[#1c2b33]">Meta</span>
-    </span>
-  );
+/** Meta's official lockup (public/brand/meta-lockup.svg, from Meta's brand resources), at the size Meta's sheets use. */
+export function MetaLockup({ height = 15, className = "" }: { height?: number; className?: string }) {
+  return <Image src="/brand/meta-lockup.svg" alt="Meta" width={Math.round(height * LOCKUP_RATIO)} height={height} unoptimized className={className} />;
 }
+
+// The lockup's own proportions (its cropped viewBox, 4978 by 1020).
+const LOCKUP_RATIO = 4978 / 1020;
 
 const FACES: Record<string, string> = {
   L: "linear-gradient(140deg, #ffd3b6 0%, #f6a28b 55%, #d97a6c 100%)",
@@ -56,30 +42,20 @@ export function ProfileCircle({ name, size, badge, className = "" }: { name: str
   );
 }
 
-/** A small app badge, drawn: Instagram's gradient square or Facebook's blue circle. */
+/** A small app badge at the lower right of a profile picture: Facebook's or Instagram's own logo. */
 export function AppBadge({ app, size }: { app: "instagram" | "facebook"; size: number }) {
   if (app === "facebook") {
+    // Facebook's official logo (public/brand/facebook-f.svg).
     return (
-      <span
-        aria-label="Facebook"
-        className="flex items-center justify-center rounded-full bg-[#0866ff] font-bold text-white ring-2 ring-white"
-        style={{ width: size, height: size, fontSize: Math.round(size * 0.72), lineHeight: 1, paddingTop: Math.round(size * 0.12) }}
-      >
-        f
+      <span className="flex rounded-full bg-white ring-2 ring-white" style={{ width: size, height: size }}>
+        <Image src="/brand/facebook-f.svg" alt="Facebook" width={size} height={size} unoptimized />
       </span>
     );
   }
+  // Instagram's official gradient glyph (public/brand/instagram-glyph.png) on a white tile, as in Meta's account cards.
   return (
-    <span
-      aria-label="Instagram"
-      className="flex items-center justify-center rounded-[30%] ring-2 ring-white"
-      style={{ width: size, height: size, background: "linear-gradient(45deg, #feda75, #fa7e1e 30%, #d62976 60%, #962fbf 85%, #4f5bd5)" }}
-    >
-      <svg viewBox="0 0 16 16" aria-hidden style={{ width: size * 0.62, height: size * 0.62 }} fill="none" stroke="white" strokeWidth="1.7">
-        <rect x="2" y="2" width="12" height="12" rx="3.6" />
-        <circle cx="8" cy="8" r="2.9" />
-        <circle cx="11.6" cy="4.4" r="0.6" fill="white" stroke="none" />
-      </svg>
+    <span className="flex items-center justify-center rounded-[30%] bg-white ring-2 ring-white" style={{ width: size, height: size }}>
+      <Image src="/brand/instagram-glyph.png" alt="Instagram" width={Math.round(size * 0.8)} height={Math.round(size * 0.8)} unoptimized />
     </span>
   );
 }
