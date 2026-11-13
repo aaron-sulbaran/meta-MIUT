@@ -46,6 +46,15 @@ export function inFrameMessage(beat: Beat, location: string | null, context: Bea
   return fromSrc && fromSrc === location ? beat.inFrame.message : null;
 }
 
+/**
+ * True when the presenter already spoke the request on the beat this one continues
+ * from (U1c after Jolyn talked on U1b): the screen already asked Muse, so the
+ * scripted line must not be asked again over her words.
+ */
+export function spokenAlready(beat: Beat, spokenOn: string | null): boolean {
+  return spokenOn !== null && beat.inFrame?.from === spokenOn;
+}
+
 /** The next person after the one on now (or the first person, before the show starts). */
 export function nextCast(index: number, beats: Beat[] = BEATS): CastId | null {
   const now = beatCast(beats[index]);

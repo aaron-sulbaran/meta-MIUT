@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { castFromSlug, decidePhoneMove, inFrameMessage, nextCast, phoneView } from "@/lib/demo/beat-context";
+import { castFromSlug, decidePhoneMove, inFrameMessage, nextCast, phoneView, spokenAlready } from "@/lib/demo/beat-context";
 import { BEATS, type CastId } from "@/lib/demo/beats";
 
 const at = (id: string) => BEATS.findIndex((beat) => beat.id === id);
@@ -62,5 +62,14 @@ describe("what a presenter phone shows", () => {
   it("reads each personal link", () => {
     expect(castFromSlug("Jing")).toBe("organizer");
     expect(castFromSlug("nobody")).toBeNull();
+  });
+});
+
+describe("a request the presenter already spoke", () => {
+  it("is not asked again as the scripted line on the beat that continues it", () => {
+    const u1c = BEATS[at("U1c")]!;
+    expect(spokenAlready(u1c, "U1b")).toBe(true);
+    expect(spokenAlready(u1c, null)).toBe(false);
+    expect(spokenAlready(BEATS[at("U2a")]!, "U1b")).toBe(false);
   });
 });

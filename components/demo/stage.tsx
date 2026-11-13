@@ -9,7 +9,7 @@ import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
-import { beatCast, beatScreen, inFrameMessage } from "@/lib/demo/beat-context";
+import { beatCast, beatScreen, inFrameMessage, spokenAlready } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
 import { phoneChromeFor } from "@/lib/demo/phone-chrome";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
@@ -194,6 +194,8 @@ export function Stage() {
   const revealKeyRef = useRef<string | null>(null);
   // The newest phone signal already passed into the stage's phone.
   const lastSignalRef = useRef<string | null>(null);
+  // The beat whose spoken request was passed into the phone on screen (lib/demo/beat-context.ts spokenAlready).
+  const spokenOnRef = useRef<string | null>(null);
   const zRef = useRef(0);
   // Screens loaded ahead that have finished loading, by path.
   const [loadedAhead, setLoadedAhead] = useState<string[]>([]);
@@ -296,7 +298,10 @@ export function Stage() {
           lastSignalRef.current = signal.at;
           const phone = lastFrameRef.current?.contentWindow;
           if (signal.kind === "listening") phone?.postMessage({ source: "demo-stage", type: "listening", on: signal.on === true }, window.location.origin);
-          if (signal.kind === "said" && signal.text) phone?.postMessage({ source: "demo-stage", type: "heard", text: signal.text }, window.location.origin);
+          if (signal.kind === "said" && signal.text) {
+            phone?.postMessage({ source: "demo-stage", type: "heard", text: signal.text }, window.location.origin);
+            spokenOnRef.current = BEATS[indexRef.current]?.id ?? null;
+          }
         }
         return indexRef.current;
       });
@@ -334,11 +339,12 @@ export function Stage() {
       const message = inFrameMessage(beat, locationRef.current, { storyEventId, now: runStartedAt });
       const phone = lastFrameRef.current?.contentWindow;
       if (!personaChanged && message && phone) {
-        phone.postMessage(message, window.location.origin);
+        if (!spokenAlready(beat, spokenOnRef.current)) phone.postMessage(message, window.location.origin);
         locationRef.current = beatSrc;
         return;
       }
       locationRef.current = beatSrc;
+      spokenOnRef.current = null;
       zRef.current += 1;
       const z = zRef.current;
       // Loaded ahead (U1b during U1a): take over that screen in place, with the same key,

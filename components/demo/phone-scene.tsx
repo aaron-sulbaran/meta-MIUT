@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CastAvatar } from "@/components/demo/cast-avatar";
-import { PHONE_SLUG, beatScreen, inFrameMessage, phoneView, storyDue, type PhoneView } from "@/lib/demo/beat-context";
-import { CAST, type CastId } from "@/lib/demo/beats";
+import { PHONE_SLUG, beatScreen, inFrameMessage, phoneView, spokenAlready, storyDue, type PhoneView } from "@/lib/demo/beat-context";
+import { BEATS, CAST, type CastId } from "@/lib/demo/beats";
 import { demoClock } from "@/lib/demo/clock";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
@@ -53,6 +53,8 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   const locationRef = useRef<string | null>(null);
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  // The beat on which this screen heard the presenter's own request (lib/demo/beat-context.ts spokenAlready).
+  const spokenOnRef = useRef<string | null>(null);
 
   const adopt = useCallback((next: Position | null) => {
     if (!next || next.seq < seqRef.current) return;
@@ -167,12 +169,13 @@ export function PhoneScene({ cast }: { cast: CastId }) {
     const message = personaChanged ? null : inFrameMessage(sceneBeat, locationRef.current, { storyEventId, now });
     const phone = iframeRef.current?.contentWindow;
     if (message && phone) {
-      phone.postMessage(message, window.location.origin);
+      if (!spokenAlready(sceneBeat, spokenOnRef.current)) phone.postMessage(message, window.location.origin);
       locationRef.current = screen;
       tellBeat();
       return;
     }
     locationRef.current = screen;
+    spokenOnRef.current = null;
     setFrame({ src: screen, key: Date.now() });
   }, [sceneBeat, screen, storyEventId, now]);
 
@@ -199,7 +202,10 @@ export function PhoneScene({ cast }: { cast: CastId }) {
       const heard = event.data as { source?: unknown; type?: unknown; on?: unknown; text?: unknown } | null;
       if (heard?.source === "demo-screen") {
         if (heard.type === "listening" && typeof heard.on === "boolean") signal("listening", { on: heard.on });
-        if (heard.type === "said" && typeof heard.text === "string") signal("said", { text: heard.text.slice(0, 600) });
+        if (heard.type === "said" && typeof heard.text === "string") {
+          signal("said", { text: heard.text.slice(0, 600) });
+          if (indexRef.current !== null) spokenOnRef.current = BEATS[indexRef.current]?.id ?? null;
+        }
         return;
       }
       const data = event.data as { type?: unknown; path?: unknown } | null;
