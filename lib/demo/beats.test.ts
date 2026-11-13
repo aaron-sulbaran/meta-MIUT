@@ -35,6 +35,9 @@ describe("demo beats", () => {
     expect(beat("U2b").path!(context)).toBe(HANDOFF.lisaLanding("evt-story", "sample-student"));
     expect(beat("U3b").path!(context)).toBe(HANDOFF.curateAuto);
     expect(beat("O5").path!(context)).toBe(HANDOFF.organizerPosted(iso));
+    expect(beat("U1c").path!(context)).toBe(HANDOFF.replanLisa(iso));
+    expect(beat("U2c").path!(context)).toBe(HANDOFF.lisaJoined("evt-story", "sample-student"));
+    expect(beat("U3d").path!(context)).toBe(HANDOFF.whosGoing("evt-story"));
   });
 
   it("never needs the story event before the organizer has published it", () => {
