@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CampusEvent } from "@/lib/events/schema";
 import { loadSeedEvents } from "@/lib/events/seed";
-import { friendsGoingLine, resetSocial, sayHello, setGoing, whoIsGoing } from "@/lib/social/going";
+import { COMPANY_LIMIT, friendsGoingLine, resetSocial, sayHello, setGoing, sharedLine, whoIsGoing } from "@/lib/social/going";
 import { FRIENDS } from "@/lib/social/fixtures/people";
 
 const viewer = "sample-student";
@@ -79,10 +79,23 @@ describe("going together", () => {
     expect(whoIsGoing(event, "someone-else", interests).viewer.going).toBe(false);
   });
 
-  it("writes the friends line", () => {
+  it("shows at most the top 5 open to company, each sharing an interest", () => {
+    for (const event of events) {
+      const { openToCompany } = whoIsGoing(event, viewer, interests);
+      expect(openToCompany.length).toBeLessThanOrEqual(COMPANY_LIMIT);
+      for (const person of openToCompany) expect(person.shared.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("counts friends going", () => {
     expect(friendsGoingLine([])).toBeNull();
-    expect(friendsGoingLine([{ name: "Maya" }])).toBe("Maya is going");
-    expect(friendsGoingLine([{ name: "Maya" }, { name: "Leo" }])).toBe("Maya, Leo are going");
-    expect(friendsGoingLine([{ name: "Maya" }, { name: "Leo" }, { name: "Sam" }])).toBe("Maya, Leo + 1 friend going");
+    expect(friendsGoingLine([{ name: "Maya" }])).toBe("1 friend going");
+    expect(friendsGoingLine([{ name: "Maya" }, { name: "Leo" }, { name: "Sam" }])).toBe("3 friends going");
+  });
+
+  it("says what they share", () => {
+    expect(sharedLine(["film"])).toBe("You both like film");
+    expect(sharedLine(["hackathons", "film"])).toBe("You both like hackathons and film");
+    expect(sharedLine(["a", "b", "c"])).toBe("You both like a, b and c");
   });
 });

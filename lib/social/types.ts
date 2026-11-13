@@ -19,11 +19,14 @@ export type WhoIsGoing = {
   viewer: { going: boolean; open: boolean; note?: string };
 };
 
-/** "Maya, Leo + 2 friends going", or null when no friend is going. */
-export function friendsGoingLine(friends: { name: string }[]): string | null {
+/** "3 friends going", or null when no friend is going. */
+export function friendsGoingLine(friends: unknown[]): string | null {
   if (friends.length === 0) return null;
-  const names = friends.slice(0, 2).map((friend) => friend.name).join(", ");
-  const rest = friends.length - 2;
-  if (rest > 0) return `${names} + ${rest} ${rest === 1 ? "friend" : "friends"} going`;
-  return `${names} ${friends.length === 1 ? "is" : "are"} going`;
+  return `${friends.length} ${friends.length === 1 ? "friend" : "friends"} going`;
+}
+
+/** "You both like hackathons and film". */
+export function sharedLine(shared: string[]): string {
+  if (shared.length <= 1) return `You both like ${shared[0] ?? ""}`.trim();
+  return `You both like ${shared.slice(0, -1).join(", ")} and ${shared.at(-1)}`;
 }

@@ -5,11 +5,11 @@ import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
 import { MoreForYou } from "@/components/events/more-for-you";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
-import { personalizeEvents } from "@/lib/muse/rank";
+import { personalizeEvents, soonestFirst } from "@/lib/muse/rank";
 import { friendsGoingLine, whoIsGoing } from "@/lib/social/going";
 import { demoViewer } from "@/lib/social/viewer";
 
-// Muse's top 3 for today, as a sideways row of compact cards. Why each event
+// Muse's top 3 for today (today's events only), as a sideways row of compact cards. Why each event
 // was picked stays inside the agent and is not shown. Who picked them
 // (Muse or the local fallback) is not shown either. Under it, every other event the
 // student is likely to care about.
@@ -20,7 +20,11 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
   const viewer = demoViewer();
 
   const pickedIds = new Set(ranking.data?.picks.map((pick) => pick.eventId));
-  const more = ranking.data?.likely.filter((candidate) => !pickedIds.has(candidate.eventId)) ?? [];
+  const more = soonestFirst(
+    ranking.data?.likely.filter((candidate) => !pickedIds.has(candidate.eventId)) ?? [],
+    events,
+    now,
+  );
 
   return (
     <>

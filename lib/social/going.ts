@@ -4,11 +4,13 @@ import { eventTopics } from "@/lib/muse/candidates";
 import { FRIENDS, OPEN_NOTES, PEOPLE } from "@/lib/social/fixtures/people";
 import type { GoingPerson, WhoIsGoing } from "@/lib/social/types";
 
-export { friendsGoingLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
+export { friendsGoingLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
+
+export const COMPANY_LIMIT = 5;
 
 // Going together: who is going to an event, friends first, then students who
-// marked Going and opted in to company, ranked by interests shared with the
-// viewer. Friends see you are going; others see you only on events where you
+// marked Going and opted in to company: the top 5 by interests shared with
+// the viewer. Friends going never change how events rank. Friends see you are going; others see you only on events where you
 // opted in, and only your first name, year, major and shared interests. An
 // Instagram handle is shown to friends, or after a hello is accepted.
 
@@ -73,7 +75,7 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
     const base = { id: person.id, name: person.name, year: person.year, major: person.major, shared };
     if (friendIds.has(personId)) {
       friends.push({ ...base, instagram: person.instagram });
-    } else if (entry.open) {
+    } else if (entry.open && shared.length > 0) {
       const accepted = state().hellos.has(helloKey(event.id, viewerId, personId));
       openToCompany.push({
         ...base,
@@ -86,11 +88,12 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
   }
 
   openToCompany.sort((a, b) => b.shared.length - a.shared.length || a.name.localeCompare(b.name));
+  othersCount += Math.max(0, openToCompany.length - COMPANY_LIMIT);
   const self = going.get(viewerId);
   return {
     eventId: event.id,
     friends,
-    openToCompany,
+    openToCompany: openToCompany.slice(0, COMPANY_LIMIT),
     othersCount,
     viewer: { going: self !== undefined, open: self?.open ?? false, ...(self?.note ? { note: self.note } : {}) },
   };

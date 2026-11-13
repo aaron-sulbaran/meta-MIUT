@@ -51,6 +51,16 @@ function picksPool(likely: LikelyEvent[], events: CampusEvent[], profile: Studen
   return [...pool, ...rest].slice(0, POOL_SIZE);
 }
 
+/** Likely events by time: what is on now first, then the soonest to start. */
+export function soonestFirst(likely: LikelyEvent[], events: CampusEvent[], now: Date): LikelyEvent[] {
+  const startOf = new Map(events.map((event) => [event.id, Date.parse(event.start)]));
+  const key = (candidate: LikelyEvent) => {
+    const start = startOf.get(candidate.eventId) ?? Number.POSITIVE_INFINITY;
+    return start <= now.getTime() ? Number.NEGATIVE_INFINITY : start;
+  };
+  return [...likely].sort((a, b) => key(a) - key(b) || b.score - a.score);
+}
+
 export async function personalizeEvents(
   profile: StudentContext,
   events: CampusEvent[],

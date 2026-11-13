@@ -3,7 +3,8 @@ import type { StudentProfile } from "@/lib/events/schema";
 import { loadSeedEvents, loadSeedStudent } from "@/lib/events/seed";
 import { compileCandidates, scheduleClash } from "@/lib/muse/candidates";
 import { buildInterestMemory, getInterestMemory, resetInterestMemory } from "@/lib/muse/memory";
-import { personalizeEvents } from "@/lib/muse/rank";
+import { personalizeEvents, soonestFirst } from "@/lib/muse/rank";
+import { isInWindow } from "@/lib/events/time";
 
 // Thursday 10:00 in Austin.
 const now = new Date("2026-11-12T16:00:00.000Z");
@@ -75,5 +76,30 @@ describe("personalizeEvents without a key", () => {
     const result = await personalizeEvents(profile, events, now, buildInterestMemory("new", [], now));
     expect(result.data!.picks).toHaveLength(3);
     expect(result.data!.likely).toEqual([]);
+  });
+});
+
+describe("soonestFirst", () => {
+  it("puts what is on now first, then the soonest to start", () => {
+    const likely = compileCandidates(loadSeedStudent(), getInterestMemory(undefined, now), events, now);
+    const starts = new Map(events.map((event) => [event.id, Date.parse(event.start)]));
+    const keys = soonestFirst(likely, events, now).map((candidate) => {
+      const start = starts.get(candidate.eventId)!;
+      return start <= now.getTime() ? -Infinity : start;
+    });
+    expect(keys).toEqual([...keys].sort((a, b) => a - b));
+    expect(soonestFirst(likely, events, now)).toHaveLength(likely.length);
+  });
+});
+
+describe("top 3", () => {
+  beforeEach(() => resetInterestMemory());
+  it("only picks events on today", async () => {
+    vi.stubEnv("MUSE_API_KEY", "");
+    const result = await personalizeEvents(loadSeedStudent(), events, now);
+    vi.unstubAllEnvs();
+    for (const pick of result.data!.picks) {
+      expect(isInWindow(events.find((event) => event.id === pick.eventId)!, "today", now)).toBe(true);
+    }
   });
 });
