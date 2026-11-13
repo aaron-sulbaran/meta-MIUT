@@ -1,24 +1,132 @@
 {
   "about": "Every claim or piece of content on screen in the opening decks, with where it comes from. Survey replies: only the three real ones are ever readable; every other bubble is unreadable by design.",
   "problem": [
-    { "step": "hook-question", "text": "We asked 50 Gen Z students", "source": "Real informal survey of 50 friends and classmates (Jolyn's motion script, team hub kb/demo-script.md, decided 2026-11-13)." },
-    { "step": "hook-question", "text": "What would get you back on Facebook?", "source": "The survey question, worded as in Jolyn's motion script, Scene 1." },
-    { "step": "hook-replies", "text": "Nothing.", "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1." },
-    { "step": "hook-replies", "text": "It's beyond saving.", "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1." },
-    { "step": "hook-love", "text": "If the love of my life was only on Facebook.", "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1." },
-    { "step": "hook-avalanche", "text": "About 120 unreadable message bubbles", "source": "No content: skeleton lines and typing dots only, by design." },
-    { "step": "marketplace", "text": "MARKETPLACE", "source": "Facebook Marketplace, named in Jolyn's scripts. No official Marketplace mark is in the repo, so the word is set in type; no icon is drawn." },
-    { "step": "marketplace", "text": "Listing cards: $15 desk lamp, $120 road bike, $25 desk chair, $60 mini fridge, $30 bookshelf, Cambridge, MA", "source": "Illustrative props drawn for the deck (shared/art/*.svg). Not real listings." },
-    { "step": "app-to-scroll", "text": "It's not just an app to scroll.", "source": "Jolyn's opening pitch script, The Revelation." },
-    { "step": "app-to-do", "text": "It's an app to DO.", "source": "Jolyn's opening pitch script, The Revelation." },
-    { "step": "flyers", "text": "Campus flyers", "source": "The team's seeded flyers (data/seed/demo-day-events.json and data/seed/events.json), copied unmodified into shared/flyers." },
-    { "step": "overload", "text": "Email, Instagram, group chat and channel cards", "source": "Senders and subjects are the seeded organizers and event titles (data/seed/demo-day-events.json); the rest is unreadable skeleton. Instagram glyph is the official asset (public/brand), unmodified." },
-    { "step": "event-ended", "text": "EVENT ENDED on the Spring Hackathon Info Session flyer", "source": "Narrative device from Jolyn's motion script, Scene 4. It says nothing about the real event." },
-    { "step": "cant-find-them", "text": "The opportunities exist. We just can't find them.", "source": "Jolyn's opening pitch script, The Problem." },
-    { "step": "next-deal", "text": "What if finding your next experience was as easy as finding your next deal?", "source": "Jolyn's opening pitch script, The Solution." },
-    { "step": "muse-organizes", "text": "Extracted fields: Pizza Study Break at Stata, 2 PM, Stata Center lobby; Free Boba in Kendall Square, 2:30 PM, Kendall Plaza; Spring Hackathon Info Session, 3 PM, Stata Center, 32-155; Free food", "source": "Each line repeats what that flyer itself says. An illustration of what Muse extracts, not a recorded Muse call." },
-    { "step": "muse-organizes", "text": "Events feed and map", "source": "Real captures of this app at 390 x 844 (local dev server, seeded data, recorded Muse answers; the feed shows its own 'Recorded answer' label)." },
-    { "step": "events-reimagined", "text": "Events, reimagined. / Discover more. Search less. Show up.", "source": "Jolyn's motion script, Scene 5. Facebook logo is the official asset (public/brand/facebook-f.svg), unmodified." }
+    {
+      "step": "hook-question",
+      "text": "We asked 50 Gen Z students",
+      "source": "Real informal survey of 50 friends and classmates (Jolyn's motion script, team hub kb/demo-script.md, decided 2026-11-13)."
+    },
+    {
+      "step": "hook-question",
+      "text": "What would get you back on Facebook?",
+      "source": "The survey question, worded as in Jolyn's motion script, Scene 1."
+    },
+    {
+      "step": "hook-replies",
+      "text": "Nothing.",
+      "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1."
+    },
+    {
+      "step": "hook-replies",
+      "text": "It's beyond saving.",
+      "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1."
+    },
+    {
+      "step": "hook-love",
+      "text": "If the love of my life was only on Facebook.",
+      "source": "Real survey reply, quoted in Jolyn's motion script, Scene 1."
+    },
+    {
+      "step": "hook-avalanche",
+      "text": "About 120 unreadable message bubbles",
+      "source": "No content: skeleton lines and typing dots only, by design."
+    },
+    {
+      "step": "marketplace",
+      "text": "MARKETPLACE",
+      "source": "Facebook Marketplace, named in Jolyn's scripts. No official Marketplace mark is in the repo, so the word is set in type; no icon is drawn."
+    },
+    {
+      "step": "marketplace",
+      "text": "Listing cards: $15 desk lamp, $120 road bike, $25 desk chair, $60 mini fridge, $30 bookshelf, Cambridge, MA",
+      "source": "Illustrative props drawn for the deck (shared/art/*.svg). Not real listings."
+    },
+    {
+      "step": "app-to-scroll",
+      "text": "It's not just an app to scroll.",
+      "source": "Jolyn's opening pitch script, The Revelation."
+    },
+    {
+      "step": "app-to-do",
+      "text": "It's an app to DO.",
+      "source": "Jolyn's opening pitch script, The Revelation."
+    },
+    {
+      "step": "flyers",
+      "text": "Campus flyers",
+      "source": "The team's seeded flyers (data/seed/demo-day-events.json and data/seed/events.json), copied unmodified into shared/flyers."
+    },
+    {
+      "step": "overload",
+      "text": "Email, Instagram, group chat and channel cards",
+      "source": "Senders and subjects are the seeded organizers and event titles (data/seed/demo-day-events.json); the rest is unreadable skeleton. Instagram glyph is the official asset (public/brand), unmodified."
+    },
+    {
+      "step": "event-ended",
+      "text": "EVENT ENDED on the Spring Hackathon Info Session flyer",
+      "source": "Narrative device from Jolyn's motion script, Scene 4. It says nothing about the real event."
+    },
+    {
+      "step": "cant-find-them",
+      "text": "The opportunities exist. We just can't find them.",
+      "source": "Jolyn's opening pitch script, The Problem."
+    },
+    {
+      "step": "next-deal",
+      "text": "What if finding your next experience was as easy as finding your next deal?",
+      "source": "Jolyn's opening pitch script, The Solution."
+    },
+    {
+      "step": "muse-organizes",
+      "text": "Extracted fields: Pizza Study Break at Stata, 2 PM, Stata Center lobby; Free Boba in Kendall Square, 2:30 PM, Kendall Plaza; Spring Hackathon Info Session, 3 PM, Stata Center, 32-155; Free food",
+      "source": "Each line repeats what that flyer itself says. An illustration of what Muse extracts, not a recorded Muse call."
+    },
+    {
+      "step": "muse-organizes",
+      "text": "Events feed and map",
+      "source": "Real captures of this app at 390 x 844 (local dev server, seeded data, recorded Muse answers; the feed shows its own 'Recorded answer' label)."
+    },
+    {
+      "step": "events-reimagined",
+      "text": "Events, reimagined. / Discover more. Search less. Show up.",
+      "source": "Jolyn's motion script, Scene 5. Facebook logo is the official asset (public/brand/facebook-f.svg), unmodified."
+    }
   ],
-  "muse": []
+  "muse": [
+    {
+      "step": "instagram-post",
+      "text": "The club's Instagram post: Board Game Night, MIT Board Game Club",
+      "source": "Real capture of this app's staged Instagram screen (/demo/instagram/post, labeled staged for the demo), at a 7 PM demo clock. The event is the skit's story event (lib/demo/story-data.ts)."
+    },
+    {
+      "step": "share-and-read",
+      "text": "Flyer and caption",
+      "source": "The app's drawn demo flyer (/demo/flyer.png) and the story caption (lib/demo/staged.ts storyCaption), 7:00 to 9:00 PM. Sharing a post into a Facebook event is the proposed feature, shown as Muse reading the post, not as something Instagram does today."
+    },
+    {
+      "step": "fields",
+      "text": "What it is: Board Game Night; When: Today, 7:00 PM to 9:00 PM; Where: MIT Museum, 314 Main St; Free food: Dumplings; Who can come: Open to everyone",
+      "source": "The app's own five draft fields (components/organizer) filled with the story event's values; boxes sit where each line is printed (components/demo/moments/flyer-regions.ts). Drawn, not a capture: without a Muse key the review screen falls back to a recorded example for a different event."
+    },
+    {
+      "step": "post-it",
+      "text": "Posted to Facebook Events, as MIT Board Game Club",
+      "source": "Real capture of this app (/organizer?state=posted) at the 7 PM demo clock."
+    },
+    {
+      "step": "for-students",
+      "text": "Events feed and map",
+      "source": "Real captures of this app (/?view=list and /), seeded data, recorded Muse answers. The blue rings are drawn highlights."
+    },
+    {
+      "step": "less-work",
+      "text": "Less work for organizers. / Less searching for students.",
+      "source": "Jolyn's opening pitch script and motion script, Scene 7."
+    },
+    {
+      "step": "cast",
+      "text": "Jing, Event organizer; Jolyn, Facebook Events power user; Lisa, New to Facebook; Trish, New to Facebook Events",
+      "source": "The cast as decided 2026-11-13 (lib/demo/beats.ts CAST)."
+    }
+  ]
 }

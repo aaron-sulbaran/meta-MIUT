@@ -1,0 +1,302 @@
+/* Muse deck: Jolyn's scenes 6 and 7. */
+
+.tap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.post {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 560px;
+  opacity: 0;
+  transform-origin: 50% 0%;
+}
+
+.post-flyer {
+  position: relative;
+  width: 560px;
+  height: 700px;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6);
+}
+
+.post-flyer img {
+  display: block;
+  width: 560px;
+  height: 700px;
+}
+
+.boxes .box {
+  position: absolute;
+  border: 4px solid var(--blue);
+  border-radius: 10px;
+  background: rgba(8, 102, 255, 0.1);
+  opacity: 0;
+}
+
+.box .n {
+  position: absolute;
+  left: -16px;
+  top: -16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font: 700 20px/34px var(--text);
+  text-align: center;
+}
+
+.post-caption {
+  margin-top: 26px;
+  font-family: var(--text);
+  font-size: 27px;
+  line-height: 1.38;
+  color: #d5d8de;
+}
+
+.post-caption b {
+  color: var(--white);
+  font-weight: 650;
+  margin-right: 8px;
+}
+
+.m-scan {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 640px;
+  height: 6px;
+  border-radius: 3px;
+  background: #6aa5ff;
+  box-shadow: 0 0 18px 4px rgba(8, 102, 255, 0.9), 0 -70px 90px 10px rgba(8, 102, 255, 0.16);
+  opacity: 0;
+}
+
+.links {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.links path {
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.draft {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 820px;
+  padding: 36px 40px 36px;
+  border-radius: 34px;
+  background: #ffffff;
+  color: #050505;
+  font-family: var(--text);
+  box-shadow: 0 50px 110px rgba(0, 0, 0, 0.65);
+  opacity: 0;
+  transform-origin: 50% 50%;
+}
+
+.draft-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 22px;
+}
+
+.draft-head img {
+  width: 64px;
+  height: 64px;
+}
+
+.dh-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 40px;
+  letter-spacing: -0.015em;
+}
+
+.dh-sub {
+  margin-top: 4px;
+  font-size: 24px;
+  color: #65676b;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  gap: 20px;
+  padding: 18px 4px;
+  border-top: 1px solid #e4e6eb;
+}
+
+.row .num {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #e4e6eb;
+  color: #65676b;
+  font: 700 22px/42px var(--text);
+  text-align: center;
+}
+
+.row .num.on {
+  position: absolute;
+  left: 4px;
+  top: 18px;
+  background: var(--blue);
+  color: #fff;
+  opacity: 0;
+}
+
+.row .lab {
+  font-size: 22px;
+  color: #65676b;
+}
+
+.row .val {
+  margin-top: 2px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 34px;
+  letter-spacing: -0.01em;
+  opacity: 0;
+}
+
+.row .src {
+  margin-top: 2px;
+  font-size: 20px;
+  color: #8a8d91;
+  opacity: 0;
+}
+
+.row .sk {
+  display: block;
+  height: 18px;
+  width: 300px;
+  margin-top: 10px;
+  border-radius: 9px;
+  background: #e4e6eb;
+}
+
+.post-btn {
+  position: relative;
+  margin-top: 22px;
+  height: 84px;
+  border-radius: 16px;
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 32px;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.post-btn .tap {
+  left: 50%;
+  top: 50%;
+}
+
+.ring {
+  position: absolute;
+  left: 2%;
+  width: 96%;
+  top: 17.6%;
+  height: 25.6%;
+  border-radius: 18px;
+  border: 5px solid var(--blue);
+  box-shadow: 0 0 24px rgba(8, 102, 255, 0.6);
+  opacity: 0;
+}
+
+.map-ring {
+  top: 67.5%;
+  height: 16.5%;
+  left: 2%;
+  width: 74%;
+}
+
+.m7-pair {
+  gap: 30px;
+}
+
+#m7-a,
+#m7-b {
+  opacity: 0;
+}
+
+.cast {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+.who {
+  position: relative;
+  width: 400px;
+  height: 520px;
+  border-radius: 34px;
+  background: linear-gradient(180deg, #1d2232 0%, #14161d 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 30px 80px rgba(0, 0, 0, 0.5);
+  padding: 248px 40px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.who .bar {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  top: 0;
+  height: 8px;
+  border-radius: 0 0 6px 6px;
+  background: var(--blue);
+  box-shadow: 0 0 40px 8px rgba(8, 102, 255, 0.45);
+  transform-origin: 50% 0%;
+}
+
+.who .name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 92px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.who .role {
+  margin-top: 18px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 40px;
+  line-height: 1.15;
+  color: var(--gray);
+  min-height: 92px;
+}

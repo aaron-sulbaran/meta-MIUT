@@ -20,8 +20,13 @@ const gpu = ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist'];
 const browser = await chromium.launch({ channel: 'chrome', args: gpu }).catch(() => chromium.launch({ args: gpu }));
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 const sep = url.includes('?') ? '&' : '?';
+const ready = () => page.waitForFunction(() => document.documentElement.dataset.deckReady === '1', null, { timeout: 20000 });
 await page.goto(url + sep + 'render=1');
-await page.waitForFunction(() => document.documentElement.dataset.deckReady === '1', null, { timeout: 20000 });
+/* The local static server occasionally stalls one asset; one reload clears it. */
+await ready().catch(async () => {
+  await page.reload();
+  await ready();
+});
 const marks = await page.evaluate(() => window.__deck.marks);
 const ids = await page.evaluate(() => window.__deck.steps.map((s) => s.id));
 if (opt('--steps-json')) {

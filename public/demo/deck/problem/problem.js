@@ -574,7 +574,8 @@
       build(seg, ctx) {
         ctx.show(seg, "s3");
         ctx.hush(seg, 0.01);
-        ctx.ft(seg, "#s3-shot", { filter: "blur(0px)", scale: 1.045 }, { filter: "blur(8px)", scale: 1.14, duration: 1.7, ease: "power2.inOut" }, 0.05);
+        /* Darken, not blur: an animated blur over the whole pile stalls frames on a laptop. */
+        ctx.ft(seg, "#s3-shot", { scale: 1.045 }, { scale: 1.14, duration: 1.7, ease: "power2.inOut" }, 0.05);
         ctx.ft(seg, "#s3-dim", { opacity: 0 }, { opacity: 1, duration: 1.1, ease: "power2.inOut" }, 0.05);
         const s0 = BURIED.w / 640;
         ctx.ft(seg, "#s3-hero", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power1.inOut" }, 0.2);

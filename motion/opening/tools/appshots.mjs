@@ -47,6 +47,22 @@ const SHOTS = {
     await hideDev(page);
     await shot('list-free');
   },
+  async walkhome(page, shot) {
+    await page.goto(base + '/?plan=home&time=' + encodeURIComponent(AT), { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.waitForTimeout(16000);
+    await page.getByRole('button', { name: /close|dismiss|not now/i }).last().click().catch(() => {});
+    await page.waitForTimeout(1200);
+    await hideDev(page);
+    await shot('walkhome');
+  },
+  async curate(page, shot) {
+    await page.goto(base + '/curate');
+    await page.waitForTimeout(3000);
+    await page.getByRole('button', { name: /curate my feed/i }).click().catch(() => {});
+    await page.waitForTimeout(16000);
+    await hideDev(page);
+    await shot('curate');
+  },
   async posted(page, shot) {
     await page.goto(base + '/organizer?state=posted&at=' + encodeURIComponent(AT));
     await page.waitForTimeout(3000);

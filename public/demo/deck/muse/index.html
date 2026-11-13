@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Opening: how Muse makes it possible</title>
+    <link rel="stylesheet" href="../shared/deck.css" />
+    <link rel="stylesheet" href="./muse.css" />
+  </head>
+  <body>
+    <div id="fit">
+      <div id="root" data-composition-id="muse" data-width="1920" data-height="1080">
+        <div id="drift">
+          <div id="cam">
+            <!-- Scene 6: Muse turns the club's Instagram post into a Facebook event. The post is the skit's Board Game Night. -->
+            <section class="scene" id="m6">
+              <div class="phone" id="m-ig"><div class="screen"><img src="../shared/captures/igpost.jpg" alt="" /></div><i class="tap" id="m-tap1"></i></div>
+
+              <div class="post" id="m-post">
+                <div class="post-flyer" id="m-flyer">
+                  <img src="../shared/captures/board-game-night-flyer.jpg" alt="" />
+                  <div class="boxes" id="m-boxes"></div>
+                </div>
+                <p class="post-caption" id="m-caption"><b>mit_boardgames</b> Board Game Night today at the MIT Museum (314 Main St), 7:00 to 9:00 PM: free dumplings while they last and 40 board games. Open to everyone, no experience needed. Come by after class!</p>
+              </div>
+              <div class="m-scan" id="m-scan"></div>
+
+              <svg class="links" id="m-links" viewBox="0 0 1920 1080" width="1920" height="1080"></svg>
+
+              <div class="draft" id="m-draft">
+                <div class="draft-head">
+                  <img src="../shared/brand/facebook-f.svg" alt="" />
+                  <div>
+                    <p class="dh-title">Muse made your Facebook event</p>
+                    <p class="dh-sub">Read from the club&rsquo;s Instagram post</p>
+                  </div>
+                </div>
+                <div class="rows" id="m-rows"></div>
+                <div class="post-btn" id="m-postbtn">Post to Facebook Events<i class="tap" id="m-tap2"></i></div>
+              </div>
+
+              <div class="phone" id="m-posted"><div class="screen"><img src="../shared/captures/posted.jpg" alt="" /></div></div>
+              <div class="phone" id="m-feed"><div class="screen"><img src="../shared/captures/list.jpg" alt="" /><i class="ring" id="m-ring"></i></div></div>
+              <div class="phone" id="m-map"><div class="screen"><img src="../shared/captures/map.jpg" alt="" /><i class="ring map-ring" id="m-ring2"></i></div></div>
+            </section>
+
+            <!-- Scene 7: the promise, then the people who will show it -->
+            <section class="scene" id="m7">
+              <div class="center m7-pair" id="m7-pair">
+                <p class="statement" id="m7-a">Less work for organizers.</p>
+                <p class="statement blue" id="m7-b">Less searching for students.</p>
+              </div>
+              <div class="cast" id="m7-cast">
+                <div class="who" id="c1"><i class="bar"></i><p class="name">Jing</p><p class="role">Event organizer</p></div>
+                <div class="who" id="c2"><i class="bar"></i><p class="name">Jolyn</p><p class="role">Facebook Events power user</p></div>
+                <div class="who" id="c3"><i class="bar"></i><p class="name">Lisa</p><p class="role">New to Facebook</p></div>
+                <div class="who" id="c4"><i class="bar"></i><p class="name">Trish</p><p class="role">New to Facebook Events</p></div>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div id="toast"></div>
+      </div>
+    </div>
+    <script src="../shared/gsap.min.js"></script>
+    <script src="../shared/sound.js"></script>
+    <script src="../shared/deck.js"></script>
+    <script src="./muse.js"></script>
+  </body>
+</html>

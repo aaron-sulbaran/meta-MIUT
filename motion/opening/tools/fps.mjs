@@ -10,8 +10,12 @@ const headed = process.argv.includes('--headed');
 const gpu = ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist', '--mute-audio'];
 const browser = await chromium.launch({ channel: 'chrome', headless: !headed, args: gpu });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const ready = () => page.waitForFunction(() => document.documentElement.dataset.deckReady === '1', null, { timeout: 20000 });
 await page.goto(url);
-await page.waitForFunction(() => document.documentElement.dataset.deckReady === '1');
+await ready().catch(async () => {
+  await page.reload();
+  await ready();
+});
 const stats = await page.evaluate(async (step) => {
   const d = window.__deck;
   d.goTo(step - 1);
