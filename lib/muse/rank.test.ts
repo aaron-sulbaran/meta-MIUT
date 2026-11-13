@@ -27,18 +27,27 @@ describe("For you list", () => {
     expect(compileCandidates(student, memory, [far], now, "upcoming")).toHaveLength(1);
   });
 
-  it("keeps only the likely upcoming events, by time and interest, minus the skipped ones", () => {
+  it("keeps every upcoming event by time, likely ones first within each day, minus the skipped ones", () => {
     const likely = compileCandidates(student, getInterestMemory(undefined, now), events, now, "upcoming");
     const skip = new Set([likely[0]!.eventId]);
     const list = forYouOrder(likely, events, now, skip);
-    const ids = list.map((event) => event.id);
-    expect(ids).toEqual(
-      soonestFirst(likely, events, now)
-        .map((candidate) => candidate.eventId)
-        .filter((id) => !skip.has(id)),
-    );
-    // Only likely events: one they keep skipping never shows.
-    expect(ids).not.toContain("evt-yoga-tower");
+    const upcoming = events.filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime());
+    expect(list).toHaveLength(upcoming.length - 1);
+    expect(list.map((event) => event.id)).not.toContain(likely[0]!.eventId);
+    expect(list.map((event) => event.id)).toContain("evt-yoga-tower");
+
+    const day = (event: (typeof events)[number]) =>
+      Date.parse(event.start) <= now.getTime()
+        ? "0"
+        : new Date(event.start).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const scores = new Map(likely.map((candidate) => [candidate.eventId, candidate.score]));
+    for (let i = 1; i < list.length; i++) {
+      const [before, after] = [list[i - 1]!, list[i]!];
+      expect(day(before) <= day(after)).toBe(true);
+      if (day(before) === day(after)) {
+        expect(scores.get(after.id) ?? -Infinity).toBeLessThanOrEqual(scores.get(before.id) ?? -Infinity);
+      }
+    }
   });
 });
 
