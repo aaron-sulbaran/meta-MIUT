@@ -228,6 +228,7 @@ async function readItinerary(input: CrawlInput, places: CrawlPlace[], now: Date)
       system: [
         "A student is planning a walk after class and told you where they are going.",
         "List the places they will go, in order, using only names from the list. End with the last place they mention.",
+        "Their messages come oldest first. When a later message changes the plan (a new end, a new friend's place), follow the latest one and drop places it replaces.",
         "Only add their original destination if they say they go back there. arriveBy is a 24-hour campus time like 19:00 if they say one, else null.",
         'mode: "transit" if they say the T, subway, bus, or train; "drive" if they drive or take a car, Uber, or Lyft; "walk" if they want to walk; else null.',
         'Return JSON only: {"places":[{"name","arriveBy"}],"mode"}. Return an empty list if they name no place.',
