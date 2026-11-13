@@ -1,10 +1,12 @@
 import type { CampusEvent } from "@/lib/events/schema";
+import { generatedLogo } from "@/lib/map/generated-logo";
 
 // Logos for the organizers in the demo and test seeds, keyed by Instagram-style
 // handle, each taken from the organizer's own public site (linked, not copied
 // into this repo). The map prefers organizer.logoUrl when the event data has
 // one; this list fills the gap until the seed carries logos itself. Organizers
-// with no logo here (or a link that fails to load) show their monogram.
+// with no logo anywhere get one generated from their name (generated-logo.ts);
+// a link that fails to load still shows their monogram.
 // MIT departments (Music and Theater Arts, CIS, ORSEL, Literature) use the MIT
 // mark on their own sites, so that is their logo here too.
 
@@ -73,7 +75,7 @@ export const ORGANIZER_LOGOS: Record<string, string> = {
   mitmuseum: STUDENT_LIFE,
 };
 
-/** The organizer's logo: from the event data first, then the list above, else null. */
-export function organizerLogo(organizer: CampusEvent["organizer"]): string | null {
-  return organizer.logoUrl ?? ORGANIZER_LOGOS[organizer.handle.replace(/^@/, "").toLowerCase()] ?? null;
+/** The organizer's logo: from the event data first, then the list above, else one generated for them. */
+export function organizerLogo(organizer: CampusEvent["organizer"]): string {
+  return organizer.logoUrl ?? ORGANIZER_LOGOS[organizer.handle.replace(/^@/, "").toLowerCase()] ?? generatedLogo(organizer.name);
 }
