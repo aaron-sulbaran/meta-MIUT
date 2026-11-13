@@ -121,3 +121,12 @@ describe("sameKindOfNight", () => {
     expect(sameKindOfNight("Board Game Night + Free Dumplings", "Short Film Night in the Sidney-Pacific Lounge")).toBe(false);
   });
 });
+
+describe("Trish's calendar agrees with the story clock", () => {
+  it("says her class ended at 3:00 PM and never puts a class later today", () => {
+    const calendar = USER3_CONNECTORS.find((source) => source.id === "calendar")!;
+    const words = [calendar.found, ...calendar.items].join(" ");
+    expect(words).toContain("3:00 PM");
+    expect(words).not.toMatch(/[4-9](:\d\d)? ?(PM|pm)|tonight/);
+  });
+});
