@@ -198,6 +198,9 @@ export function Stage() {
   const revealKeyRef = useRef<string | null>(null);
   // The newest phone signal already passed into the stage's phone.
   const lastSignalRef = useRef<string | null>(null);
+  // True once the phone on screen was asked a request in its own words (spoken here or
+  // on the presenter's phone): the beat that continues it never sends the scripted line over them.
+  const spokenRef = useRef(false);
   const zRef = useRef(0);
   // Screens loaded ahead that have finished loading, by path.
   const [loadedAhead, setLoadedAhead] = useState<string[]>([]);
@@ -300,7 +303,10 @@ export function Stage() {
           lastSignalRef.current = signal.at;
           const phone = lastFrameRef.current?.contentWindow;
           if (signal.kind === "listening") phone?.postMessage({ source: "demo-stage", type: "listening", on: signal.on === true }, window.location.origin);
-          if (signal.kind === "said" && signal.text) phone?.postMessage({ source: "demo-stage", type: "heard", text: signal.text }, window.location.origin);
+          if (signal.kind === "said" && signal.text) {
+            phone?.postMessage({ source: "demo-stage", type: "heard", text: signal.text }, window.location.origin);
+            spokenRef.current = true;
+          }
         }
         return indexRef.current;
       });
@@ -338,11 +344,12 @@ export function Stage() {
       const message = inFrameMessage(beat, locationRef.current, { storyEventId, now: runStartedAt });
       const phone = lastFrameRef.current?.contentWindow;
       if (!personaChanged && message && phone) {
-        phone.postMessage(message, window.location.origin);
+        if (!(message.type === "demo-ask" && spokenRef.current)) phone.postMessage(message, window.location.origin);
         locationRef.current = beatSrc;
         return;
       }
       locationRef.current = beatSrc;
+      spokenRef.current = false;
       zRef.current += 1;
       const z = zRef.current;
       // Loaded ahead (U1b during U1a): take over that screen in place, with the same key,
@@ -447,6 +454,7 @@ export function Stage() {
       if (event.origin !== window.location.origin) return;
       const data = event.data as { source?: unknown; type?: unknown; path?: unknown } | null;
       // A screen passes the show to the next person (Lisa's "Open to company", Jolyn's "Sent to Lisa").
+      if (data?.source === "demo-screen" && data.type === "said") spokenRef.current = true;
       if (data?.source === "demo-screen" && data.type === "pass") {
         const start = nextActStart(index);
         if (start !== null) goTo(start);

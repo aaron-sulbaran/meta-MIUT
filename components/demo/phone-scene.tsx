@@ -65,6 +65,8 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   const locationRef = useRef<string | null>(null);
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  // True once this screen asked a request in the presenter's own words: the beat that continues it never sends the scripted line.
+  const spokenRef = useRef(false);
 
   const adopt = useCallback((next: Position | null) => {
     if (!next || next.seq < seqRef.current) return;
@@ -179,12 +181,13 @@ export function PhoneScene({ cast }: { cast: CastId }) {
     const message = personaChanged ? null : inFrameMessage(sceneBeat, locationRef.current, { storyEventId, now });
     const phone = iframeRef.current?.contentWindow;
     if (message && phone) {
-      phone.postMessage(message, window.location.origin);
+      if (!(message.type === "demo-ask" && spokenRef.current)) phone.postMessage(message, window.location.origin);
       locationRef.current = screen;
       tellBeat();
       return;
     }
     locationRef.current = screen;
+    spokenRef.current = false;
     setFrame({ src: screen, key: Date.now() });
   }, [sceneBeat, screen, storyEventId, now]);
 
@@ -211,7 +214,10 @@ export function PhoneScene({ cast }: { cast: CastId }) {
       const heard = event.data as { source?: unknown; type?: unknown; on?: unknown; text?: unknown } | null;
       if (heard?.source === "demo-screen") {
         if (heard.type === "listening" && typeof heard.on === "boolean") signal("listening", { on: heard.on });
-        if (heard.type === "said" && typeof heard.text === "string") signal("said", { text: heard.text.slice(0, 600) });
+        if (heard.type === "said" && typeof heard.text === "string") {
+          signal("said", { text: heard.text.slice(0, 600) });
+          spokenRef.current = true;
+        }
         // The screen passes the show to the next person (Lisa's "Open to company", Jolyn's "Sent to Lisa").
         if (heard.type === "pass") void move("pass");
         return;

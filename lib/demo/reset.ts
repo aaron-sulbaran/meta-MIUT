@@ -5,6 +5,7 @@ import { getEventStore, type StoreResult } from "@/lib/events/store";
 import { resetConversations } from "@/lib/muse/conversation";
 import { resetInterestMemory } from "@/lib/muse/memory";
 import { resetNearbyAlerts } from "@/lib/muse/nearby";
+import { resetSaid, SAID_PREFIX } from "@/lib/demo/said";
 import { resetComments } from "@/lib/social/comments";
 import { resetSocial } from "@/lib/social/going";
 import { deleteStatePrefixes, resetClaims } from "@/lib/store/state";
@@ -24,6 +25,8 @@ export const DEMO_STATE_PREFIXES = [
   "social-hellos",
   // Invites already sent (app/api/social/invites dedupe), so a rehearsal right after a reset sends again.
   "claim:invite:",
+  // What a presenter said on the Muse card and Muse's answer (lib/demo/said.ts), kept per run.
+  SAID_PREFIX,
 ] as const;
 
 export type DemoResetSummary = { events: number; clearedState: number };
@@ -45,6 +48,7 @@ export async function resetDemo(now = new Date()): Promise<StoreResult<DemoReset
   resetSocial();
   resetComments();
   resetClaims();
+  resetSaid();
 
   return { data: { events: reseeded.data, clearedState: cleared.data }, error: null };
 }

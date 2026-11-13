@@ -15,6 +15,7 @@ import type { CrawlEvent } from "@/components/map/crawl-planner";
 import { MuseFace } from "@/components/map/muse-menu";
 import { speakAsMuse, stopSpeaking } from "@/components/map/muse-voice";
 import { Avatar } from "@/components/social/whos-going";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { USER3_CONNECTORS } from "@/lib/curate/connectors";
 import { HANDOFF, handOff } from "@/lib/demo/staged";
@@ -58,6 +59,17 @@ type ApiPlan = {
 
 type Said = { text: string; by: "voice" | "typed" };
 type Invite = { friend: FriendSpot; state: "sending" | "sent" | "error" };
+// What the card shows after a request, kept for the run on the demo stage (lib/demo/said.ts):
+// the stage's frame and the presenter's phone restore it instead of asking again.
+type SaidView = {
+  route: Route | null;
+  legs: Legs | null;
+  meet: { friend: FriendSpot; title: string } | null;
+  friendEnd: FriendSpot | null;
+  invite: Invite | null;
+  line: string | null;
+};
+type SaidRecord = { text: string; by: Said["by"]; view: SaidView };
 // The real calls behind the sentence on screen, for the stamp.
 type Legs = {
   source: Source;
@@ -96,6 +108,32 @@ export const MUSE_CARD = "muse:card";
 const HOME = { name: "Maseeh Hall", lat: 42.3575, lng: -71.0934 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// The run's kept request (demo frames only). Words the presenter's phone heard wait this
+// long for the phone's answer to be kept before this screen asks them itself.
+const SAID_URL = "/api/demo/said";
+const HEARD_WAIT_MS = 30_000;
+
+async function readKeptSaid(): Promise<SaidRecord | null> {
+  if (!isFramed()) return null;
+  try {
+    const response = await fetch(SAID_URL, { cache: "no-store" });
+    const body = (await response.json()) as { data: SaidRecord | null };
+    const kept = body.data;
+    return kept && typeof kept.text === "string" && kept.view ? kept : null;
+  } catch {
+    return null;
+  }
+}
+
+function keepSaid(record: SaidRecord) {
+  if (!isFramed()) return;
+  void fetch(SAID_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(record),
+  }).catch(() => {});
+}
 const isFramed = () =>
   typeof window !== "undefined" && window.parent !== window;
 
@@ -483,6 +521,10 @@ export function MuseConversation({
     { released: !holdReveal, resolve: null },
   );
   const busyRef = useRef(false);
+  // The kept request on screen (its words), and whether it replaced the walk home on open.
+  const shownSaidRef = useRef<string | null>(null);
+  const restoredRef = useRef(false);
+  const routeRef = useRef<Route | null>(null);
   // Retries call the latest version of themselves.
   const planHomeRef = useRef<() => Promise<void>>(async () => {});
   const askRef = useRef<
@@ -504,6 +546,7 @@ export function MuseConversation({
 
   const show = useCallback(
     (next: Route | null) => {
+      routeRef.current = next;
       setRoute(next);
       setRouteKey((key) => key + 1);
       onRoute(next);
@@ -547,6 +590,7 @@ export function MuseConversation({
       }),
     );
     await released();
+    if (restoredRef.current) return;
     const revealStart = Date.now();
     setPhase({
       kind: "working",
@@ -554,6 +598,7 @@ export function MuseConversation({
       startedAt: revealStart,
     });
     const result = await call;
+    if (restoredRef.current) return;
     await wait(Math.max(0, MIN_REVEAL_MS - (Date.now() - revealStart)));
     const data = result.body?.data;
     if (!data) {
@@ -697,14 +742,21 @@ export function MuseConversation({
         await wait(Math.max(0, 900 - (Date.now() - askStarted)));
         busyRef.current = false;
         onPreviewSpot(null);
-        setLegs({
+        const answerLegs: Legs = {
           source: asked.body?.source ?? "muse",
           transcribeMs,
           askMs: asked.ms,
           planMs: 0,
-        });
+        };
+        setLegs(answerLegs);
         setPhase({ kind: "ready" });
         say(brief(reply.answer));
+        shownSaidRef.current = question;
+        keepSaid({
+          text: question,
+          by,
+          view: { route: routeRef.current, legs: answerLegs, meet: null, friendEnd: null, invite: null, line: brief(reply.answer) },
+        });
         return;
       }
       // Muse's own pick leads only when it really sits between the two of them; otherwise the
@@ -799,20 +851,34 @@ export function MuseConversation({
       setFriendEnd(picked ? null : friend);
       show(next);
       const live = asked.body?.source !== "fixture" && planSource !== "fixture";
-      setLegs({
+      const replanLegs: Legs = {
         source: live ? "muse" : "fixture",
         transcribeMs,
         askMs: asked.ms,
         planMs,
         museSuggested,
-      });
+      };
+      setLegs(replanLegs);
       setPhase({ kind: "ready" });
       const where = shortPlace(friend.placeName).replace(/ Square$/, "");
-      say(
-        stopTitle
-          ? `${friend.name}'s in ${where}, so I moved you to ${stopTitle}${sent ? ` and sent the invite` : ""}.`
-          : brief(reply.answer),
-      );
+      const answer = stopTitle
+        ? `${friend.name}'s in ${where}, so I moved you to ${stopTitle}${sent ? ` and sent the invite` : ""}.`
+        : brief(reply.answer);
+      say(answer);
+      // Kept for the run: the next beat, a reload, and the other screen show exactly this.
+      shownSaidRef.current = question;
+      keepSaid({
+        text: question,
+        by,
+        view: {
+          route: next,
+          legs: replanLegs,
+          meet: picked ? { friend, title: picked.title } : null,
+          friendEnd: picked ? null : friend,
+          invite: stopId ? { friend, state: sent ? "sent" : "error" } : null,
+          line: answer,
+        },
+      });
     },
     [events, eventsById, onPreviewSpot, onRoute, say, show, startMs, storyEventId, studentSpot],
   );
@@ -820,6 +886,72 @@ export function MuseConversation({
   useEffect(() => {
     askRef.current = ask;
   }, [ask]);
+
+  // Shows the run's kept request and Muse's exact answer, without asking or speaking again.
+  const restore = useCallback(
+    (kept: SaidRecord) => {
+      if (shownSaidRef.current === kept.text) return;
+      shownSaidRef.current = kept.text;
+      restoredRef.current = true;
+      revealRef.current.released = true;
+      revealRef.current.resolve?.();
+      busyRef.current = false;
+      stopSpeaking();
+      onPreviewSpot(null);
+      setOpen(true);
+      setSaid({ text: kept.text, by: kept.by });
+      setInvite(kept.view.invite ?? null);
+      setMeet(kept.view.meet ?? null);
+      setFriendEnd(kept.view.friendEnd ?? null);
+      if (kept.view.route) show(kept.view.route);
+      setLegs(kept.view.legs ?? null);
+      setPhase({ kind: "ready" });
+      setLine(kept.view.line ?? null);
+    },
+    [onPreviewSpot, show],
+  );
+
+  // A request this screen did not hear itself (the scripted line, ?auto, words the
+  // presenter's phone heard): once a request was made in this run, it is shown as
+  // kept, never asked a second time. Words from the phone wait for the phone's answer.
+  const askUnlessKept = useCallback(
+    async (text: string, by: Said["by"], fromPhone = false) => {
+      if (!isFramed()) return void ask(text, by);
+      if (busyRef.current) return;
+      let kept = await readKeptSaid();
+      if (fromPhone && kept?.text !== text) {
+        busyRef.current = true;
+        setOpen(true);
+        setSaid({ text, by });
+        const friend = friendNamedIn(text);
+        setPhase({
+          kind: "working",
+          line: friend ? `Finding a spot between you and ${friend.name}` : "Thinking about that",
+          startedAt: Date.now(),
+        });
+        const until = Date.now() + HEARD_WAIT_MS;
+        while (kept?.text !== text && Date.now() < until) {
+          await wait(1000);
+          kept = await readKeptSaid();
+        }
+        busyRef.current = false;
+        if (kept?.text !== text) kept = null;
+      }
+      if (kept) return restore(kept);
+      await ask(text, by);
+    },
+    [ask, restore],
+  );
+
+  // On open in a demo frame: the run's kept request replaces the walk home (a reload, Back then Next, a jump).
+  const checkedKept = useRef(false);
+  useEffect(() => {
+    if (checkedKept.current || !isFramed()) return;
+    checkedKept.current = true;
+    void readKeptSaid().then((kept) => {
+      if (kept && !busyRef.current) restore(kept);
+    });
+  }, [restore]);
 
   // Voice: tap to talk, tap again to send. End of speech also sends when it hears it first.
   const onClip = useCallback(
@@ -903,14 +1035,14 @@ export function MuseConversation({
         typeof data.text === "string"
       ) {
         setMirrorListening(false);
-        void ask(data.text, "voice");
+        void askUnlessKept(data.text, "voice", true);
       } else if (data.type === "demo-ask" && typeof data.line === "string") {
-        void ask(data.line, "typed");
+        void askUnlessKept(data.line, "typed");
       }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [ask]);
+  }, [askUnlessKept]);
 
   // ?auto=1 on the laptop: type the request in once the walk is up.
   const autoAsked = useRef(false);
@@ -918,9 +1050,9 @@ export function MuseConversation({
     if (!autoAsk || autoAsked.current || phase.kind !== "ready" || !route)
       return;
     autoAsked.current = true;
-    const timer = setTimeout(() => void ask(autoAsk, "typed"), 1500);
+    const timer = setTimeout(() => void askUnlessKept(autoAsk, "typed"), 1500);
     return () => clearTimeout(timer);
-  }, [autoAsk, phase.kind, route, ask]);
+  }, [autoAsk, phase.kind, route, askUnlessKept]);
 
   // The Muse button at the top right: while listening it sends, otherwise it shows or hides this card.
   const listeningRef = useRef(false);
@@ -1050,7 +1182,8 @@ export function MuseConversation({
               )
             )}
             {stamp && (
-              <p className="mt-[2px] text-meta text-muted">
+              <p className="mt-[2px] flex items-center gap-[4px] text-meta text-muted">
+                <MetaAiMark size={16} />
                 Live from Muse · {stamp}
               </p>
             )}
@@ -1097,7 +1230,8 @@ export function MuseConversation({
                 </span>
               )}
               {legs?.source === "fixture" && (
-                <span className="rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
+                <span className="flex items-center gap-[4px] rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
+                  <MetaAiMark size={16} />
                   Recorded answer
                 </span>
               )}
