@@ -29,3 +29,15 @@ export function nearestFreeBite(events: CampusEvent[], from: { lat: number; lng:
     endsAt: best.event.end,
   };
 }
+
+/**
+ * Where the bite is, in as few words as a person would say it: the place the
+ * title already names ("Pizza Study Break at Stata" in "Stata Center lobby, ..."
+ * is "Stata"), else the place's name up to its first comma.
+ */
+export function shortBitePlace(bite: Pick<FreeBite, "title" | "placeName">): string {
+  const place = bite.placeName.split(",")[0]!.trim();
+  const named = bite.title.match(/\bat ([^,]+)$/i)?.[1]?.trim();
+  if (named && place.toLowerCase().startsWith(named.toLowerCase())) return named;
+  return place;
+}
