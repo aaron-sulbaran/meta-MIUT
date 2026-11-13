@@ -7,7 +7,9 @@ import type { PersonaId } from "@/lib/social/persona";
 
 export type BeatAct = "pitch" | "organizer" | "user1" | "lisa" | "user3";
 
-// Screens that imitate another app; they live only under /demo (t-y329).
+// Screens that imitate another app; they live only under /demo (Builder 2's
+// t-y329). Staged beats load their route in the phone; until a route exists the
+// stage shows a placeholder for it.
 export type StagedScreen = "instagram-new-post" | "instagram-crosspost-prompt" | "invite-message" | "instagram-feed-prompt";
 
 export type BeatContext = { storyEventId: string; now: Date };
@@ -21,7 +23,7 @@ export type Beat = {
   title: string;
   // What the audience should take from this beat, shown large beside the phone.
   caption: string;
-  // App beats: the screen to load in the phone. Staged beats: where tapping hands off to.
+  // The screen to load in the phone: a real app path, or a staged screen's route.
   path?: (context: BeatContext) => string;
   staged?: StagedScreen;
   // Run once when the beat opens (for example, fire the class-ended alert).
@@ -36,11 +38,12 @@ export const ACT_LABELS: Record<BeatAct, string> = {
   user3: "User 3: has Facebook, new to Events",
 };
 
-export const PERSONA_LABELS: Record<PersonaId | "aaron", string> = {
-  aaron: "Aaron",
-  lisa: "Lisa",
-  user3: "Jordan",
-  organizer: "MIT Board Game Club",
+// Who is on screen, named plainly so the room always knows (Aaron's call).
+export const PERSONA_CAPTIONS: Record<PersonaId | "aaron", string> = {
+  aaron: "Aaron · Facebook Events power user",
+  lisa: "Lisa · New to Facebook",
+  user3: "User 3 · Has Facebook, new to Events",
+  organizer: "Jolyn · Event organizer",
 };
 
 const eventPath = ({ storyEventId }: BeatContext) => `/events/${encodeURIComponent(storyEventId)}`;
@@ -70,7 +73,7 @@ export const BEATS: Beat[] = [
     staged: "instagram-new-post",
     title: "The club posts its flyer on Instagram",
     caption: "An organizer posts the event the way they always do: on Instagram.",
-    path: () => "/organizer?from=instagram",
+    path: () => "/demo/instagram/post",
   },
   {
     id: "O2",
@@ -80,7 +83,7 @@ export const BEATS: Beat[] = [
     staged: "instagram-crosspost-prompt",
     title: "This looks like an event. Post it to Facebook Events?",
     caption: "Instagram notices it is an event and offers to put it on Facebook Events.",
-    path: () => "/organizer?from=instagram",
+    path: () => "/demo/instagram/post",
   },
   {
     id: "O3",
@@ -89,7 +92,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Muse is making your Facebook event",
     caption: "Muse reads the flyer and fills in the date, place, free food, and who can come.",
-    path: () => "/organizer?from=instagram",
+    path: () => "/organizer?handoff=story",
   },
   {
     id: "O5",
@@ -98,7 +101,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "One tap to post",
     caption: "The organizer checks it and posts. The event exists.",
-    path: () => "/organizer?from=instagram",
+    path: () => "/organizer?handoff=story",
   },
   {
     id: "U1a",
@@ -136,7 +139,7 @@ export const BEATS: Beat[] = [
     staged: "invite-message",
     title: "Lisa gets the invite",
     caption: "Aaron's Muse sends Lisa the event.",
-    path: (context) => `${eventPath(context)}?invite=sample-student`,
+    path: () => "/demo/instagram/dm",
   },
   {
     id: "U2b",
@@ -145,7 +148,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "No Facebook account? One tap.",
     caption: "Lisa has Instagram, so her Meta account makes Facebook one tap.",
-    path: (context) => `${eventPath(context)}?invite=sample-student`,
+    path: ({ storyEventId }) => `/invite/${encodeURIComponent(storyEventId)}?from=sample-student`,
   },
   {
     id: "U2c",
@@ -163,8 +166,8 @@ export const BEATS: Beat[] = [
     kind: "staged",
     staged: "instagram-feed-prompt",
     title: "Scrolling Instagram",
-    caption: "Jordan sees a club's event on Instagram: check it out on Facebook Events?",
-    path: () => "/curate",
+    caption: "A club they follow posted an event: check it out on Facebook Events?",
+    path: () => "/demo/instagram/feed",
   },
   {
     id: "U3b",
@@ -172,7 +175,7 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "Curate your event feed",
-    caption: "Muse reads what Jordan already likes and builds an events feed in seconds.",
+    caption: "Muse reads what they already like and builds an events feed in seconds.",
     path: () => "/curate",
   },
   {
@@ -181,7 +184,7 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "Who's going?",
-    caption: "Number one is the same event, and Aaron and Lisa are going. Jordan goes too.",
+    caption: "Number one is the same event, and Aaron and Lisa are going. So they go too.",
     path: eventPath,
   },
   {
