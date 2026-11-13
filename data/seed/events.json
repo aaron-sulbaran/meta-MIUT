@@ -23,7 +23,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/hsa-movie-night-1289"
+        "postUrl": "https://calendar.mit.edu/event/hsa-movie-night-1289",
+        "imagePath": "/flyers/evt-hsa-movie-night.jpg"
       }
     },
     {
@@ -74,7 +75,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/build-for-ukraine-hackathon-30-info-session"
+        "postUrl": "https://calendar.mit.edu/event/build-for-ukraine-hackathon-30-info-session",
+        "imagePath": "/flyers/evt-ukraine-hackathon-info.jpg"
       }
     },
     {
@@ -100,7 +102,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/dewali-event"
+        "postUrl": "https://calendar.mit.edu/event/dewali-event",
+        "imagePath": "/flyers/evt-diwali-chapel.jpg"
       }
     },
     {
@@ -176,7 +179,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/festival-jazz-ensembles-fall-concert"
+        "postUrl": "https://calendar.mit.edu/event/festival-jazz-ensembles-fall-concert",
+        "imagePath": "/flyers/evt-herb-pomeroy-jazz.jpg"
       }
     },
     {
@@ -227,7 +231,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/boba-the-best-of-boston-a-cappella-showcase"
+        "postUrl": "https://calendar.mit.edu/event/boba-the-best-of-boston-a-cappella-showcase",
+        "imagePath": "/flyers/evt-boba-a-cappella.jpg"
       }
     },
     {
@@ -253,7 +258,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/littea"
+        "postUrl": "https://calendar.mit.edu/event/littea",
+        "imagePath": "/flyers/evt-littea.jpg"
       }
     },
     {
@@ -279,7 +285,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/discussion-night-ai-issues-policy-potential-pause"
+        "postUrl": "https://calendar.mit.edu/event/discussion-night-ai-issues-policy-potential-pause",
+        "imagePath": "/flyers/evt-ai-discussion-night.jpg"
       }
     },
     {
@@ -304,7 +311,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/argentine-tango-class-series-9783"
+        "postUrl": "https://calendar.mit.edu/event/argentine-tango-class-series-9783",
+        "imagePath": "/flyers/evt-tango-class.jpg"
       }
     },
     {
@@ -330,7 +338,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/mad-tea-party-snacks-design-activities"
+        "postUrl": "https://calendar.mit.edu/event/mad-tea-party-snacks-design-activities",
+        "imagePath": "/flyers/evt-mad-tea-party.jpg"
       }
     },
     {
@@ -407,7 +416,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/tango-night-lous-nov-2026"
+        "postUrl": "https://calendar.mit.edu/event/tango-night-lous-nov-2026",
+        "imagePath": "/flyers/evt-tango-night-lous.jpg"
       }
     },
     {
@@ -507,7 +517,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/boulez-at-100"
+        "postUrl": "https://calendar.mit.edu/event/boulez-at-100",
+        "imagePath": "/flyers/evt-boulez-100.jpg"
       }
     },
     {
@@ -533,7 +544,8 @@
       },
       "source": {
         "kind": "manual",
-        "postUrl": "https://calendar.mit.edu/event/2026-boston-japan-film-festival"
+        "postUrl": "https://calendar.mit.edu/event/2026-boston-japan-film-festival",
+        "imagePath": "/flyers/evt-japan-film-festival.jpg"
       }
     },
     {
