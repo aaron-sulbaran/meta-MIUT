@@ -2,16 +2,20 @@ import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { STORY, STORY_ORGANIZER } from "@/lib/demo/story-data";
 
 // The staged screens of the demo (hub t-y329): screens that imitate another
-// app (an Instagram post, an Instagram message, an Instagram feed), live only
-// under /demo/instagram, and hand off into the real app with one tap. Client
+// app (an Instagram post, an Instagram message, an Instagram feed, a phone's
+// lock screen with a Live Activity), live only under /demo, and hand off into
+// the real app with one tap. Client
 // safe. Facebook's own chrome (tab bar, alert banners, the nearby opt-in)
 // stays off these screens.
 
 export const STAGED_PREFIX = "/demo/instagram";
+// U1a: Aaron's lock screen with the class-ended Live Activity.
+export const LIVE_ACTIVITY_PATH = "/demo/live-activity";
+const STAGED_ROOTS = [STAGED_PREFIX, LIVE_ACTIVITY_PATH];
 
 /** True on a staged screen, where Facebook's chrome must not show. */
 export function isStagedScreen(pathname: string | null): boolean {
-  return pathname !== null && (pathname === STAGED_PREFIX || pathname.startsWith(`${STAGED_PREFIX}/`));
+  return pathname !== null && STAGED_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
 }
 
 // The one event the demo follows, as the organizer posts it: the story's own
@@ -49,6 +53,8 @@ export function storyCaption(now: Date): string {
  * the phone (and the organizer's Muse call would run twice).
  */
 export const HANDOFF = {
+  // U1b: the map with Muse's walk home planned from the demo clock (?time= pins it).
+  walkHome: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}`,
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
   organizer: "/organizer?handoff=story",
   // U2b: the no-account landing (t-1lup).

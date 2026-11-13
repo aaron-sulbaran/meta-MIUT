@@ -8,6 +8,7 @@ describe("staged screens", () => {
   it("knows which paths imitate another app", () => {
     expect(isStagedScreen("/demo/instagram/post")).toBe(true);
     expect(isStagedScreen("/demo/instagram")).toBe(true);
+    expect(isStagedScreen("/demo/live-activity")).toBe(true);
     expect(isStagedScreen("/demo/console")).toBe(false);
     expect(isStagedScreen("/demo/instagramish")).toBe(false);
     expect(isStagedScreen(null)).toBe(false);

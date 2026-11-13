@@ -18,9 +18,6 @@ const PHONE_WIDTH = 390;
 const PHONE_HEIGHT = 844;
 const CHANNEL = "demo-stage";
 const TOKEN_KEY = "demo-reset-token";
-// The phone's alert listener learns its starting point on its first poll
-// (every 2.5 s), so a beat's alert waits until the phone has polled once.
-const SETUP_DELAY_MS = 3_200;
 
 type StageMessage = { type: "goto"; index: number } | { type: "reset" };
 
@@ -74,7 +71,6 @@ export function Stage() {
   const locationRef = useRef<string | null>(null);
   // Staged routes checked so far: true when the route exists.
   const [stagedReady, setStagedReady] = useState<Record<string, boolean>>({});
-  const setupDone = useRef(new Set<string>());
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   const beat: Beat = BEATS[index] ?? BEATS[0]!;
@@ -124,29 +120,6 @@ export function Stage() {
   }, [stagedPath, stagedReady]);
   const showPlaceholder = beat.kind === "staged" && (!stagedPath || stagedReady[stagedPath] !== true);
 
-  // Run a beat's setup once per run, after the phone has had time to load and poll.
-  useEffect(() => {
-    if (!beat.setup || setupDone.current.has(beat.id) || !storyEventId) return;
-    const beatId = beat.id;
-    const timer = window.setTimeout(async () => {
-      setupDone.current.add(beatId);
-      if (beat.setup === "class-ended-alert") {
-        const response = await fetch("/api/alerts", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            eventId: storyEventId,
-            kind: "free_food_nearby",
-            to: "sample-student",
-            href: `/?plan=home&time=${encodeURIComponent(runStartedAt.toISOString())}`,
-          }),
-        }).catch(() => null);
-        setStatus(response?.ok ? null : "The class-ended alert did not send");
-      }
-    }, SETUP_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [beat, storyEventId, runStartedAt]);
-
   const resetDemo = useCallback(async () => {
     setStatus("Resetting the demo");
     let token = readToken();
@@ -168,7 +141,6 @@ export function Stage() {
       return;
     }
     setRunStartedAt(new Date());
-    setupDone.current.clear();
     personaRef.current = undefined;
     locationRef.current = null;
     setFrame(null);
@@ -217,7 +189,6 @@ export function Stage() {
       } else if (event.key === "R") {
         void resetDemo();
       } else if (event.key === "r") {
-        setupDone.current.delete(beat.id);
         setFrame((current) => (current ? { ...current, key: Date.now() } : current));
       } else if (event.key === "h" || event.key === "H") {
         setShowList((shown) => !shown);

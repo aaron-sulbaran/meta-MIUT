@@ -30,6 +30,12 @@ export const PEOPLE: Person[] = [
   { id: "rosa", name: "Rosa", year: "Graduate", major: "Urban Planning", interests: ["careers", "fitness", "film"], instagram: "sample_rosa" },
   { id: "theo", name: "Theo", year: "Second-year", major: "Mathematics", interests: ["hackathons", "film", "rock climbing"], instagram: "sample_theo" },
   { id: "nina", name: "Nina", year: "Third-year", major: "Brain and Cognitive Sciences", interests: ["wellness", "music", "free food"], instagram: "sample_nina" },
+  { id: "mina", name: "Mina", year: "Second-year", major: "Architecture", interests: ["film", "free food", "studying"], instagram: "sample_mina" },
+  { id: "jonah", name: "Jonah", year: "Third-year", major: "Computer Science", interests: ["hackathons", "coding", "rock climbing"], instagram: "sample_jonah" },
+  { id: "iris", name: "Iris", year: "First-year", major: "Chemistry", interests: ["free food", "wellness", "film"], instagram: "sample_iris" },
+  { id: "diego", name: "Diego", year: "Fourth-year", major: "Aerospace Engineering", interests: ["hackathons", "careers", "free food"], instagram: "sample_diego" },
+  { id: "hana", name: "Hana", year: "Second-year", major: "Linguistics", interests: ["film", "music", "free food"], instagram: "sample_hana" },
+  { id: "ravi", name: "Ravi", year: "Graduate", major: "Operations Research", interests: ["coding", "careers", "rock climbing"], instagram: "sample_ravi" },
 ];
 
 // The demo's people. They are never seeded as going: they show up only once
@@ -47,7 +53,7 @@ export const PERSONA_IDS = new Set(PERSONAS.map((person) => person.id));
 export const EVERYONE: Person[] = [...PEOPLE, ...PERSONAS];
 
 export const FRIENDS: Record<string, string[]> = {
-  "sample-student": ["maya", "leo", "priya", "sam", "lisa"],
+  "sample-student": ["maya", "leo", "priya", "sam", "lisa", "mina", "jonah", "iris", "diego", "hana", "ravi"],
   lisa: ["sample-student", "leo", "jade"],
   user3: ["sample-student", "lisa", "ava"],
 };

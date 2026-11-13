@@ -7,6 +7,7 @@ export default defineConfig({
     alias: [
       { find: "@/data/seed/events.json", replacement: path.resolve(import.meta.dirname, "tests/fixtures/seed-events.json") },
       { find: "@/data/seed/test-events.json", replacement: path.resolve(import.meta.dirname, "tests/fixtures/seed-test-events.json") },
+      { find: "@/data/seed/demo-day-events.json", replacement: path.resolve(import.meta.dirname, "tests/fixtures/seed-test-events.json") },
       { find: "@/data/seed/student.json", replacement: path.resolve(import.meta.dirname, "tests/fixtures/seed-student.json") },
       { find: "@/lib/brand", replacement: path.resolve(import.meta.dirname, "tests/fixtures/brand.ts") },
       { find: "@", replacement: path.resolve(import.meta.dirname) },
