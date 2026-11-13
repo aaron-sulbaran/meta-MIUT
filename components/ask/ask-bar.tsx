@@ -12,7 +12,7 @@ import { getViewerId } from "@/lib/attendance/viewer";
 import type { CampusEvent } from "@/lib/events/schema";
 import { FEED_FILTER_EVENT, type AskAction, type AskReply, type MuseRouteResponse } from "@/lib/muse/types";
 
-// Ask Muse on top of the Events tab: type a request, or tap the mic and say it.
+// Ask Muse (the /ask screen): type a request, or tap the mic and say it.
 // Speech goes to Muse Voice Transcribe, the words to Muse ask. Muse answers out
 // loud and on the page (event titles link to the event), carries out what was
 // asked (RSVP, interested, open, filter the list, plan my night, draft an event
@@ -21,7 +21,7 @@ import { FEED_FILTER_EVENT, type AskAction, type AskReply, type MuseRouteRespons
 // for the answer. Styling is a placeholder until the design lands (hub t-jvpd).
 
 type Phase = "idle" | "transcribing" | "asking";
-type Exchange = { id: number; question: string; reply: AskReply | null; error: string | null; done: string[]; planIds: string[] };
+type Exchange = { id: number; question: string; reply: AskReply | null; error: string | null; done: string[]; planIds: string[]; links: { label: string; href: string }[] };
 type CrawlReply = { data: { stops: { eventId: string }[]; pitch: string } | null; error: string | null };
 
 const FILTER_LABELS = { forYou: "For you", free: "Free", today: "Today", week: "This week" } as const;
@@ -75,7 +75,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
   const title = (id: string | null) => (id ? (byId.get(id)?.title ?? "that event") : "that event");
 
   const perform = useCallback(
-    async (action: AskAction, reply: AskReply, question: string): Promise<{ note: string | null; planIds?: string[] }> => {
+    async (action: AskAction, reply: AskReply, question: string): Promise<{ note: string | null; planIds?: string[]; link?: { label: string; href: string } }> => {
       const id = action.eventId;
       switch (action.type) {
         case "rsvp":
@@ -102,6 +102,10 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
           return { note: id ? `Opened ${title(id)}` : null };
         case "filter":
           if (!action.filter) return { note: null };
+          if (window.location.pathname !== "/") {
+            const href = action.filter === "free" ? "/?view=list&chip=free" : "/?view=list";
+            return { note: null, link: { label: `See ${FILTER_LABELS[action.filter]} in the list`, href } };
+          }
           window.dispatchEvent(new CustomEvent(FEED_FILTER_EVENT, { detail: action.filter }));
           return { note: `Showing ${FILTER_LABELS[action.filter]}` };
         case "create_event":
@@ -149,7 +153,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
       } catch {
         error = "Network error. Try again.";
       }
-      setThread((current) => [...current, { id, question: text, reply, error, done: [], planIds: [] }].slice(-4));
+      setThread((current) => [...current, { id, question: text, reply, error, done: [], planIds: [], links: [] }].slice(-4));
       setPhase("idle");
       if (!reply) return;
 
@@ -159,11 +163,16 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
 
       for (const action of reply.actions) {
         const outcome = await perform(action, reply, text);
-        if (!outcome.note) continue;
+        if (!outcome.note && !outcome.link) continue;
         setThread((current) =>
           current.map((exchange) =>
             exchange.id === id
-              ? { ...exchange, done: [...exchange.done, outcome.note!], planIds: outcome.planIds ?? exchange.planIds }
+              ? {
+                  ...exchange,
+                  done: outcome.note ? [...exchange.done, outcome.note] : exchange.done,
+                  planIds: outcome.planIds ?? exchange.planIds,
+                  links: outcome.link ? [...exchange.links, outcome.link] : exchange.links,
+                }
               : exchange,
           ),
         );
@@ -278,6 +287,11 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
                       <p key={note} className="text-meta font-semibold text-muted">
                         ✓ {note}
                       </p>
+                    ))}
+                    {exchange.links.map((link) => (
+                      <Link key={link.href} href={link.href} className="text-meta font-semibold text-primary">
+                        {link.label} →
+                      </Link>
                     ))}
                     {[...mentioned, ...planned.filter((event) => !mentioned.includes(event))].map((event) => (
                       <EventCard key={event.id} event={event} now={now} />
