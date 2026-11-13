@@ -59,7 +59,7 @@ Runs one real image through the live API with the app's extract request, one lin
 
 ## Deploy
 
-Live at https://meta-miut.vercel.app (Vercel project `meta-miut`, framework Next.js, Node 24). Deploys are manual, never on push: `vercel deploy --prod` from a clean checkout of main that has no `.env*` file in it, so no local key is uploaded. Upstash Redis is connected to the project (`KV_REST_API_URL`, `KV_REST_API_TOKEN`), so the store is shared across instances; `DEMO_RESET_TOKEN` is set there. `MUSE_API_KEY` is added in Vercel by hand only; without it every Muse call on the live site is a recorded example, and screens should say so (`SourceBadge`).
+Live at https://meta-miut.vercel.app (Vercel project `meta-miut`, framework Next.js, Node 24). Production follows main: a loop in the lead's session deploys every green commit on main (at most once every five minutes) from a clean checkout with no `.env*` file in it, so no local key is uploaded, then checks the live site. Do not run `vercel deploy` by hand or touch that checkout, or the two collide; a bad push reaches production, so keep main green. Upstash Redis is connected to the project (`KV_REST_API_URL`, `KV_REST_API_TOKEN`), so the store is shared across instances; `DEMO_RESET_TOKEN` is set there. `MUSE_API_KEY` is added in Vercel by hand only; without it every Muse call on the live site is a recorded example, and screens should say so (`SourceBadge`).
 
 ## Map
 
