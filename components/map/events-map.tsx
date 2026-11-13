@@ -367,8 +367,8 @@ function routeMarkerElement(label: string, home: boolean, friend = false): HTMLD
   }
   element.setAttribute("aria-label", home ? "Where the walk ends" : `Stop ${label}`);
   Object.assign(element.style, {
-    width: "28px",
-    height: "28px",
+    width: home ? "28px" : "34px",
+    height: home ? "28px" : "34px",
     borderRadius: "9999px",
     background: home ? "#2c2c2a" : "#1e6b33",
     color: "#ffffff",
@@ -377,13 +377,13 @@ function routeMarkerElement(label: string, home: boolean, friend = false): HTMLD
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    font: "700 12px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+    font: `700 ${home ? 12 : 15}px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif`,
   });
   return element;
 }
 
-// While a crawl is on the map, events off the route are hidden and bubbles stop
-// taking taps, so only the stops show.
+// While a crawl is on the map, every event bubble is hidden and stops taking
+// taps, so only the route's numbered stops show (a bubble would cover its number).
 // MapLibre manages the marker element's own styles, so hide the bubble inside.
 function setMarkerHidden(element: HTMLElement, hidden: boolean, locked: boolean) {
   const inner = element.firstElementChild as HTMLElement | null;
@@ -629,8 +629,7 @@ export function EventsMap({
     if (!mapReady || !map || !MarkerClass) return;
     for (const marker of routeMarkersRef.current) marker.remove();
     routeMarkersRef.current = [];
-    const stopIds = new Set(route?.stops.map((stop) => stop.eventId) ?? []);
-    for (const [id, { element }] of markersRef.current) setMarkerHidden(element, route !== null && !stopIds.has(id), route !== null);
+    for (const [id, { element }] of markersRef.current) setMarkerHidden(element, route !== null, route !== null);
     const source = map.getSource(ROUTE_SOURCE) as { setData: (data: unknown) => void } | undefined;
     if (!route) {
       if (map.getLayer(ROUTE_SOURCE)) map.removeLayer(ROUTE_SOURCE);
