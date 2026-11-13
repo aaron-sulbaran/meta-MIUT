@@ -2,8 +2,7 @@
    one click each: the real screen it happened on, the model that did it, and how long it
    took. Each moment shows the median run of one capture pass (motion/opening/tools/
    recap-pass.mjs, written to proof.js): that run's screen, that run's own time stamp ringed
-   on it, and the same number counted up beside it, so the screen and the number always
-   agree. Aaron talks over each moment, so the screen holds a calm picture and a few words,
+   on it, and the same number beside it, so the screen and the number always agree. Aaron talks over each moment, so the screen holds a calm picture and a few words,
    and the runtime plays no effects under him. */
 (function () {
   "use strict";
@@ -24,6 +23,9 @@
     { key: "hello", label: "Found people, wrote the hello", model: EMBER, note: "And it found her people to go with, and wrote the hello." },
   ];
   const PROOF = window.RECAP_PROOF || {};
+  /* What the numbers are: one capture pass this morning, not this run's live calls. The
+     appendix's question on the AI shows the same set from the same file (proof.js). */
+  const TIMES_LABEL = (window.RECAP_PROOF_LABEL || "Median of this morning's test runs");
 
   /* A box in the 390 x 797 capture, in the phone's app area: the capture fills it 1 to 1. */
   function screenBox(box) {
@@ -40,7 +42,7 @@
       const el = document.createElement("div");
       el.className = "moment";
       el.id = `r-m${i + 1}`;
-      el.innerHTML = `<p class="m-label">${m.label}</p><p class="m-model"><img src="../shared/brand/meta-ai.png" alt="Meta AI" />${m.model}</p><p class="m-time"><span class="num"><span class="w">${Math.floor(p.seconds || 0)}</span>.<span class="t">${Math.round((p.seconds || 0) * 10) % 10}</span></span> seconds</p>`;
+      el.innerHTML = `<p class="m-label">${m.label}</p><p class="m-model"><img src="../shared/brand/meta-ai.png" alt="Meta AI" />${m.model}</p><p class="m-time"><span class="num">${(p.seconds || 0).toFixed(1)}</span> seconds</p><p class="m-note">${TIMES_LABEL}</p>`;
       col.appendChild(el);
       if (p.box) {
         const ring = document.createElement("i");
@@ -56,28 +58,6 @@
   }
 
   const segments = () => $$("#r-progress i");
-
-  /* The number counts up to the run's own time, landing as the ring finds it on the screen.
-     Discrete text sets on an eased curve (not an update callback), so a seek to any rest,
-     Back, or a jump from the stage always shows the right number. */
-  function countUp(seg, k, at) {
-    const target = (PROOF[MOMENTS[k - 1].key] || {}).seconds || 0;
-    /* Whole seconds and tenths live in separate spans: GSAP reads "2.0" as 2, but "2" and "0" stay themselves. */
-    const whole = $(`#r-m${k} .num .w`);
-    const tenth = $(`#r-m${k} .num .t`);
-    const ticks = 14;
-    const duration = 0.9;
-    const show = (value, time) => {
-      const tenths = Math.round(value * 10);
-      seg.set(whole, { textContent: String(Math.floor(tenths / 10)) }, time);
-      seg.set(tenth, { textContent: String(tenths % 10) }, time);
-    };
-    show(0, 0);
-    for (let i = 1; i <= ticks; i++) {
-      const p = i / ticks;
-      show(target * (1 - Math.pow(1 - p, 2)), at + duration * p);
-    }
-  }
 
   /* One moment: the phone's screen changes in place, the words change beside it, the next
      progress segment fills, the ring finds the proof and the time counts up to it. Every
@@ -113,7 +93,6 @@
         ctx.ft(seg, `#r-m${k}`, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, k === 1 ? 0.7 : 0.35);
         const proofAt = k === 1 ? 1.15 : 0.75;
         if ($(`#r-p${k}`)) ctx.ft(seg, `#r-p${k}`, { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, proofAt);
-        countUp(seg, k, proofAt);
       },
       idle(api) {
         if ($(`#r-p${k} b`)) api.loop(`#r-p${k} b`, { opacity: 0.45, duration: 1.2 });
