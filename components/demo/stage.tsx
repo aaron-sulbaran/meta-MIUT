@@ -151,6 +151,8 @@ export function Stage() {
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
   // The film on screen, when there is one, so Next and Back step through its cues.
   const filmRef = useRef<FilmControls | null>(null);
+  // The phone's newest screen, for a beat that continues inside it.
+  const lastFrameRef = useRef<HTMLIFrameElement | null>(null);
   // Where the phone is now, as far as the stage knows (a handoff moves it too).
   const locationRef = useRef<string | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -258,10 +260,19 @@ export function Stage() {
     }
     if (!beatSrc) return;
     if (personaChanged || locationRef.current !== beatSrc) {
+      // Continue inside the phone already on screen when this beat follows on from it.
+      const from = beat.inFrame ? BEATS.find((candidate) => candidate.id === beat.inFrame?.from) : undefined;
+      const fromSrc = from?.path?.({ storyEventId, now: runStartedAt }) ?? null;
+      const phone = lastFrameRef.current?.contentWindow;
+      if (!personaChanged && beat.inFrame && fromSrc && locationRef.current === fromSrc && phone) {
+        phone.postMessage(beat.inFrame.message, window.location.origin);
+        locationRef.current = beatSrc;
+        return;
+      }
       locationRef.current = beatSrc;
       setFrames((current) => [...current.slice(-1), { src: beatSrc, key: Date.now(), loaded: false }]);
     }
-  }, [beat, beatSrc]);
+  }, [beat, beatSrc, storyEventId, runStartedAt]);
 
   const frameLoaded = useCallback((key: number) => {
     setFrames((current) => current.map((frame) => (frame.key === key ? { ...frame, loaded: true } : frame)));
@@ -392,6 +403,7 @@ export function Stage() {
                     src={frame.src}
                     title={`${castLine(cast)}: phone`}
                     allow="microphone; geolocation; autoplay"
+                    ref={frameIndex === frames.length - 1 ? lastFrameRef : undefined}
                     onLoad={() => frameLoaded(frame.key)}
                     className="absolute inset-0 h-full w-full border-0 bg-card transition-opacity ease-out motion-reduce:transition-none"
                     style={{ opacity: frame.loaded || frameIndex < frames.length - 1 ? 1 : 0, transitionDuration: `${FADE_MS}ms` }}

@@ -1,4 +1,4 @@
-import { HANDOFF, LIVE_ACTIVITY_PATH } from "@/lib/demo/staged";
+import { HANDOFF, LIVE_ACTIVITY_PATH, REPLAN_LINE } from "@/lib/demo/staged";
 import type { PersonaId } from "@/lib/social/persona";
 
 // The pitch as an ordered list of beats, from kb/demo-script in the hub. Client
@@ -42,6 +42,9 @@ export type Beat = {
   staged?: StagedScreen;
   // A film beat's name: public/demo/films/<film>.mp4 and <film>.cues.json.
   film?: FilmName;
+  // Continues inside the phone of beat `from` (when it is still on screen) by posting
+  // `message` to it, instead of loading this beat's path. Any other way in loads the path.
+  inFrame?: { from: string; message: { type: "demo-ask"; line: string } };
 };
 
 export type FilmName = "problem" | "muse" | "build";
@@ -183,6 +186,8 @@ export const BEATS: Beat[] = [
     title: "Change of plans",
     caption: `He says it out loud: I'm meeting ${CAST.lisa.name}. Muse finds a spot between them and invites her.`,
     path: ({ now }) => HANDOFF.replanLisa(now.toISOString()),
+    // Coming from U1b, Ask Muse opens over the walk already on screen: no reload, no second plan.
+    inFrame: { from: "U1b", message: { type: "demo-ask", line: REPLAN_LINE } },
   },
   {
     id: "U2a",
