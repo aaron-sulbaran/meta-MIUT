@@ -81,18 +81,18 @@ export function GET(request: Request) {
         <div style={{ display: "flex", height: 34, background: RED }} />
         <div style={{ display: "flex", flexDirection: "column", padding: "64px 80px 0" }}>
           <div style={{ display: "flex", fontSize: 40, letterSpacing: 6, color: TEAL }}>{STORY_POST.organizer.name.toUpperCase()}</div>
-          <div style={{ display: "flex", flexDirection: "column", marginTop: 26, fontSize: 150, lineHeight: 1, letterSpacing: -4 }}>
-            <span>FREE</span>
-            <span style={{ color: RED }}>DUMPLINGS</span>
-            <span style={{ fontSize: 104, marginTop: 14 }}>+ BOARD GAMES</span>
+          <div style={{ display: "flex", flexDirection: "column", marginTop: 22, fontSize: 132, lineHeight: 1, letterSpacing: -4 }}>
+            <span style={{ display: "flex", lineHeight: 1 }}>BOARD GAME</span>
+            <span style={{ display: "flex", lineHeight: 1 }}>NIGHT</span>
+            <span style={{ display: "flex", lineHeight: 1, fontSize: 84, marginTop: 20, color: RED }}>+ FREE DUMPLINGS</span>
           </div>
         </div>
 
-        <div style={{ position: "absolute", left: 0, right: 0, top: 640, height: 300, display: "flex" }}>
-          <Dumpling size={230} x={90} y={70} tilt={-8} />
-          <Dumpling size={190} x={330} y={120} tilt={6} />
-          <Die size={150} x={610} y={40} tilt={12} pips={[[0.28, 0.28], [0.5, 0.5], [0.72, 0.72]]} />
-          <Die size={130} x={810} y={130} tilt={-10} pips={[[0.3, 0.3], [0.7, 0.3], [0.3, 0.7], [0.7, 0.7]]} />
+        <div style={{ position: "absolute", left: 0, right: 0, top: 690, height: 260, display: "flex" }}>
+          <Dumpling size={200} x={90} y={70} tilt={-8} />
+          <Dumpling size={170} x={310} y={110} tilt={6} />
+          <Die size={135} x={600} y={40} tilt={12} pips={[[0.28, 0.28], [0.5, 0.5], [0.72, 0.72]]} />
+          <Die size={120} x={790} y={115} tilt={-10} pips={[[0.3, 0.3], [0.7, 0.3], [0.3, 0.7], [0.7, 0.7]]} />
         </div>
 
         <div style={{ position: "absolute", left: 80, right: 80, bottom: 90, display: "flex", flexDirection: "column" }}>

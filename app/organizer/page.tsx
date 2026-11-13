@@ -10,14 +10,15 @@ import { knownPlacesFrom } from "@/lib/organizer/place";
 // Places, organizers, and titles come from the events already listed, so the screen
 // follows whichever campus the seed is set to. ?say= is a spoken line handed over
 // from Ask Muse; Muse drafts it right away. ?handoff=story is the demo's staged
-// Instagram post (O1, O2): its flyer and caption go straight to Muse, no picker;
+// Instagram post (O1, O2), also reached as ?from=instagram from the /demo stage: its
+// flyer and caption go straight to Muse, no picker;
 // ?at=<ISO> keeps the demo clock the post used.
 export default async function OrganizerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ say?: string | string[]; handoff?: string; at?: string }>;
+  searchParams: Promise<{ say?: string | string[]; handoff?: string; from?: string; at?: string }>;
 }) {
-  const { say, handoff, at } = await searchParams;
+  const { say, handoff, from, at } = await searchParams;
   await connection();
   const events = await getEventStore().listEvents();
 
@@ -33,7 +34,7 @@ export default async function OrganizerPage({
 
   const now = at && Number.isFinite(Date.parse(at)) ? new Date(at) : new Date();
   const story: OrganizerHandoff | null =
-    handoff === "story" ? { flyerSrc: flyerUrl(now), caption: storyCaption(now), organizer: { ...STORY_POST.organizer } } : null;
+    handoff === "story" || from === "instagram" ? { flyerSrc: flyerUrl(now), caption: storyCaption(now), organizer: { ...STORY_POST.organizer } } : null;
   if (story && !seenHandles.has(story.organizer.handle)) organizers.unshift(story.organizer);
 
   return (

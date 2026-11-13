@@ -12,7 +12,20 @@ import { HANDOFF } from "@/lib/demo/staged";
 
 const STORIES = ["your story", "maya.codes", "leo_films", "priya.climbs", "sam.econ", "kai_beats"];
 
-export function InstagramFeed({ handle, caption, flyerSrc }: { handle: string; caption: string; flyerSrc: string }) {
+export function InstagramFeed({
+  handle,
+  caption,
+  flyerSrc,
+  embedded = false,
+  onOpen,
+}: {
+  handle: string;
+  caption: string;
+  flyerSrc: string;
+  embedded?: boolean;
+  /** The stage's handoff into the curate step; without it, this opens it here. */
+  onOpen?: () => void;
+}) {
   const router = useRouter();
   const [prompt, setPrompt] = useState(false);
 
@@ -23,7 +36,7 @@ export function InstagramFeed({ handle, caption, flyerSrc }: { handle: string; c
   }, []);
 
   return (
-    <StagedScreen label="Staged Instagram feed">
+    <StagedScreen label="Staged Instagram feed" embedded={embedded}>
       <header className="flex h-[44px] shrink-0 items-center justify-between px-4">
         <span className="flex items-center gap-1 text-[20px] font-semibold tracking-[-0.01em]">
           For you {IgIcons.chevronDown()}
@@ -90,7 +103,7 @@ export function InstagramFeed({ handle, caption, flyerSrc }: { handle: string; c
           <div className="mt-3 flex gap-2">
             <button
               type="button"
-              onClick={() => router.push(HANDOFF.curate)}
+              onClick={() => (onOpen ? onOpen() : router.push(HANDOFF.curate))}
               className="h-[38px] flex-1 rounded-[10px] text-[14px] font-semibold text-white"
               style={{ background: IG.blue }}
             >

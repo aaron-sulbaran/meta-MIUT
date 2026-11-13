@@ -137,12 +137,19 @@ export const IgIcons = {
   ),
 };
 
-/** A staged screen fills the phone frame (Facebook's chrome is hidden here) and leaves the top for the stage's caption. */
-export function StagedScreen({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * A staged screen fills the phone: on its own route it covers the frame (Facebook's
+ * chrome is hidden there); `embedded` fills its parent, the /demo stage's phone.
+ */
+export function StagedScreen({ label, embedded = false, children }: { label: string; embedded?: boolean; children: ReactNode }) {
   return (
     <div
       aria-label={label}
-      className="fixed inset-y-0 left-1/2 z-40 flex w-full max-w-[390px] -translate-x-1/2 flex-col overflow-hidden bg-white pt-[max(44px,env(safe-area-inset-top))] font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] text-black"
+      className={`flex flex-col overflow-hidden bg-white font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] text-black ${
+        embedded
+          ? "relative h-full w-full pt-[28px]"
+          : "fixed inset-y-0 left-1/2 z-40 w-full max-w-[390px] -translate-x-1/2 pt-[max(44px,env(safe-area-inset-top))]"
+      }`}
     >
       <style>{"@keyframes staged-sheet-up{from{transform:translateY(100%)}to{transform:none}}@keyframes staged-pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}"}</style>
       {children}

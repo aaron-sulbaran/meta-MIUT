@@ -23,6 +23,7 @@ describe("staged screens", () => {
   it("puts the same times in the caption the flyer shows", () => {
     expect(storyCaption(NOW)).toContain(storyTimeLine(NOW));
     expect(storyCaption(NOW)).toContain("MIT Museum");
+    expect(storyCaption(NOW)).toContain("Board Game Night");
   });
 
   it("hands off to one place per beat", () => {

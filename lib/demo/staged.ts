@@ -14,10 +14,10 @@ export function isStagedScreen(pathname: string | null): boolean {
 }
 
 // The one event the demo follows, as the organizer posts it. Matches the
-// first builder's story (lib/demo/story.ts): same title, club, place, food,
-// and a start about 25 minutes after the demo clock.
+// story (lib/demo/story.ts): same title, club, place, food, and a start about
+// 25 minutes after the demo clock.
 export const STORY_POST = {
-  title: "Free Dumplings and Board Games",
+  title: "Board Game Night",
   organizer: { name: "MIT Board Game Club", handle: "mit_boardgames" },
   placeName: "MIT Museum, 314 Main St",
   foodNote: "Dumplings",
@@ -47,7 +47,7 @@ export function storyTimeLine(now: Date): string {
 
 /** The organizer's Instagram caption, with today's times. */
 export function storyCaption(now: Date): string {
-  return `Free dumplings and 40 board games today at the MIT Museum (314 Main St), ${storyTimeLine(now)}. Open to everyone, no experience needed, just come by after class!`;
+  return `Board Game Night today at the MIT Museum (314 Main St), ${storyTimeLine(now)}: free dumplings while they last and 40 board games. Open to everyone, no experience needed. Come by after class!`;
 }
 
 /** Where each staged screen hands off into the real app. One place, so a route change is one line. */

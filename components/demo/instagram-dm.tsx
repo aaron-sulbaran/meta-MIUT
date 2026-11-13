@@ -20,7 +20,16 @@ function when(iso: string): string {
   return new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: CAMPUS_TIME_ZONE });
 }
 
-export function InstagramDm({ to }: { to: string }) {
+export function InstagramDm({
+  to,
+  embedded = false,
+  onOpen,
+}: {
+  to: string;
+  embedded?: boolean;
+  /** The stage's handoff into the landing; without it, the card is a link. */
+  onOpen?: () => void;
+}) {
   const [invite, setInvite] = useState<Invite | null>(null);
   const [event, setEvent] = useState<EventSummary | null>(null);
 
@@ -63,7 +72,7 @@ export function InstagramDm({ to }: { to: string }) {
   const inviter = invite?.href ? (new URL(invite.href, "http://local").searchParams.get("invite") ?? "sample-student") : "sample-student";
 
   return (
-    <StagedScreen label="Staged Instagram message">
+    <StagedScreen label="Staged Instagram message" embedded={embedded}>
       <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-[#efefef] px-3">
         <span aria-hidden>{IgIcons.back()}</span>
         <DrawnAvatar name="Aaron" size={32} />
@@ -93,6 +102,11 @@ export function InstagramDm({ to }: { to: string }) {
           </p>
         </div>
 
+        {!invite && (
+          <p className="ml-[34px] mt-1 text-[12px]" style={{ color: IG.muted }} aria-live="polite">
+            Aaron is typing...
+          </p>
+        )}
         {invite && (
           <div className="flex flex-col gap-[6px] motion-safe:animate-[staged-pop_260ms_ease-out]">
             <p className="ml-[34px] flex items-center gap-1 text-[11px]" style={{ color: IG.muted }}>
@@ -105,11 +119,8 @@ export function InstagramDm({ to }: { to: string }) {
                 <p className="rounded-[20px] px-[14px] py-[9px] text-[15px] leading-[20px]" style={{ background: IG.bubble }}>
                   {invite.message}
                 </p>
-                <Link
-                  href={HANDOFF.lisaLanding(invite.eventId, inviter)}
-                  className="overflow-hidden rounded-[16px] border border-[#efefef] bg-white"
-                  aria-label={`Open the event${event ? `: ${event.title}` : ""}`}
-                >
+                {onOpen ? (
+                  <button type="button" onClick={onOpen} className="overflow-hidden rounded-[16px] border border-[#efefef] bg-white text-left" aria-label={`Open the event${event ? `: ${event.title}` : ""}`}>
                   <div className="flex h-[96px] items-end bg-[#0866ff] p-3">
                     <p className="line-clamp-2 text-[17px] font-bold leading-[20px] text-white">{event?.title ?? "Facebook event"}</p>
                   </div>
@@ -122,7 +133,27 @@ export function InstagramDm({ to }: { to: string }) {
                       facebook.com/events
                     </p>
                   </div>
-                </Link>
+                  </button>
+                ) : (
+                  <Link
+                    href={HANDOFF.lisaLanding(invite.eventId, inviter)}
+                    className="overflow-hidden rounded-[16px] border border-[#efefef] bg-white"
+                    aria-label={`Open the event${event ? `: ${event.title}` : ""}`}
+                  >
+                  <div className="flex h-[96px] items-end bg-[#0866ff] p-3">
+                    <p className="line-clamp-2 text-[17px] font-bold leading-[20px] text-white">{event?.title ?? "Facebook event"}</p>
+                  </div>
+                  <div className="px-3 py-2">
+                    <p className="text-[13px] font-semibold">{event ? when(event.start) : "Event invite"}</p>
+                    <p className="truncate text-[13px]" style={{ color: IG.muted }}>
+                      {event ? `${event.place.name} · ${event.free ? "Free" : "Paid"}` : "Facebook Events"}
+                    </p>
+                    <p className="mt-1 text-[12px]" style={{ color: IG.muted }}>
+                      facebook.com/events
+                    </p>
+                  </div>
+                  </Link>
+                )}
               </div>
             </div>
           </div>

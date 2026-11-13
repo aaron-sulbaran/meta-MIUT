@@ -28,13 +28,35 @@ function Row({ label, value, toggle }: { label: string; value?: string; toggle?:
   );
 }
 
-export function InstagramNewPost({ handle, caption, flyerSrc, atIso }: { handle: string; caption: string; flyerSrc: string; atIso: string }) {
+export function InstagramNewPost({
+  handle,
+  caption,
+  flyerSrc,
+  atIso,
+  embedded = false,
+  sheetOpen = false,
+  onShare,
+  onPost,
+}: {
+  handle: string;
+  caption: string;
+  flyerSrc: string;
+  atIso: string;
+  /** Inside the /demo stage's phone. */
+  embedded?: boolean;
+  /** Open with the cross-post prompt already up (the stage's O2 beat). */
+  sheetOpen?: boolean;
+  /** The stage's handoff for Share (O1 to O2); without it, Share opens the prompt here. */
+  onShare?: () => void;
+  /** The stage's handoff for "Post to Facebook Events" (O2 to O3); without it, this opens the organizer flow. */
+  onPost?: () => void;
+}) {
   const router = useRouter();
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState(sheetOpen);
   const [shared, setShared] = useState(false);
 
   return (
-    <StagedScreen label="Staged Instagram new post">
+    <StagedScreen label="Staged Instagram new post" embedded={embedded}>
       <header className="flex h-[44px] shrink-0 items-center justify-between px-3">
         <span aria-hidden>{IgIcons.back()}</span>
         <h1 className="text-[16px] font-semibold">New post</h1>
@@ -60,7 +82,7 @@ export function InstagramNewPost({ handle, caption, flyerSrc, atIso }: { handle:
       <div className="shrink-0 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
         <button
           type="button"
-          onClick={() => setAsking(true)}
+          onClick={() => (onShare ? onShare() : setAsking(true))}
           className="h-[44px] w-full rounded-[10px] text-[15px] font-semibold text-white"
           style={{ background: IG.blue }}
         >
@@ -93,7 +115,7 @@ export function InstagramNewPost({ handle, caption, flyerSrc, atIso }: { handle:
             </div>
             <button
               type="button"
-              onClick={() => router.push(`${HANDOFF.organizer}&at=${encodeURIComponent(atIso)}`)}
+              onClick={() => (onPost ? onPost() : router.push(`${HANDOFF.organizer}&at=${encodeURIComponent(atIso)}`))}
               className="mt-5 h-[44px] w-full rounded-[10px] text-[15px] font-semibold text-white"
               style={{ background: IG.blue }}
             >
