@@ -31,7 +31,6 @@ export async function readPlace(text: string): Promise<MuseJobResult<PlaceRead>>
       system: SYSTEM,
       prompt: `The student typed: ${JSON.stringify(text)}`,
       structuredOutput: museStructuredOutput("place_read", PlaceReadSchema),
-      maxCompletionTokens: 300,
     },
     outputSchema: PlaceReadSchema,
     fixture: () => placeFixture(text),
