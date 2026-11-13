@@ -19,6 +19,8 @@ export const CrawlInputSchema = z.object({
   toLabel: z.string().trim().min(1).max(80).optional(),
   // What the student said, for example "I'm meeting my friend Sara at her dorm".
   note: z.string().trim().max(300).optional(),
+  // When the walk starts, for planning ahead ("after my 5 PM class"). Defaults to now.
+  at: z.iso.datetime({ offset: true }).optional(),
 });
 export type CrawlInput = z.infer<typeof CrawlInputSchema>;
 
