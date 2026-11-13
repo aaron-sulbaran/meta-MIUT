@@ -113,16 +113,6 @@ function placeEnding(text: string, events: CrawlEvent[]): Ending | null {
   return venue ? { kind: "place", label: venue.knownName, to: { lat: venue.place.lat, lng: venue.place.lng } } : null;
 }
 
-const SUGGESTED_PLACES = ["Kendall Square", "Central Square", "Harvard Square", "Stata Center"];
-
-/** Up to four place names for the Somewhere else chips, filtered by what the student typed. */
-function placeSuggestions(text: string, events: CrawlEvent[]): string[] {
-  const wanted = squash(text);
-  if (!wanted) return SUGGESTED_PLACES;
-  const names = [...CRAWL_PLACES.map((place) => place.name), ...knownPlacesFrom(events).map((place) => place.name)];
-  return [...new Set(names)].filter((name) => squash(name).includes(wanted)).slice(0, 4);
-}
-
 const KIND_LABELS: Record<string, string> = {
   main: "Main",
   dessert: "Dessert",
@@ -402,25 +392,16 @@ export function CrawlPlanner({
                   setPlaceText(event.target.value);
                   setPlaceMiss(false);
                 }}
+                list="crawl-place-names"
                 placeholder="Kendall Square, Stata, Harvard Square"
                 aria-label="Where does your walk end"
                 className="mt-1 w-full rounded-[10px] bg-wash px-3 py-[7px] text-meta outline-none"
               />
-              <span className="mt-[6px] flex flex-wrap gap-[6px]">
-                {placeSuggestions(placeText, events).map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => {
-                      const target = placeEnding(name, events);
-                      if (target) choose(target);
-                    }}
-                    className="max-w-full truncate rounded-full bg-button px-[10px] py-[4px] text-meta font-semibold text-ink"
-                  >
-                    {name}
-                  </button>
+              <datalist id="crawl-place-names">
+                {CRAWL_PLACES.map((place) => (
+                  <option key={place.name} value={place.name} />
                 ))}
-              </span>
+              </datalist>
               {placeMiss && <span className="mt-1 block text-meta text-muted">Muse does not know that place yet. Try a building or square near campus.</span>}
             </span>
             <button type="submit" className="mt-[22px] shrink-0 rounded-full bg-primary px-3 py-[6px] text-meta font-semibold text-on-primary disabled:opacity-40" disabled={!placeText.trim()}>
@@ -568,7 +549,11 @@ export function CrawlPlanner({
           </span>
           <button
             type="button"
-            onClick={() => setStep("choose")}
+            onClick={() => {
+              setPlaceText("");
+              setPlaceMiss(false);
+              setStep("choose");
+            }}
             aria-label="Change where the walk ends"
             className="shrink-0 rounded-full bg-button px-3 py-[5px] text-meta font-semibold text-ink"
           >
