@@ -1,5 +1,11 @@
 [
   {
+    "id": "try-it",
+    "title": "Try it yourself while we set up",
+    "lead": "speaker",
+    "notes": "We built this and it's live. Scan it now, but stay with us for the demo and play with it after: every call you'll see is real."
+  },
+  {
     "id": "hook-caret",
     "title": "Black, a caret waiting",
     "lead": "speaker",

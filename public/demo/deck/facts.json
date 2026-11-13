@@ -4,7 +4,7 @@
     {
       "step": "try-it",
       "text": "QR code to https://meta-miut.vercel.app, the address under it, Sprout, and the line Try it yourself while we set up",
-      "source": "Generated at build time by motion/opening/tools/make-qr.mjs (npm qrcode 1.5.4, error correction H, version 4, a four-module quiet zone inside a white circle), embedded as vector (shared/qr-live.svg); nothing is fetched at runtime. Decoded from the rendered frame by motion/opening/tools/qr-check.mjs. Sprout is the product's own still (public/muse/sprout-miut-still.png), unmodified apart from position and a small idle motion. Shown only when openingQr is true in public/demo/deck/problem/content.json (Aaron's request via the lead, 2026-11-13; default off until the lead says go)."
+      "source": "Generated at build time by motion/opening/tools/make-qr.mjs (npm qrcode 1.5.4, error correction H, version 4, a four-module quiet zone inside a white circle), embedded as vector (shared/qr-live.svg); nothing is fetched at runtime. Decoded from the rendered frame by motion/opening/tools/qr-check.mjs. Sprout is the product's own still (public/muse/sprout-miut-still.png), unmodified apart from position and a small idle motion. Shown when openingQr is true in public/demo/deck/problem/content.json: on by default, Aaron's decision via the lead (2026-11-13); he asks the judges to explore after the demo."
     },
     {
       "step": "hook-question",
