@@ -1,11 +1,12 @@
 import { connection } from "next/server";
 import { DemoConsole } from "@/components/alerts/demo-console";
+import { FreshRun } from "@/components/demo/fresh-run";
 import { PhoneLinks } from "@/components/demo/phone-links";
 import { StageNotes } from "@/components/demo/presenter-notes";
 import { getEventStore } from "@/lib/events/store";
 
-// Operator page for rehearsals and the live demo: publish a sample event, fire
-// an alert by hand, reset the data, and read the presenter notes for the beat
+// Operator page for rehearsals and the live demo: start a fresh run (first, so it
+// is the first thing the presenter sees), publish a sample event, fire an alert by hand, and read the presenter notes for the beat
 // the stage is on. Not linked from the tab bar.
 export default async function DemoPage() {
   await connection();
@@ -17,6 +18,9 @@ export default async function DemoPage() {
 
   return (
     <>
+      <div className="px-3 pt-3">
+        <FreshRun />
+      </div>
       <StageNotes />
       <div className="px-3 pt-3">
         <PhoneLinks />

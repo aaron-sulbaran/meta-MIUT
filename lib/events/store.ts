@@ -1,6 +1,7 @@
 import { EventSchema, type CampusEvent } from "@/lib/events/schema";
 import { loadSeedEvents } from "@/lib/events/seed";
 import { createRedisClient, readRedisConfig, storeNamespace, type RedisClient } from "@/lib/store/redis";
+import { STORY_FALLBACK_ID } from "@/lib/demo/story-data";
 
 export type StoreResult<T> = { data: T; error: null } | { data: null; error: string };
 
@@ -18,12 +19,31 @@ export type EventStore = {
 
 type SeedLoader = (now: Date) => CampusEvent[];
 
+const sameEventKey = (event: CampusEvent) =>
+  [event.organizer.handle.trim().replace(/^@/, "").toLowerCase(), event.title.trim().toLowerCase().replace(/\s+/g, " "), event.start.slice(0, 10)].join("|");
+
+/**
+ * Every event once: the same organizer listing the same title on the same day twice
+ * (a repeated publish) shows as one, the demo's story event first, else the newest.
+ */
+export function withoutDuplicates(events: CampusEvent[]): CampusEvent[] {
+  const kept = new Map<string, CampusEvent>();
+  for (const event of events) {
+    const key = sameEventKey(event);
+    const held = kept.get(key);
+    const better = !held || (held.id !== STORY_FALLBACK_ID && (event.id === STORY_FALLBACK_ID || event.createdAt > held.createdAt));
+    if (better) kept.set(key, event);
+  }
+  const keep = new Set(kept.values());
+  return events.filter((event) => keep.has(event));
+}
+
 export function createMemoryStore(initialEvents: CampusEvent[], loadSeed: SeedLoader = loadSeedEvents): EventStore {
   const eventsById = new Map(initialEvents.map((event) => [event.id, event]));
   return {
     backend: "memory",
     async listEvents() {
-      return [...eventsById.values()];
+      return withoutDuplicates([...eventsById.values()]);
     },
     async getEvent(id) {
       return eventsById.get(id) ?? null;
@@ -115,7 +135,7 @@ export function createRedisEventStore(options: {
         logFallback("listEvents", values.error ?? "HVALS did not return a list");
         return fallback.listEvents();
       }
-      return values.data.map(parseStoredEvent).filter((event): event is CampusEvent => event !== null);
+      return withoutDuplicates(values.data.map(parseStoredEvent).filter((event): event is CampusEvent => event !== null));
     },
 
     async getEvent(id) {

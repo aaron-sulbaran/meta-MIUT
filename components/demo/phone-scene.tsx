@@ -8,6 +8,7 @@ import { PHONE_SLUG, beatScreen, inFrameMessage, nextActStart, phoneView, storyD
 import { CAST, type CastId } from "@/lib/demo/beats";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { demoClock } from "@/lib/demo/clock";
+import { clearClientDemoState } from "@/lib/demo/run";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
@@ -33,7 +34,7 @@ const INVITE_POLL_MS = 1_500;
 // An invite counts for this run when it was sent this recently (the demo reset clears older ones anyway).
 const INVITE_FRESH_MS = 15 * 60_000;
 
-type Position = { index: number; seq: number };
+type Position = { index: number; seq: number; run?: string };
 type Frame = { src: string; key: number };
 
 function setPersonaCookie(persona: PersonaId | null) {
@@ -60,6 +61,9 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   const [now] = useState(() => demoClock());
   const [frame, setFrame] = useState<Frame | null>(null);
   const seqRef = useRef(0);
+  // The run this page opened in (lib/demo/run.ts). When the record names another, a fresh
+  // run started: this phone clears what it kept and reloads onto its waiting screen.
+  const runRef = useRef<string | null | undefined>(undefined);
   const indexRef = useRef<number | null>(null);
   // A move of ours in flight: polls wait for its answer, so the screen never flicks back.
   const pendingRef = useRef(false);
@@ -84,6 +88,16 @@ export function PhoneScene({ cast }: { cast: CastId }) {
       try {
         const response = await fetch(`/api/demo/stage?phone=${encodeURIComponent(slug)}`, { cache: "no-store" });
         const body = (await response.json()) as { data: Position | null };
+        const run = body.data?.run ?? null;
+        if (!stopped && runRef.current === undefined) {
+          runRef.current = run;
+          clearClientDemoState(run ?? undefined);
+        } else if (!stopped && run && run !== runRef.current) {
+          stopped = true;
+          clearClientDemoState(run);
+          window.location.reload();
+          return null;
+        }
         if (!stopped && !pendingRef.current) adopt(body.data ?? { index: 0, seq: 0 });
         if (!stopped) setOnline(true);
         return body.data?.index ?? null;

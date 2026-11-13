@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { claimOnce, loadState, saveState } from "@/lib/store/state";
+import { claimOnce, followRun, loadState, saveState } from "@/lib/store/state";
 
 // One answer per name for a couple of minutes, so the /demo stage and a presenter's
 // phone (each loads the same screen and asks Muse) show the same thing. The first
@@ -47,6 +47,8 @@ export async function sharedAnswer(
   now = Date.now(),
   keep: (value: unknown) => boolean = (value) => (value as { data?: unknown } | null)?.data != null,
 ): Promise<unknown> {
+  // A new run drops what this instance kept from the last one (lib/store/state.ts followRun).
+  await followRun();
   const local = (memory.__sharedAnswers ??= new Map());
   const held = local.get(name);
   if (held && fresh(held.at, now)) return held.body;

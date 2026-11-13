@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CastAvatar } from "@/components/demo/cast-avatar";
+import { FreshRun } from "@/components/demo/fresh-run";
 import { PresenterNotes } from "@/components/demo/presenter-notes";
 import { BEATS, castLine, castOf } from "@/lib/demo/beats";
 import { startStagePoll } from "@/lib/demo/stage-poll";
@@ -106,6 +107,9 @@ export function StageRemote() {
             <p className="text-body text-muted">{beat.caption}</p>
             <PresenterNotes beat={beat} deckStep={position?.deck && position.deck.name === beat.deck ? position.deck.step : null} currentOnly />
             <p className="mt-[10px] text-venue text-muted">{upNext ? `Next: ${upNext.title}` : "Last beat"}</p>
+            <div className="mt-[12px]">
+              <FreshRun compact />
+            </div>
           </>
         ) : (
           <p className="text-body text-muted">
