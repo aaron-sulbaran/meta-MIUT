@@ -13,6 +13,7 @@ const PLACEHOLDER_COPY: Record<StagedScreen, { app: string; line: string; action
     line: "This looks like event promo. Post it to Facebook Events?",
     action: "Post to Facebook Events",
   },
+  "live-activity": { app: "Lock Screen", line: "Out of class. Want a free bite?", action: "Show me" },
   "invite-message": { app: "Messages", line: "Aaron's Muse: come to Board Game Night with me? Free dumplings.", action: "Open the event" },
   "instagram-feed-prompt": {
     app: "Instagram",

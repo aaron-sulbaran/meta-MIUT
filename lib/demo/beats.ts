@@ -1,3 +1,4 @@
+import { HANDOFF, LIVE_ACTIVITY_PATH } from "@/lib/demo/staged";
 import type { PersonaId } from "@/lib/social/persona";
 
 // The pitch as an ordered list of beats, from kb/demo-script in the hub. Client
@@ -10,7 +11,12 @@ export type BeatAct = "pitch" | "organizer" | "user1" | "lisa" | "user3";
 // Screens that imitate another app; they live only under /demo (Builder 2's
 // t-y329). Staged beats load their route in the phone; until a route exists the
 // stage shows a placeholder for it.
-export type StagedScreen = "instagram-new-post" | "instagram-crosspost-prompt" | "invite-message" | "instagram-feed-prompt";
+export type StagedScreen =
+  | "instagram-new-post"
+  | "instagram-crosspost-prompt"
+  | "live-activity"
+  | "invite-message"
+  | "instagram-feed-prompt";
 
 export type BeatContext = { storyEventId: string; now: Date };
 
@@ -26,8 +32,6 @@ export type Beat = {
   // The screen to load in the phone: a real app path, or a staged screen's route.
   path?: (context: BeatContext) => string;
   staged?: StagedScreen;
-  // Run once when the beat opens (for example, fire the class-ended alert).
-  setup?: "class-ended-alert";
 };
 
 export const ACT_LABELS: Record<BeatAct, string> = {
@@ -92,7 +96,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Muse is making your Facebook event",
     caption: "Muse reads the flyer and fills in the date, place, free food, and who can come.",
-    path: () => "/organizer?handoff=story",
+    path: () => HANDOFF.organizer,
   },
   {
     id: "O5",
@@ -101,17 +105,17 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "One tap to post",
     caption: "The organizer checks it and posts. The event exists.",
-    path: () => "/organizer?handoff=story",
+    path: () => HANDOFF.organizer,
   },
   {
     id: "U1a",
     act: "user1",
     persona: null,
-    kind: "app",
-    setup: "class-ended-alert",
+    kind: "staged",
+    staged: "live-activity",
     title: "Class just ended",
     caption: "Aaron gets out of class. Muse: want to grab a free bite?",
-    path: () => "/",
+    path: ({ now }) => `${LIVE_ACTIVITY_PATH}?time=${encodeURIComponent(now.toISOString())}`,
   },
   {
     id: "U1b",
@@ -120,7 +124,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "The best stop on the way home",
     caption: "Muse maps the best free food on his usual way home.",
-    path: ({ now }) => `/?plan=home&time=${encodeURIComponent(now.toISOString())}`,
+    path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
   },
   {
     id: "U1c",
@@ -129,7 +133,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Actually, I'm meeting Lisa",
     caption: "He tells Muse out loud: find one closer to both of us and invite her.",
-    path: ({ now }) => `/?plan=home&time=${encodeURIComponent(now.toISOString())}`,
+    path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
   },
   {
     id: "U2a",
@@ -148,7 +152,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "No Facebook account? One tap.",
     caption: "Lisa has Instagram, so her Meta account makes Facebook one tap.",
-    path: ({ storyEventId }) => `/invite/${encodeURIComponent(storyEventId)}?from=sample-student`,
+    path: ({ storyEventId }) => HANDOFF.lisaLanding(storyEventId, "sample-student"),
   },
   {
     id: "U2c",
@@ -158,7 +162,7 @@ export const BEATS: Beat[] = [
     title: "Aaron knows you're going",
     caption: "She lands on the event, and Aaron knows she is coming.",
     // The same landing as U2b, so it stays on her "Aaron knows you're going" screen.
-    path: ({ storyEventId }) => `/invite/${encodeURIComponent(storyEventId)}?from=sample-student`,
+    path: ({ storyEventId }) => HANDOFF.lisaLanding(storyEventId, "sample-student"),
   },
   {
     id: "U3a",
@@ -177,7 +181,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Curate your event feed",
     caption: "Muse reads what they already like and builds an events feed in seconds.",
-    path: () => "/curate",
+    path: () => HANDOFF.curate,
   },
   {
     id: "U3d",

@@ -53,6 +53,8 @@ export function storyCaption(now: Date): string {
  * the phone (and the organizer's Muse call would run twice).
  */
 export const HANDOFF = {
+  // U1b: the map with Muse's walk home planned from the demo clock (?time= pins it).
+  walkHome: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}`,
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
   organizer: "/organizer?handoff=story",
   // U2b: the no-account landing (t-1lup).

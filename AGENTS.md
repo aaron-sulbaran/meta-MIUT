@@ -74,8 +74,8 @@ app/api/events/[id]/attendance/  GET ?viewer=<id> counts and seats left, POST {v
 app/api/demo/reset/  POST the full demo reset: events, alerts, going, comments, Muse memory, Ask history (token in production)
 app/demo/            the pitch stage (beats from lib/demo/beats.ts, persona per beat, keys, reset); /demo/console the operator console
 app/api/demo/story/  GET the event the demo follows (created quietly if the organizer act was skipped)
-components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed)
-lib/demo/            beats.ts (client safe), story.ts, reset.ts (one reset for every persona's saved state)
+components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed, the Lock Screen's Live Activity)
+lib/demo/            beats.ts (client safe), staged.ts (staged routes and every handoff path; a beat after a staged screen takes its path from HANDOFF), free-bite.ts, story.ts, reset.ts (one reset for every persona's saved state)
 app/curate/          User 3's first Events visit: Muse reads email, calendar, Instagram, Reels and ranks a first feed
 app/api/curate/      POST a curated feed (Muse job, story event pinned first and flagged storyPinned if Muse ranked it lower)
 lib/curate/          connectors.ts (seeded sources, client safe), curate.ts (request, fixture, pinStory)
