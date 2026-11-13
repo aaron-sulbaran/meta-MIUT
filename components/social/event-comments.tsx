@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar } from "@/components/social/whos-going";
 import { COMMENT_MAX_LENGTH, type EventComment, type EventComments } from "@/lib/social/comment-types";
 
@@ -26,6 +26,11 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
   const [error, setError] = useState<string | null>(null);
   const [all, setAll] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const tick = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(tick);
+  }, []);
 
   async function send(event: React.FormEvent) {
     event.preventDefault();
