@@ -37,3 +37,34 @@ export function classJustEnded(schedule: Block[], at: Date): string | null {
   }
   return null;
 }
+
+function clockLabel(hhmm: string): string {
+  const hours = Number(hhmm.slice(0, 2));
+  const minutes = hhmm.slice(3, 5);
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+  return minutes === "00" ? `${hour12} ${suffix}` : `${hour12}:${minutes} ${suffix}`;
+}
+
+/**
+ * The crawl sheet's one-line headline, from the student's day (Lisa): before
+ * the next class today, right out of one, done for the day, or no class today.
+ * `at` is when the walk leaves; `stops` is how many free stops it has.
+ */
+export function crawlHeadline(schedule: Block[], at: Date, stops: number): string {
+  const count = `${stops} free ${stops === 1 ? "stop" : "stops"}`;
+  if (stops === 0) return "Nothing free on the way right now";
+  const now = campusDayAndMinutes(at);
+  const today = schedule.filter((block) => block.weekday === now.weekday);
+  const next = today
+    .filter((block) => toMinutes(block.startTime) > now.minutes)
+    .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime))[0];
+  if (next) return `${count} before ${next.label} at ${clockLabel(next.startTime)}`;
+  const ended = today
+    .filter((block) => toMinutes(block.endTime) <= now.minutes)
+    .sort((a, b) => toMinutes(b.endTime) - toMinutes(a.endTime))[0];
+  // Within an hour of class ending reads as just out of it.
+  if (ended && now.minutes - toMinutes(ended.endTime) <= 60) return `Out of ${ended.label}: ${count} on the way`;
+  if (today.length > 0) return `Done with class: ${count} on the way`;
+  return `No class today: ${count} on the way`;
+}

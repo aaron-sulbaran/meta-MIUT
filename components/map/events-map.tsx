@@ -16,7 +16,7 @@ import { MuseMenu } from "@/components/map/muse-menu";
 import type { FriendSpot } from "@/lib/map/friend-spots";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
 import { travel } from "@/lib/crawl/order";
-import type { CampusEvent } from "@/lib/events/schema";
+import type { CampusEvent, ScheduleBlock } from "@/lib/events/schema";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 import type { Route } from "@/lib/map/crawl-route";
@@ -554,6 +554,7 @@ export function EventsMap({
   askPlan = null,
   planAt = null,
   startLabel = null,
+  schedule = [],
   autoAsk = null,
   holdReveal = false,
 }: {
@@ -569,6 +570,8 @@ export function EventsMap({
   planAt?: string | null;
   /** How the walk's start reads, like "Out of Data Structures". */
   startLabel?: string | null;
+  /** The student's classes, for the crawl sheet's headline. */
+  schedule?: ScheduleBlock[];
   /** Demo hook (?auto=1): once the walk is up, open Ask Muse and ask this. */
   autoAsk?: string | null;
   /** The alert path loaded ahead by the /demo stage (?reveal=wait): Muse's plan waits for the stage's reveal. */
@@ -1061,7 +1064,7 @@ export function EventsMap({
           dismissed={dismissed}
           start={crawlStart?.start}
           at={planAt}
-          fromLabel={startLabel}
+          schedule={schedule}
           onRoute={setRoute}
           onClose={() => {
             setRoute(null);

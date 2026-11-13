@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CloseIcon } from "@/components/ui/icons";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { walkMinutes } from "@/lib/geo";
+import { crawlHeadline } from "@/lib/map/class-start";
 import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
+import type { ScheduleBlock } from "@/lib/events/schema";
 import { CRAWL_PLACES } from "@/lib/muse/crawl-places";
 import { knownPlacesFrom, resolvePlace } from "@/lib/organizer/place";
 import {
@@ -196,7 +198,7 @@ export function CrawlPlanner({
   dismissed,
   start,
   at,
-  fromLabel,
+  schedule = [],
   onRoute,
   onClose,
 }: {
@@ -207,8 +209,8 @@ export function CrawlPlanner({
   start?: CrawlStart;
   /** When walks start (ISO) unless the student picks a time: a set campus time for the demo (?time=). Now when left out. */
   at?: string | null;
-  /** How the walk's start reads, like "Out of Data Structures"; "Your spot" when left out. */
-  fromLabel?: string | null;
+  /** The student's classes, for the one-line headline ("2 free stops before Calculus II at 2 PM"). */
+  schedule?: ScheduleBlock[];
   onRoute: (route: Route | null) => void;
   onClose: () => void;
 }) {
@@ -489,14 +491,14 @@ export function CrawlPlanner({
 
   if (!plan) return null;
   const { route } = plan;
-  const empty = route.stops.length === 0;
 
   return (
     <div className={`${sheet} flex max-h-[62%] flex-col pt-2`} role="dialog" aria-label="Your freebie crawl">
       <div className="mx-auto mb-2 h-1 w-8 shrink-0 rounded-full bg-divider" />
       <div className="flex shrink-0 items-start justify-between px-4">
         <div className="min-w-0">
-          <h2 className="font-display text-title font-bold leading-[20px]">{empty ? "Nothing free on the way right now" : plan.pitch}</h2>
+          {/* One line from the student's day, not Muse's longer pitch (Lisa). */}
+          <h2 className="truncate font-display text-title font-bold leading-[22px]">{crawlHeadline(schedule, new Date(plan.startMs), route.stops.length)}</h2>
           {/* What Muse did, in words, once it has invited the friend the walk ends with. */}
           {invited === "sent" && ending?.friendName && plan.invite.eventId && eventsById.get(plan.invite.eventId) && (
             <p role="status" className="mt-[6px] rounded-[8px] bg-primary-soft px-[10px] py-[6px] text-meta font-semibold text-link">
@@ -534,7 +536,7 @@ export function CrawlPlanner({
           <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
             <span className="h-3 w-3 rounded-full border-2 border-white bg-primary shadow-[0_0_0_4px_rgba(8,102,255,0.18)]" />
           </span>
-          <span className="text-meta font-semibold">Your location{fromLabel ? ` (${fromLabel.replace(/^Out of/, "out of")})` : ""} · leave {leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
+          <span className="text-meta font-semibold">Your location · leave {leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
         </li>
         {route.stops.map((stop, index) => {
           const event = stop.eventId ? eventsById.get(stop.eventId) : undefined;
