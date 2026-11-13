@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { distanceMeters } from "@/lib/geo";
+import { pickPlace, type PlaceHit as Hit } from "@/lib/map/pick-place";
 import { readPlace } from "@/lib/muse/place";
 
 // GET ?q=<place>&lat=&lng=: where a crawl should end, for whatever the student typed.
@@ -14,10 +14,14 @@ const AROUND_CAMPUS = "-71.20,42.43,-70.98,42.30";
 const MAX_METERS = 16_000;
 const HEADERS = { "user-agent": "meta-MIUT hackathon demo", "accept-language": "en" };
 
-type Found = { name: string; lat: number; lng: number };
-
 const NominatimSchema = z.array(
-  z.object({ lat: z.string(), lon: z.string(), name: z.string().optional(), display_name: z.string() }),
+  z.object({
+    lat: z.string(),
+    lon: z.string(),
+    name: z.string().optional(),
+    display_name: z.string(),
+    importance: z.number().optional(),
+  }),
 );
 const PhotonSchema = z.object({
   features: z.array(
@@ -25,17 +29,22 @@ const PhotonSchema = z.object({
   ),
 });
 
-async function nominatim(q: string): Promise<Found[]> {
+async function nominatim(q: string): Promise<Hit[]> {
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.search = new URLSearchParams({ q, format: "jsonv2", limit: "5", viewbox: AROUND_CAMPUS, bounded: "1" }).toString();
   const response = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(5000) });
   const parsed = NominatimSchema.safeParse(await response.json());
   if (!parsed.success) return [];
-  return parsed.data.map((hit) => ({ name: hit.name || hit.display_name.split(",")[0] || q, lat: Number(hit.lat), lng: Number(hit.lon) }));
+  return parsed.data.map((hit) => ({
+    name: hit.name || hit.display_name.split(",")[0] || q,
+    lat: Number(hit.lat),
+    lng: Number(hit.lon),
+    importance: hit.importance ?? 0,
+  }));
 }
 
 // Photon forgives spelling ("boston comon") and ranks results near the student first.
-async function photon(q: string, near: { lat: number; lng: number }): Promise<Found[]> {
+async function photon(q: string, near: { lat: number; lng: number }): Promise<Hit[]> {
   const url = new URL("https://photon.komoot.io/api/");
   url.search = new URLSearchParams({ q, limit: "5", lat: String(near.lat), lon: String(near.lng), lang: "en" }).toString();
   const response = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(5000) });
@@ -45,6 +54,7 @@ async function photon(q: string, near: { lat: number; lng: number }): Promise<Fo
     name: hit.properties.name ?? q,
     lat: hit.geometry.coordinates[1],
     lng: hit.geometry.coordinates[0],
+    importance: 0,
   }));
 }
 
@@ -67,9 +77,7 @@ export async function GET(request: NextRequest) {
     let hits = await nominatim(query);
     if (hits.length === 0 && query !== q) hits = await nominatim(q);
     if (hits.length === 0) hits = await photon(query, near);
-    const best = hits
-      .map((hit) => ({ hit, meters: distanceMeters(near, hit) }))
-      .sort((a, b) => a.meters - b.meters)[0];
+    const best = pickPlace(hits, near);
     if (!best) return Response.json({ data: null, tooFar: null, error: null });
     if (best.meters > MAX_METERS) {
       return Response.json({ data: null, tooFar: `${best.hit.name} is about ${miles(best.meters)} miles away, too far for a walk.`, error: null });

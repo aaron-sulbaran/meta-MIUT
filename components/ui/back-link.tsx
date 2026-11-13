@@ -15,7 +15,10 @@ const LAST = "nav-last";
 
 function mainPage(pathname: string, search: URLSearchParams): string | null {
   if (pathname === "/home") return "/home";
-  if (pathname === "/") return search.get("view") === "list" ? "/?view=list" : "/";
+  if (pathname === "/") {
+    if (search.get("view") !== "list") return "/";
+    return search.get("chip") === "free" ? "/?view=list&chip=free" : "/?view=list";
+  }
   return null;
 }
 
