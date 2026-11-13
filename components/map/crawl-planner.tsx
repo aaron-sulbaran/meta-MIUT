@@ -51,6 +51,7 @@ type Ending = {
  */
 export type CrawlStart =
   | { kind: "home"; note?: string }
+  | { kind: "place"; to: Point; label: string; note: string }
   | { kind: "friend"; to: Point; label: string; note: string; friendName: string | null; friendId?: string | null; sendInvite?: boolean };
 
 // startMs: when the walk starts (leave now, or the time the student picked).
@@ -80,6 +81,7 @@ const HOME = { name: "Maseeh Hall", lat: 42.3575, lng: -71.0934 };
 
 function endingFor(start: CrawlStart): Ending {
   if (start.kind === "home") return { kind: "home", label: HOME.name, to: HOME, note: start.note };
+  if (start.kind === "place") return { kind: "place", label: start.label, to: start.to, note: start.note };
   return {
     kind: "friend",
     label: start.label,

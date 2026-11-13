@@ -18,6 +18,7 @@ import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 import type { Route } from "@/lib/map/crawl-route";
 import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
+import { placeNamedIn } from "@/lib/muse/crawl-places";
 
 // Full-screen map for the Events tab: a clean, quiet base map with each event
 // as a round bubble showing the organizer's logo (the club, association or
@@ -482,7 +483,7 @@ function LogoTile({ card }: { card: MapCard }) {
 /** A walk Ask Muse planned on the Ask Muse page, opened here from its link. */
 export type AskPlanLink = { note: string; toEventId: string | null; invite?: boolean };
 
-/** To the event asked about, else to a friend named in the request, else home. */
+/** To the event asked about, else to a friend or campus spot named in the request, else home. */
 function startFromAsk(link: AskPlanLink, events: CampusEvent[]): CrawlStart {
   const event = link.toEventId ? events.find((candidate) => candidate.id === link.toEventId) : undefined;
   const friend = friendNamedIn(link.note);
@@ -498,9 +499,10 @@ function startFromAsk(link: AskPlanLink, events: CampusEvent[]): CrawlStart {
       friendId: friend?.id ?? null,
       sendInvite: friend !== null && link.invite === true,
     };
-  return friend
-    ? { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name, friendId: friend.id, sendInvite: link.invite === true }
-    : { kind: "home", note: link.note };
+  if (friend)
+    return { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name, friendId: friend.id, sendInvite: link.invite === true };
+  const place = placeNamedIn(link.note);
+  return place ? { kind: "place", to: place, label: place.name, note: link.note } : { kind: "home", note: link.note };
 }
 
 export function EventsMap({
