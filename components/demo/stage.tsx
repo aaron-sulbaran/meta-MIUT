@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { CastAvatar } from "@/components/demo/cast-avatar";
+import { FilmPlayer, type FilmControls } from "@/components/demo/film-player";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
-import { BEATS, STORY_DUE_AFTER, castLine, castOf, type Beat, type CastId } from "@/lib/demo/beats";
+import { BEATS, STORY_DUE_AFTER, castLine, castOf, filmFiles, type Beat, type CastId } from "@/lib/demo/beats";
 import { demoClock } from "@/lib/demo/clock";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
 // The projected stage for the pitch, on Facebook's white page. One beat at a
-// time: a slide fills the stage (or its video, when a file is dropped into
-// public/demo/); an app beat shows the real app in a large phone, playing that beat's
+// time: a film plays full bleed and steps through its cue points (until its
+// file is in public/demo/films/, it shows as a slide); an app beat shows the real app in a large phone, playing that beat's
 // persona; a staged beat shows a screen from another app that hands off with
 // one tap (a staged page posts "demo-handoff" to move on without a reload;
 // until a staged route exists, a placeholder stands in). Keys: Right, Space or Page Down next; Left or Page Up back; Home
@@ -103,7 +104,23 @@ async function fetchStoryEvent(): Promise<{ id: string; error: null } | { id: nu
 
 type Frame = { src: string; key: number; loaded: boolean };
 
-/** Checks once whether each file or route exists (a staged screen, a slide's video). */
+/** A film's cue points (public/demo/films/<film>.cues.json), or none when the file is missing. */
+function useCues(path: string | null): number[] | undefined {
+  const [known, setKnown] = useState<Record<string, number[]>>({});
+  useEffect(() => {
+    if (!path || path in known) return;
+    fetch(path, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((body: unknown) => {
+        const cues = Array.isArray(body) ? body.filter((value): value is number => typeof value === "number" && value >= 0).sort((a, b) => a - b) : [];
+        setKnown((ready) => ({ ...ready, [path]: cues }));
+      })
+      .catch(() => setKnown((ready) => ({ ...ready, [path]: [] })));
+  }, [path, known]);
+  return path ? known[path] : undefined;
+}
+
+/** Checks once whether each file or route exists (a staged screen, a film). */
 function useExists(path: string | null): boolean | undefined {
   const [known, setKnown] = useState<Record<string, boolean>>({});
   useEffect(() => {
@@ -130,6 +147,8 @@ export function Stage() {
   // The run's clock: one fixed campus afternoon (lib/demo/clock.ts), the same for every beat.
   const [runStartedAt, setRunStartedAt] = useState(() => demoClock());
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
+  // The film on screen, when there is one, so Next and Back step through its cues.
+  const filmRef = useRef<FilmControls | null>(null);
   // Where the phone is now, as far as the stage knows (a handoff moves it too).
   const locationRef = useRef<string | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -165,9 +184,21 @@ export function Stage() {
   const goTo = useCallback(
     (next: number, source: MoveSource = "local") => {
       const clamped = Math.max(0, Math.min(BEATS.length - 1, next));
+      // On a film, one step forward or back moves between its cue points first.
+      const step = next - indexRef.current;
+      const film = filmRef.current;
+      if (film && (step === 1 || step === -1) && (step === 1 ? film.next() : film.back())) {
+        // A remote asked to move on: put the shared position back on this beat.
+        if (source === "remote") {
+          void writePosition(indexRef.current).then((position) => {
+            if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
+          });
+        }
+        return;
+      }
       const target = BEATS[clamped];
       // A new person on screen: say who, briefly.
-      if (target && target.kind !== "slide" && target.kind !== "video") {
+      if (target && target.kind !== "slide" && target.kind !== "film") {
         const cast = castOf(target.persona);
         if (cast !== lastCastRef.current) {
           lastCastRef.current = cast;
@@ -217,7 +248,7 @@ export function Stage() {
 
   // Open the beat: its persona, its screen.
   useEffect(() => {
-    if (beat.kind === "slide" || beat.kind === "video") return;
+    if (beat.kind === "slide" || beat.kind === "film") return;
     const personaChanged = personaRef.current !== beat.persona;
     if (personaChanged) {
       setPersonaCookie(beat.persona);
@@ -239,9 +270,11 @@ export function Stage() {
   const stagedPath = beat.kind === "staged" ? beatSrc : null;
   const stagedReady = useExists(stagedPath);
   const showPlaceholder = beat.kind === "staged" && (!stagedPath || stagedReady !== true);
-  // A slide plays its video instead when the file is there.
-  const videoReady = useExists(beat.video ?? null);
-  const playVideo = Boolean(beat.video) && (beat.kind === "video" || videoReady === true);
+  // A film plays when its file is there; until then the beat shows as a slide.
+  const film = beat.kind === "film" && beat.film ? filmFiles(beat.film) : null;
+  const filmReady = useExists(film?.video ?? null);
+  const filmCues = useCues(film?.cues ?? null);
+  const playFilm = film !== null && filmReady === true && filmCues !== undefined;
 
   const resetDemo = useCallback(async () => {
     setStatus("Resetting the demo");
@@ -336,7 +369,7 @@ export function Stage() {
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-page text-ink">
-      {beat.kind === "slide" || beat.kind === "video" ? (
+      {beat.kind === "slide" || beat.kind === "film" ? (
         <section className="flex min-h-0 flex-1 flex-col justify-center gap-[3vh] px-[8vw]">
           <h1 className="font-display text-[clamp(44px,6.2vw,104px)] leading-[1.02] font-bold tracking-[-0.02em]">{beat.title}</h1>
           <p className="max-w-[30ch] text-[clamp(22px,2.3vw,40px)] leading-[1.3] font-medium text-muted">{beat.caption}</p>
@@ -382,9 +415,7 @@ export function Stage() {
         <StageProgress index={index} />
       </footer>
 
-      {playVideo && beat.video && (
-        <video key={beat.video} src={beat.video} autoPlay playsInline className="absolute inset-0 z-10 h-full w-full bg-black object-cover" />
-      )}
+      {playFilm && film && filmCues && <FilmPlayer key={film.video} src={film.video} cues={filmCues} controls={filmRef} />}
 
       {personCard && (
         <div

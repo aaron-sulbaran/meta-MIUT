@@ -92,7 +92,7 @@ export function StageRemote() {
       <main className="flex min-h-0 flex-1 flex-col justify-center gap-[8px] px-[20px]">
         {beat ? (
           <>
-            {beat.kind === "slide" || beat.kind === "video" ? (
+            {beat.kind === "slide" || beat.kind === "film" ? (
               <p className="text-meta font-semibold text-muted">Slide</p>
             ) : (
               <p className="inline-flex items-center gap-[8px] self-start rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-[13px] font-bold text-link">

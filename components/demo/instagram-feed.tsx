@@ -91,7 +91,7 @@ export function InstagramFeed({ handle, caption, flyerSrc }: { handle: string; c
             },
           ]}
           action="Open Facebook Events"
-          onAction={() => handOff(HANDOFF.curate, router.push)}
+          onAction={() => handOff(HANDOFF.curateAuto, router.push)}
           decline="Not now"
           onDecline={() => setPrompt(false)}
         />
