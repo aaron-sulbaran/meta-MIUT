@@ -115,6 +115,17 @@ function placeEnding(text: string, events: CrawlEvent[]): Ending | null {
   return venue ? { kind: "place", label: venue.knownName, to: { lat: venue.place.lat, lng: venue.place.lng } } : null;
 }
 
+/** The top map search result for a place the app does not know, or null. */
+async function searchPlace(text: string): Promise<Ending | null> {
+  try {
+    const response = await fetch(`/api/map/search?q=${encodeURIComponent(text)}`);
+    const body = (await response.json()) as { data: { name: string; lat: number; lng: number } | null };
+    return body.data ? { kind: "place", label: body.data.name, to: { lat: body.data.lat, lng: body.data.lng } } : null;
+  } catch {
+    return null;
+  }
+}
+
 const KIND_LABELS: Record<string, string> = {
   main: "Main",
   dessert: "Dessert",
@@ -217,6 +228,7 @@ export function CrawlPlanner({
   const [step, setStep] = useState<"choose" | "loading" | "plan" | "error">(start ? "loading" : "choose");
   const [placeText, setPlaceText] = useState("");
   const [placeMiss, setPlaceMiss] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [ending, setEnding] = useState<Ending | null>(null);
   const [mode, setMode] = useState<TravelMode>("walk");
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -392,8 +404,18 @@ export function CrawlPlanner({
               event.preventDefault();
               const text = placeText.trim();
               const target = friendEnding(text) ?? placeEnding(text, events);
-              setPlaceMiss(target === null);
-              if (target) choose(target);
+              if (target) {
+                setPlaceMiss(false);
+                choose(target);
+                return;
+              }
+              // Anything else: the top map search result, like typing it into Google Maps.
+              setSearching(true);
+              void searchPlace(text).then((found) => {
+                setSearching(false);
+                setPlaceMiss(found === null);
+                if (found) choose(found);
+              });
             }}
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-wash" aria-hidden>
@@ -413,11 +435,11 @@ export function CrawlPlanner({
                 className="mt-1 w-full rounded-[10px] bg-wash px-3 py-[7px] text-meta outline-none"
               />
               {placeMiss && (
-                <span className="mt-1 block text-meta text-muted">Muse does not know that one yet. Try a friend&apos;s name, a building or a square near campus.</span>
+                <span className="mt-1 block text-meta text-muted">No place by that name near campus. Try a friend&apos;s name, a building or an address.</span>
               )}
             </span>
-            <button type="submit" className="mt-[22px] shrink-0 rounded-full bg-primary px-3 py-[6px] text-meta font-semibold text-on-primary disabled:opacity-40" disabled={!placeText.trim()}>
-              Go
+            <button type="submit" className="mt-[22px] shrink-0 rounded-full bg-primary px-3 py-[6px] text-meta font-semibold text-on-primary disabled:opacity-40" disabled={!placeText.trim() || searching}>
+              {searching ? "..." : "Go"}
             </button>
           </form>
           <button type="button" onClick={() => choose({ kind: "wander", label: "Back here", to: studentSpot })} className="flex items-center gap-3 py-3 text-left">
