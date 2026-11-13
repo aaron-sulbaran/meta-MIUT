@@ -93,6 +93,9 @@ export const HANDOFF = {
   whosGoing: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1`,
   // U2c: Lisa's landing already joined: the event and "Aaron knows you're going".
   lisaJoined: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}&state=joined`,
+  // U3a: Trish's Reels, one beat per reel (1 to 3), then the Facebook Events sheet open over reel 3.
+  // The screen moves between them in place, so each path must match its beat exactly.
+  reels: (reel: number, sheet = false) => `${STAGED_PREFIX}/reels?reel=${reel}${sheet ? "&sheet=1" : ""}`,
   // U3b: the curate step (t-s8eh).
   curate: "/curate",
   // U3b on the stage: curating starts on arrival, so the clicker is the one tap.

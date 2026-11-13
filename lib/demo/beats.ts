@@ -16,7 +16,12 @@ export type StagedScreen =
   | "instagram-crosspost-prompt"
   | "live-activity"
   | "invite-message"
-  | "instagram-feed-prompt";
+  | "instagram-feed-prompt"
+  | "instagram-reels";
+
+// A message the stage posts into a phone still on the screen a beat continues from:
+// U1c asks Muse over the walk home; Trish's Reels beats move to the next reel or open the sheet.
+export type InFrameMessage = { type: "demo-ask"; line: string } | { type: "demo-reel"; reel: number; sheet?: boolean };
 
 // now is the run's clock: stamped when the first live beat opens, so every
 // screen (the flyer, the organizer's draft, the walk home) shows the same
@@ -53,7 +58,7 @@ export type Beat = {
   note?: string;
   // Continues inside the phone of beat `from` (when it is still on screen) by posting
   // `message` to it, instead of loading this beat's path. Any other way in loads the path.
-  inFrame?: { from: string; message: { type: "demo-ask"; line: string } };
+  inFrame?: { from: string; message: InFrameMessage };
   // Load this beat's screen hidden while the beat before it is on (same person),
   // so it is already at rest when the presenter moves on.
   prefetch?: boolean;
@@ -307,16 +312,54 @@ export const BEATS: Beat[] = [
     // Her landing already joined, so the beat rests on the event even if U2b was not tapped.
     path: lisaJoinedPath,
   },
+  // Trish scrolls Reels on her own phone: each swipe is a beat, so the stage follows her
+  // reel by reel without reloading (inFrame). The prompt comes only on the third reel.
   {
-    id: "U3a",
+    id: "U3a1",
     act: "user3",
     persona: "user3",
     kind: "staged",
-    staged: "instagram-feed-prompt",
-    title: "Scrolling Instagram",
-    caption: "A club she follows posted the same event.",
-    note: "Trish: scrolling Instagram, the same event shows up. Tap Open Facebook Events.",
-    path: () => "/demo/instagram/feed",
+    staged: "instagram-reels",
+    title: "Scrolling Reels",
+    caption: "Trish has a Facebook account. She just never opens it.",
+    note: "Trish: you're on Reels, like any night. Swipe up to the next one.",
+    path: () => HANDOFF.reels(1),
+  },
+  {
+    id: "U3a2",
+    act: "user3",
+    persona: "user3",
+    kind: "staged",
+    staged: "instagram-reels",
+    title: "Still scrolling",
+    caption: "Her friends' world lives here, not on Facebook.",
+    note: "Trish: keep it moving. Swipe up again.",
+    path: () => HANDOFF.reels(2),
+    inFrame: { from: "U3a1", message: { type: "demo-reel", reel: 2 } },
+  },
+  {
+    id: "U3a3",
+    act: "user3",
+    persona: "user3",
+    kind: "staged",
+    staged: "instagram-reels",
+    title: "A club she follows",
+    caption: "The reel keeps playing. A small prompt slides in.",
+    note: "Trish: the Board Game Club's reel. Wait for the pill above the audio line, then tap it.",
+    path: () => HANDOFF.reels(3),
+    inFrame: { from: "U3a2", message: { type: "demo-reel", reel: 3 } },
+  },
+  {
+    id: "U3a4",
+    act: "user3",
+    persona: "user3",
+    kind: "staged",
+    staged: "instagram-reels",
+    title: "Check this out on Facebook Events?",
+    caption: "One tap from a reel to the event, no new account.",
+    note: "Trish: read the sheet, then tap Open Facebook Events.",
+    path: () => HANDOFF.reels(3, true),
+    inFrame: { from: "U3a3", message: { type: "demo-reel", reel: 3, sheet: true } },
   },
   {
     id: "U3b",
