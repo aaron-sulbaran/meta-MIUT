@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 
 /** A plain white panel with the app's hairline border. */
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -8,7 +9,8 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 /** A quiet line saying whether Muse answered live or a recorded answer was shown. */
 export function SourceBadge({ source }: { source: "muse" | "fixture" }) {
   return (
-    <span className="text-[13px] font-semibold text-muted">
+    <span className="inline-flex items-center gap-[5px] text-[13px] font-semibold text-muted">
+      {source === "muse" && <MetaAiMark size={16} />}
       {source === "muse" ? "Answered by Muse" : "Recorded answer"}
     </span>
   );

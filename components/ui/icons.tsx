@@ -1,5 +1,4 @@
 import type { SVGProps } from "react";
-import { META_AI_MARK_SRC } from "@/components/ui/meta-ai-mark";
 
 // Line icons drawn after the Facebook iOS app's set: 24 px grid, round caps,
 // 1.9 stroke. Filled variants mark the active tab. All are decorative
@@ -271,15 +270,6 @@ export function BellIcon({ className }: IconProps) {
       <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.8 2.1H4.2z" />
       <path d="M9.8 18.8a2.2 2.2 0 0 0 4.4 0" />
     </svg>
-  );
-}
-
-// Retired: the old drawn loop. Every AI indicator is now Meta AI's real mark
-// (components/ui/meta-ai-mark.tsx); this alias keeps old call sites on it.
-export function MuseMark({ className }: IconProps) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={META_AI_MARK_SRC} alt="" aria-hidden draggable={false} className={`inline-block shrink-0 object-contain ${className ?? ""}`} />
   );
 }
 

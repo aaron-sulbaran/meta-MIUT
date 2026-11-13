@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ExtractDraft } from "@/components/organizer/types";
-import { MuseMark } from "@/components/ui/icons";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 
 // "Muse is making your Facebook event" (demo beat O3). Honest by construction:
@@ -45,11 +45,8 @@ export function MuseMaking({ flyerSrc, state }: { flyerSrc: string | null; state
     <section aria-live="polite" aria-busy={reading} className="overflow-hidden rounded-card border border-hairline bg-card">
       <style>{"@keyframes muse-scan{0%{top:-12%}100%{top:100%}}@keyframes muse-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}"}</style>
       <div className="flex items-center gap-[10px] px-3 pt-3">
-        <span
-          className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary"
-          style={reading ? { animation: "muse-breathe 1.4s ease-in-out infinite" } : undefined}
-        >
-          <MuseMark className="h-[22px] w-[22px]" />
+        <span className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-primary-soft">
+          <MetaAiMark size={24} working={reading} />
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-title font-bold leading-[20px]">
