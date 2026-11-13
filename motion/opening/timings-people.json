@@ -1,0 +1,39 @@
+{
+  "measuredAt": "2026-11-13T10:41:50.204Z",
+  "base": "http://localhost:4621",
+  "eventId": "evt-demo-story",
+  "people": [
+    {
+      "ms": 1529,
+      "status": 200,
+      "source": "muse"
+    },
+    {
+      "ms": 1933,
+      "status": 200,
+      "source": "muse"
+    },
+    {
+      "ms": 1661,
+      "status": 200,
+      "source": "muse"
+    },
+    {
+      "ms": 1486,
+      "status": 200,
+      "source": "muse"
+    },
+    {
+      "ms": 1690,
+      "status": 200,
+      "source": "muse"
+    }
+  ],
+  "hello": [
+    {
+      "ms": 2272,
+      "status": 200,
+      "source": "unknown"
+    }
+  ]
+}

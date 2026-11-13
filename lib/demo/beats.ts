@@ -68,7 +68,7 @@ export type Beat = {
 };
 
 export type FilmName = "problem" | "muse" | "build";
-export type DeckName = "problem" | "muse";
+export type DeckName = "problem" | "muse" | "recap";
 
 /** Where a deck beat's page lives. */
 export function deckPath(deck: DeckName): string {
@@ -417,6 +417,24 @@ export const BEATS: Beat[] = [
     caption: "She knows nobody going. Muse finds two people open to company and says hi for her.",
     note: "Trish: none of her friends are going. Muse suggests Jolyn and Lisa from what they share. Tap Say hi to Jolyn and Lisa: Muse writes the hi, sends it, and they say yes.",
     path: whosGoingPath,
+  },
+  {
+    // After the skit: what Muse just did, six moments with their real screens, models, and
+    // measured times (public/demo/deck/recap, notes and who leads in its steps.json).
+    id: "P3",
+    act: "pitch",
+    persona: null,
+    kind: "deck",
+    deck: "recap",
+    title: "What Muse just did",
+    caption: "Six live calls to Meta's Muse models.",
+    sections: [
+      {
+        name: "What Muse just did",
+        line: "Six live calls to Meta's Muse models.",
+        note: "Muse read the flyer, planned the walk, heard her, re-planned, built a feed, wrote the hello.",
+      },
+    ],
   },
   {
     id: "P4",
