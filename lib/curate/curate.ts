@@ -94,6 +94,18 @@ export function pinStory(output: CurateOutput, storyEventId: string | null, even
   return { summary: output.summary, picks: [storyPick, ...picks].slice(0, CURATE_PICK_COUNT), storyPinned: true };
 }
 
+/** The recorded feed, story first, labeled as a fixture: for when the curate call throws. */
+export function curateFixtureFeed(
+  events: CampusEvent[],
+  storyEventId: string | null,
+  now = new Date(),
+  reason = "Curate failed",
+  connectors: ConnectorSource[] = USER3_CONNECTORS,
+): MuseJobResult<CuratedFeed> {
+  const candidates = curateCandidates(events, now);
+  return { data: pinStory(curateFixture(candidates, connectors, storyEventId), storyEventId, candidates), error: null, source: "fixture", fallbackReason: reason };
+}
+
 export async function curateFeed(
   events: CampusEvent[],
   storyEventId: string | null,

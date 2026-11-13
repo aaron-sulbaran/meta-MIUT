@@ -148,7 +148,7 @@ export const BEATS: Beat[] = [
       {
         name: "The hook",
         line: "What would get you back on Facebook?",
-        note: "We started with a simple question. We asked 50 Gen Z students: what would actually get you back on Facebook? And the responses were pretty brutal.",
+        note: "We started with a simple question. We asked 50 Gen Z students: what would actually get you back on Facebook? And the responses were pretty brutal: \"Nothing.\" \"It's beyond saving.\" \"If the love of my life was only on Facebook.\"",
       },
       {
         name: "Marketplace",

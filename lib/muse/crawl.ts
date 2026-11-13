@@ -17,6 +17,7 @@ import {
   type TravelMode,
 } from "@/lib/crawl/order";
 import { CRAWL_PLACES, type CrawlPlace } from "@/lib/muse/crawl-places";
+import { storyCrawlFixture } from "@/lib/demo/story-fixtures";
 import { crawlFixture, itineraryFixture } from "@/lib/muse/fixtures/crawl";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 
@@ -249,7 +250,11 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
       structuredOutput: CRAWL_STRUCTURED_OUTPUT,
     },
     outputSchema: CrawlPickSchema,
-    fixture: () => crawlFixture(candidates, input),
+    // A walk to the demo story's event keeps it as a stop and invites to it.
+    fixture: () => {
+      const generic = crawlFixture(candidates, input);
+      return storyCrawlFixture(generic, candidates, input) ?? generic;
+    },
     accept: (output) => {
       if (!output.stops.every((stop) => byId.has(stop.eventId))) return "Muse picked an unknown event id";
       if (output.stops.filter((stop) => stop.kind === "main").length > 1) return "Muse picked two main courses";

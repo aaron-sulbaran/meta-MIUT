@@ -65,8 +65,10 @@ export function CurateFlow({ auto = false }: { auto?: boolean }) {
     if (started.current && phase.kind !== "error") return;
     started.current = true;
     setPhase({ kind: "reading", step: 0 });
-    const request = fetch("/api/curate", { method: "POST" })
-      .then((response) => response.json() as Promise<CurateResponse>)
+    // One retry before giving up: a dropped request mid-demo should not end on an error.
+    const ask = () => fetch("/api/curate", { method: "POST" }).then((response) => response.json() as Promise<CurateResponse>);
+    const request = ask()
+      .catch(() => new Promise((resolve) => setTimeout(resolve, 800)).then(ask))
       .catch((): CurateResponse => ({ data: null, error: "No connection. Try again." }));
     // One source at a time, at a pace people can read, while Muse works.
     const pace = reducedMotion() ? 0 : STEP_MS;

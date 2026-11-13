@@ -1,5 +1,6 @@
 "use client";
 
+import { SourceBadge } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
 import { MuseFace } from "@/components/map/muse-menu";
 import { buttonClass } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type 
 type Response = { data: WhoIsGoing | null; error: string | null };
 type Seats = { capacity: number; left: number };
 type MusePick = { line: string; people: { id: string; why: string }[] };
-type MuseResponse = { data: (MusePick & { who: WhoIsGoing }) | null; error: string | null };
+type MuseResponse = { data: (MusePick & { who: WhoIsGoing }) | null; error: string | null; source?: "muse" | "fixture" };
 
 async function post<T>(url: string, body: unknown): Promise<T | { data: null; error: string }> {
   try {
@@ -102,7 +103,7 @@ export function WhosGoing({
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [helloBusy, setHelloBusy] = useState<string | null>(null);
   const [helloError, setHelloError] = useState<string | null>(null);
-  const [muse, setMuse] = useState<{ state: "idle" | "asking" | "done"; pick: MusePick | null; error: string | null }>({
+  const [muse, setMuse] = useState<{ state: "idle" | "asking" | "done"; pick: MusePick | null; error: string | null; recorded?: boolean }>({
     state: "idle",
     pick: null,
     error: null,
@@ -145,7 +146,9 @@ export function WhosGoing({
     const rest = result.data.who.openToCompany
       .filter((person) => !picked.has(person.id))
       .map((person) => ({ id: person.id, why: sharedLine(person.shared) }));
-    setMuse({ state: "done", pick: { line: result.data.line, people: [...result.data.people, ...rest] }, error: null });
+    // A recorded answer (Muse unreachable) says so, like every other Muse screen.
+    const recorded = "source" in result && result.source === "fixture";
+    setMuse({ state: "done", pick: { line: result.data.line, people: [...result.data.people, ...rest] }, error: null, recorded });
   }
 
   const sectionRef = useRef<HTMLElement>(null);
@@ -285,6 +288,11 @@ export function WhosGoing({
                 <MuseBadge size={30} />
                 <p className="min-w-0 flex-1 text-body font-medium" aria-live="polite">
                   {muse.pick.line}
+                  {muse.recorded && (
+                    <span className="mt-[2px] block">
+                      <SourceBadge source="fixture" />
+                    </span>
+                  )}
                 </p>
               </div>
               {muse.pick.people.length > 0 && (
