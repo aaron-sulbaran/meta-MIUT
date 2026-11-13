@@ -193,7 +193,17 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   }, [move]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-clip bg-page text-ink">
+    // The real device clips, not a drawn frame: size by the visible viewport (100dvh, so Safari's
+    // toolbars never cover the app's tab bar) and keep the screen inside the safe areas (notch, home bar).
+    <div
+      className="fixed inset-x-0 top-0 z-[100] flex h-[100dvh] flex-col overflow-clip bg-page text-ink"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+      }}
+    >
       {view?.kind === "scene" ? (
         <>
           {frame ? (
@@ -204,15 +214,15 @@ export function PhoneScene({ cast }: { cast: CastId }) {
               title={`${CAST[cast].name}: phone`}
               allow="microphone; geolocation; autoplay"
               onLoad={() => iframeRef.current?.contentWindow?.postMessage({ type: "demo-beat", id: view.beat.id }, window.location.origin)}
-              className="h-full w-full flex-1 border-0 bg-card"
+              className="min-h-0 w-full flex-1 border-0 bg-card"
             />
           ) : (
             <div className="flex flex-1 items-center justify-center text-body text-muted">Loading your screen</div>
           )}
           <nav
             aria-label="Move the stage"
-            className="absolute right-[10px] flex flex-col items-end gap-[8px]"
-            style={{ bottom: "calc(104px + env(safe-area-inset-bottom))", touchAction: "manipulation" }}
+            className="absolute flex flex-col items-end gap-[8px]"
+            style={{ bottom: "calc(96px + env(safe-area-inset-bottom))", right: "calc(8px + env(safe-area-inset-right))", touchAction: "manipulation" }}
           >
             <button
               type="button"
@@ -250,7 +260,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
 function Waiting({ cast, view, online }: { cast: CastId; view: PhoneView | null; online: boolean }) {
   const waiting = view?.kind === "waiting" ? view : null;
   return (
-    <main className="flex flex-1 flex-col px-[20px] pt-[max(56px,env(safe-area-inset-top))] pb-[max(24px,env(safe-area-inset-bottom))]">
+    <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-[20px] pt-[clamp(16px,6dvh,56px)] pb-[24px]">
       <div className="flex flex-col items-center gap-[12px] text-center">
         <CastAvatar id={cast} size={96} />
         <div>
