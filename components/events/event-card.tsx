@@ -21,7 +21,7 @@ export function EventCard({ event, now }: { event: CampusEvent; now: Date }) {
   return (
     <FbEventCard
       href={`/events/${event.id}`}
-      image={<Poster seed={event.id} title={event.title} kicker={posterKicker(event)} />}
+      image={<Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />}
       dateLine={formatDateLine(event, now)}
       title={event.title}
       venue={event.place.name}

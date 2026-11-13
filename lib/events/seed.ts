@@ -1,5 +1,6 @@
 import { z } from "zod";
 import eventsFile from "@/data/seed/events.json";
+import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import studentFile from "@/data/seed/student.json";
 import {
   AccessSchema,
@@ -28,15 +29,42 @@ const SeedEventSchema = z.object({
   source: SourceSchema,
 });
 
-const SeedEventsFileSchema = z.object({ events: z.array(SeedEventSchema) });
+// anchorCampusTime ("19:00") counts offsets from that campus clock time on the nearest day, so real
+// events keep their real clock times and only the date moves with the demo day.
+const SeedEventsFileSchema = z.object({
+  anchorCampusTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  events: z.array(SeedEventSchema),
+});
 const SeedStudentFileSchema = z.object({ profile: StudentProfileSchema });
 
 const MINUTE = 60_000;
+const QUARTER_HOUR = 15 * MINUTE;
+
+function campusOffset(at: Date): string {
+  const name = new Intl.DateTimeFormat("en-US", { timeZone: CAMPUS_TIME_ZONE, timeZoneName: "longOffset" })
+    .formatToParts(at)
+    .find((part) => part.type === "timeZoneName")?.value;
+  return name?.replace("GMT", "") || "+00:00";
+}
+
+// The instant closest to now when the campus clock reads hh:mm (yesterday, today, or tomorrow).
+function nearestCampusClock(now: Date, hhmm: string): number {
+  const candidates = [-1, 0, 1].map((days) => {
+    const day = new Date(now.getTime() + days * 24 * 60 * MINUTE);
+    const date = day.toLocaleDateString("en-CA", { timeZone: CAMPUS_TIME_ZONE });
+    return Date.parse(`${date}T${hhmm}:00${campusOffset(day)}`);
+  });
+  return candidates.reduce((best, next) => (Math.abs(next - now.getTime()) < Math.abs(best - now.getTime()) ? next : best));
+}
 
 export function loadSeedEvents(now: Date): CampusEvent[] {
   const file = SeedEventsFileSchema.parse(eventsFile);
+  // Without an anchor time, offsets count from the nearest quarter hour, so times read 7:30, not 7:33.
+  const anchor = file.anchorCampusTime
+    ? nearestCampusClock(now, file.anchorCampusTime)
+    : Math.round(now.getTime() / QUARTER_HOUR) * QUARTER_HOUR;
   return file.events.map(({ startsInMinutes, durationMinutes, ...rest }) => {
-    const start = new Date(now.getTime() + startsInMinutes * MINUTE);
+    const start = new Date(anchor + startsInMinutes * MINUTE);
     const end = new Date(start.getTime() + durationMinutes * MINUTE);
     return EventSchema.parse({
       ...rest,

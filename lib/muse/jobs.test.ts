@@ -121,7 +121,7 @@ describe("extractEventDraft against a stubbed Muse", () => {
   });
 
   it("a spoken line keeps the time the organizer said", async () => {
-    const said = "Free pho night! tomorrow 6 to 8pm at the Texas Union Ballroom";
+    const said = "Free pho night! tomorrow 6 to 8pm in Lobdell Dining Hall";
     vi.stubGlobal("fetch", vi.fn(async () => reply(JSON.stringify({ events: [extractFixture(now)] }))));
     const result = await extractEventDraft({ caption: said, spoken: true }, now);
     expect(result.data?.start).toBe(extractFixture(now).start);
