@@ -1,4 +1,5 @@
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
+import { withAppSwitch } from "@/lib/demo/app-switch";
 import { STORY, STORY_ORGANIZER } from "@/lib/demo/story-data";
 
 // The staged screens of the demo (hub t-y329): screens that imitate another
@@ -86,8 +87,8 @@ export const HANDOFF = {
   replanLisa: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}&auto=1`,
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
   organizer: ORGANIZER_HANDOFF,
-  // U2b: the no-account landing (t-1lup).
-  lisaLanding: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`,
+  // U2b: the no-account landing (t-1lup), opened from her Instagram messages, so Facebook visibly opens first.
+  lisaLanding: (eventId: string, inviter: string) => withAppSwitch(`/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`),
   // U3d: the story event, with Muse asked who to go with on arrival.
   whosGoing: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1`,
   // U2c: Lisa's landing already joined: the event and "Aaron knows you're going".

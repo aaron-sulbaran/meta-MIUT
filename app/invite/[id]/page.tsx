@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { AppSwitch } from "@/components/demo/app-switch";
 import { InviteLanding } from "@/components/invite/invite-landing";
 import { posterKicker } from "@/components/events/event-card";
 import { Poster } from "@/components/ui/poster";
@@ -18,10 +19,10 @@ export default async function InvitePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string; state?: string }>;
+  searchParams: Promise<{ from?: string; state?: string; opened?: string }>;
 }) {
   await connection();
-  const [{ id }, { from, state }] = await Promise.all([params, searchParams]);
+  const [{ id }, { from, state, opened }] = await Promise.all([params, searchParams]);
   const event = await getEventStore().getEvent(id);
   if (!event) notFound();
 
@@ -37,21 +38,23 @@ export default async function InvitePage({
     .slice(0, 3);
 
   return (
-    <InviteLanding
-      eventId={event.id}
-      eventTitle={event.title}
-      organizerName={event.organizer.name}
-      dateLine={formatDateLine(event, now)}
-      timeLine={formatEventTime(event, now)}
-      placeName={event.place.name}
-      perk={freePerk(event)}
-      inviterId={inviter?.id ?? null}
-      inviterName={inviter?.name ?? null}
-      viewerName={viewer.name}
-      viewerInstagram={viewerInstagram}
-      friendNames={friendNames}
-      initialJoined={state === "joined"}
-      poster={<Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />}
-    />
+    <AppSwitch from={opened}>
+      <InviteLanding
+        eventId={event.id}
+        eventTitle={event.title}
+        organizerName={event.organizer.name}
+        dateLine={formatDateLine(event, now)}
+        timeLine={formatEventTime(event, now)}
+        placeName={event.place.name}
+        perk={freePerk(event)}
+        inviterId={inviter?.id ?? null}
+        inviterName={inviter?.name ?? null}
+        viewerName={viewer.name}
+        viewerInstagram={viewerInstagram}
+        friendNames={friendNames}
+        initialJoined={state === "joined"}
+        poster={<Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />}
+      />
+    </AppSwitch>
   );
 }
