@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/social/whos-going";
+import { ProfileAvatar } from "@/components/ui/tab-bar";
 import { COMMENT_MAX_LENGTH, type EventComment, type EventComments } from "@/lib/social/comment-types";
 
 // The event page's Comments section: what people are saying about the event
@@ -170,7 +171,11 @@ function CommentRow({
 }) {
   return (
     <div className="flex items-start gap-[10px]">
-      <Avatar person={{ id: comment.authorId, name: comment.name }} size={small ? 24 : 32} />
+      {comment.mine ? (
+        <ProfileAvatar size={small ? 24 : 32} />
+      ) : (
+        <Avatar person={{ id: comment.authorId, name: comment.name }} size={small ? 24 : 32} />
+      )}
       <div className="min-w-0">
         <div className="rounded-[16px] bg-wash px-[12px] py-[8px]">
           <p className="text-meta font-semibold text-ink">{comment.mine ? "You" : comment.name}</p>
