@@ -2,7 +2,7 @@
 export type AnswerSource = "muse" | "fixture";
 
 // What Ask Muse can do for the student, and the feed lists it can switch to.
-export const ASK_ACTIONS = ["rsvp", "cancel_rsvp", "interested", "open", "filter", "plan_night", "create_event"] as const;
+export const ASK_ACTIONS = ["rsvp", "cancel_rsvp", "interested", "open", "filter", "plan_night", "create_event", "invite_friend"] as const;
 export type AskActionType = (typeof ASK_ACTIONS)[number];
 export const FEED_FILTERS = ["forYou", "free", "today", "week"] as const;
 export type FeedFilter = (typeof FEED_FILTERS)[number];

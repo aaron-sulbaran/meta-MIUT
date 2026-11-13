@@ -444,14 +444,16 @@ function LogoTile({ card }: { card: MapCard }) {
 }
 
 /** A walk Ask Muse planned on the Ask Muse page, opened here from its link. */
-export type AskPlanLink = { note: string; toEventId: string | null };
+export type AskPlanLink = { note: string; toEventId: string | null; invite?: boolean };
 
 /** To the event asked about, else to a friend named in the request, else home. */
 function startFromAsk(link: AskPlanLink, events: CampusEvent[]): CrawlStart {
   const event = link.toEventId ? events.find((candidate) => candidate.id === link.toEventId) : undefined;
   if (event) return { kind: "friend", to: { lat: event.place.lat, lng: event.place.lng }, label: event.place.name, note: link.note, friendName: null };
   const friend = friendNamedIn(link.note);
-  return friend ? { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name } : { kind: "home", note: link.note };
+  return friend
+    ? { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name, friendId: friend.id, sendInvite: link.invite === true }
+    : { kind: "home", note: link.note };
 }
 
 export function EventsMap({
@@ -462,6 +464,7 @@ export function EventsMap({
   autoPlan = null,
   askPlan = null,
   planAt = null,
+  startLabel = null,
 }: {
   cards: MapCard[];
   studentSpot: Point;
@@ -473,6 +476,8 @@ export function EventsMap({
   askPlan?: AskPlanLink | null;
   /** A set campus time (ISO) every walk plans from, for the demo (?time=). */
   planAt?: string | null;
+  /** How the walk's start reads, like "Out of Data Structures". */
+  startLabel?: string | null;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -683,11 +688,20 @@ export function EventsMap({
   // meeting Lisa instead") ends the walk where they are, so the stops sit
   // between the two of them; otherwise the walk goes home.
   const planFromAsk = useCallback(
-    (_plan: AskPlan, question: string) => {
+    (_plan: AskPlan, question: string, options: { invite: boolean }) => {
       const friend = friendNamedIn(question);
       openCrawl(
         friend
-          ? { kind: "friend", to: friend, label: friendLabel(friend), note: question, friendName: friend.name }
+          ? {
+              kind: "friend",
+              to: friend,
+              label: friendLabel(friend),
+              note: question,
+              friendName: friend.name,
+              friendId: friend.id,
+              // "...and send her the invite": Muse's invite goes to her phone once the walk is planned.
+              sendInvite: options.invite,
+            }
           : { kind: "home", note: question },
       );
     },
@@ -830,6 +844,7 @@ export function EventsMap({
           dismissed={dismissed}
           start={crawlStart?.start}
           at={planAt}
+          fromLabel={startLabel}
           onRoute={setRoute}
           onClose={() => {
             setRoute(null);

@@ -1,7 +1,10 @@
-// PLACEHOLDER: where the demo student's friends are right now, for the map's
-// "meet a friend" re-plan ("I'm meeting Lisa, find one closer to both of us").
-// Friends share their location with each other by opting in; the demo seeds
-// it. Client safe: the map reads it in the browser.
+import { EVERYONE, personNamedIn } from "@/lib/social/fixtures/people";
+
+// Where the demo student's friends are right now, for the map's "meet a
+// friend" re-plan ("I'm meeting Lisa, find one closer to both of us"). Friends
+// share their location by opting in; the demo seeds it on the people fixture
+// (lib/social/fixtures/people.ts, the one place friends live). Client safe:
+// the map reads it in the browser.
 
 export type FriendSpot = {
   id: string;
@@ -11,16 +14,13 @@ export type FriendSpot = {
   lng: number;
 };
 
-export const FRIEND_SPOTS: FriendSpot[] = [
-  { id: "lisa", name: "Lisa", placeName: "Kendall Square", lat: 42.3626, lng: -71.0843 },
-  { id: "maya", name: "Maya", placeName: "Simmons Hall", lat: 42.357, lng: -71.1012 },
-  { id: "leo", name: "Leo", placeName: "Central Square", lat: 42.3654, lng: -71.1037 },
-];
+export const FRIEND_SPOTS: FriendSpot[] = EVERYONE.flatMap((person) =>
+  person.spot ? [{ id: person.id, name: person.name, ...person.spot }] : [],
+);
 
 /** The first friend named in what the student said or typed, or null. Whole words only. */
 export function friendNamedIn(text: string): FriendSpot | null {
-  const words = new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
-  return FRIEND_SPOTS.find((friend) => words.has(friend.name.toLowerCase())) ?? null;
+  return personNamedIn(text, FRIEND_SPOTS);
 }
 
 /**

@@ -10,11 +10,13 @@ export type Person = {
   major: string;
   interests: string[];
   instagram: string;
+  /** Where they are right now, when they share their location with friends (opt in; seeded for the demo). */
+  spot?: { placeName: string; lat: number; lng: number };
 };
 
 export const PEOPLE: Person[] = [
-  { id: "maya", name: "Maya", year: "Second-year", major: "Computer Science", interests: ["coding", "hackathons", "free food"], instagram: "sample_maya" },
-  { id: "leo", name: "Leo", year: "Third-year", major: "Film", interests: ["film", "music", "free food"], instagram: "sample_leo" },
+  { id: "maya", name: "Maya", year: "Second-year", major: "Computer Science", interests: ["coding", "hackathons", "free food"], instagram: "sample_maya", spot: { placeName: "Simmons Hall", lat: 42.357, lng: -71.1012 } },
+  { id: "leo", name: "Leo", year: "Third-year", major: "Film", interests: ["film", "music", "free food"], instagram: "sample_leo", spot: { placeName: "Central Square", lat: 42.3654, lng: -71.1037 } },
   { id: "priya", name: "Priya", year: "Second-year", major: "Biology", interests: ["rock climbing", "yoga", "wellness"], instagram: "sample_priya" },
   { id: "sam", name: "Sam", year: "Fourth-year", major: "Economics", interests: ["careers", "coding", "free food"], instagram: "sample_sam" },
   { id: "ava", name: "Ava", year: "First-year", major: "Undeclared", interests: ["rock climbing", "film", "hackathons"], instagram: "sample_ava" },
@@ -35,7 +37,7 @@ export const PEOPLE: Person[] = [
 // invite), so User 3 sees them appear.
 export const PERSONAS: Person[] = [
   { id: "sample-student", name: "Aaron", year: "Second-year", major: "Computer Science", interests: ["rock climbing", "free food", "hackathons", "film"], instagram: "sample_aaron" },
-  { id: "lisa", name: "Lisa", year: "Second-year", major: "Comparative Media Studies", interests: ["film", "free food", "music"], instagram: "sample_lisa" },
+  { id: "lisa", name: "Lisa", year: "Second-year", major: "Comparative Media Studies", interests: ["film", "free food", "music"], instagram: "sample_lisa", spot: { placeName: "Kendall Square", lat: 42.3626, lng: -71.0843 } },
   { id: "user3", name: "Jordan", year: "First-year", major: "Undeclared", interests: ["free food", "film", "hackathons"], instagram: "sample_jordan" },
 ];
 
@@ -49,6 +51,12 @@ export const FRIENDS: Record<string, string[]> = {
   lisa: ["sample-student", "leo", "jade"],
   user3: ["sample-student", "lisa", "ava"],
 };
+
+/** The first of these people named in what a student said or typed, whole words only, or null. The one person lookup. */
+export function personNamedIn<P extends { name: string }>(text: string, people: P[]): P | null {
+  const words = new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
+  return people.find((person) => words.has(person.name.toLowerCase())) ?? null;
+}
 
 /** Friends both people have, by name: "mutual friends" for someone who is not a friend yet. */
 export function mutualFriends(viewerId: string, personId: string): string[] {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { composeAlert } from "@/lib/alerts/compose";
 import { getAlertFeed } from "@/lib/alerts/feed";
-import { ALERT_KINDS } from "@/lib/alerts/schema";
+import { ALERT_KINDS, AlertHrefSchema } from "@/lib/alerts/schema";
 import { loadSeedStudent } from "@/lib/events/seed";
 import { getEventStore } from "@/lib/events/store";
 import { readJsonBody } from "@/lib/http";
@@ -31,6 +31,10 @@ export async function GET(request: Request) {
 const SendAlertSchema = z.object({
   eventId: z.string().min(1),
   kind: z.enum(ALERT_KINDS),
+  // Optional: only this viewer's phone shows it, and tapping opens this path
+  // (for example the class-ended alert opening /?plan=home on the map).
+  to: z.string().min(1).max(64).optional(),
+  href: AlertHrefSchema.optional(),
 });
 
 // POST: send an alert for an existing event, for example the organizer's
@@ -40,7 +44,12 @@ export async function POST(request: Request) {
   if (body.error !== null) return Response.json({ data: null, error: body.error }, { status: 400 });
   const event = await getEventStore().getEvent(body.data.eventId);
   if (!event) return Response.json({ data: null, error: "No event with that id" }, { status: 404 });
-  const draft = composeAlert(event, body.data.kind, { now: new Date(), viewerLocation: loadSeedStudent().home });
+  const composed = composeAlert(event, body.data.kind, { now: new Date(), viewerLocation: loadSeedStudent().home });
+  const draft = {
+    ...composed,
+    ...(body.data.to ? { to: body.data.to } : {}),
+    ...(body.data.href ? { href: body.data.href } : {}),
+  };
   const sent = await getAlertFeed().publish(draft);
   return Response.json(sent, { status: sent.error === null ? 201 : 502 });
 }
