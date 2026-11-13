@@ -11,7 +11,7 @@ describe("organizerLogo", () => {
   });
 
   it("returns null for an organizer with no logo, so the bubble shows a monogram", () => {
-    expect(organizerLogo({ name: "MIT Museum", handle: "mit_museum" })).toBeNull();
+    expect(organizerLogo({ name: "Boston Student Runners", handle: "bostonrunners" })).toBeNull();
   });
 
   it("only links https images", () => {

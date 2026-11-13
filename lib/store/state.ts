@@ -43,6 +43,33 @@ export async function saveState(name: string, value: unknown): Promise<void> {
   await redis.command(["SET", keyFor(name), JSON.stringify(value)]);
 }
 
+const claims = globalThis as typeof globalThis & { __stateClaims?: Map<string, number> };
+
+/**
+ * Claims `name` for `ttlSeconds`: true for the first caller, false for anyone
+ * else until it expires (Redis SET NX, so two server instances agree). Used to
+ * make a repeated action harmless, such as the same invite sent from two phones.
+ * Without Redis the claim lives in this process.
+ */
+export async function claimOnce(name: string, ttlSeconds: number, now = Date.now()): Promise<boolean> {
+  const redis = client();
+  if (redis) {
+    const reply = await redis.command(["SET", keyFor(`claim:${name}`), String(now), "NX", "EX", ttlSeconds]);
+    // A store failure lets the action through: better twice than never.
+    return reply.error !== null || reply.data === "OK";
+  }
+  const held = (claims.__stateClaims ??= new Map());
+  const until = held.get(name);
+  if (until !== undefined && until > now) return false;
+  held.set(name, now + ttlSeconds * 1000);
+  return true;
+}
+
+/** Forgets this process's claims (the demo reset; stored claims go with their prefix). */
+export function resetClaims(): void {
+  claims.__stateClaims?.clear();
+}
+
 /**
  * Deletes every saved value whose name starts with one of the prefixes (the demo
  * reset). Without Redis there is nothing stored, so it deletes nothing.

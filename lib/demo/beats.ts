@@ -28,11 +28,13 @@ export type BeatContext = { storyEventId: string | null; now: Date };
 export type Beat = {
   id: string;
   act: BeatAct;
-  // Null plays Aaron, the sample student (no cookie).
+  // Null plays User 1, the sample student (no cookie).
   persona: PersonaId | null;
-  // A film plays public/demo/films/<film>.mp4 full bleed, stepping through its
-  // cue points; until the file exists it shows as a slide.
-  kind: "slide" | "staged" | "app" | "film";
+  // A deck is a live motion page (public/demo/deck/<deck>/index.html) stepped by
+  // the stage; a film plays public/demo/films/<film>.mp4 stepping through its cue
+  // points (a rendered backup for a deck). With neither file, `sections` show as
+  // plain slides, one per cue.
+  kind: "slide" | "staged" | "app" | "film" | "deck";
   title: string;
   // What the audience should take from this beat, shown large beside the phone.
   caption: string;
@@ -42,6 +44,13 @@ export type Beat = {
   staged?: StagedScreen;
   // A film beat's name: public/demo/films/<film>.mp4 and <film>.cues.json.
   film?: FilmName;
+  // A deck beat's name: public/demo/deck/<deck>/index.html, notes in steps.json beside it.
+  deck?: DeckName;
+  // The opening's sections, in order: each one cue of the deck or film. `line` is
+  // the fallback slide (the section's one bold line), `note` what the presenter says.
+  sections?: { name: string; line: string; note: string }[];
+  // What the presenter says and does on this beat. On the remote and the console only.
+  note?: string;
   // Continues inside the phone of beat `from` (when it is still on screen) by posting
   // `message` to it, instead of loading this beat's path. Any other way in loads the path.
   inFrame?: { from: string; message: { type: "demo-ask"; line: string } };
@@ -51,25 +60,50 @@ export type Beat = {
 };
 
 export type FilmName = "problem" | "muse" | "build";
+export type DeckName = "problem" | "muse";
+
+/** Where a deck beat's page lives. */
+export function deckPath(deck: DeckName): string {
+  return `/demo/deck/${deck}/index.html`;
+}
+
+/** A deck's presenter notes: an ordered array of {id, title, notes}, one per step. */
+export function deckStepsPath(deck: DeckName): string {
+  return `/demo/deck/${deck}/steps.json`;
+}
+
+export type DeckStep = { id: string; title: string; notes: string };
 
 /** Where a film beat's video and its cue points (an array of seconds) live. */
 export function filmFiles(film: FilmName): { video: string; cues: string } {
   return { video: `/demo/films/${film}.mp4`, cues: `/demo/films/${film}.cues.json` };
 }
 
-// The cast, in one place: rename User 3 here once they are cast.
-export type CastId = "organizer" | "aaron" | "lisa" | "user3";
+// The cast, in one place (Aaron's final cast, 2026-11-13). Aaron presents and is
+// not in the skit. User 1 is the sample student (no persona cookie).
+export type CastId = "organizer" | "user1" | "user2" | "user3";
 
 export const CAST: Record<CastId, { name: string; role: string }> = {
-  organizer: { name: "Jolyn", role: "Event organizer" },
-  aaron: { name: "Aaron", role: "Uses Facebook Events" },
-  lisa: { name: "Lisa", role: "New to Facebook" },
-  user3: { name: "User 3", role: "Has Facebook, new to Events" },
+  organizer: { name: "Jing", role: "Event organizer" },
+  user1: { name: "Jolyn", role: "Facebook Events power user" },
+  user2: { name: "Lisa", role: "New to Facebook" },
+  user3: { name: "Trish", role: "New to Facebook Events" },
 };
 
-/** The cast member a persona plays (no persona is Aaron, the sample student). */
+/** Each cast member's phone link slug: /demo/phone/<slug>. */
+export const CAST_SLUG: Record<CastId, string> = {
+  organizer: "jing",
+  user1: "jolyn",
+  user2: "lisa",
+  user3: "trish",
+};
+
+// The persona cookie each cast member plays (null is the sample student). Cookie values stay as they were.
+const CAST_OF_PERSONA: Record<PersonaId, CastId> = { organizer: "organizer", lisa: "user2", user3: "user3" };
+
+/** The cast member a persona plays (no persona is User 1, the sample student). */
 export function castOf(persona: PersonaId | null): CastId {
-  return persona ?? "aaron";
+  return persona ? CAST_OF_PERSONA[persona] : "user1";
 }
 
 /** "Lisa · New to Facebook". */
@@ -80,25 +114,17 @@ export function castLine(id: CastId): string {
 // Which cast member each act follows, in the order the show meets them.
 export const ACT_CAST: Record<Exclude<BeatAct, "pitch">, CastId> = {
   organizer: "organizer",
-  user1: "aaron",
-  lisa: "lisa",
+  user1: "user1",
+  lisa: "user2",
   user3: "user3",
 };
 
 export const ACT_LABELS: Record<BeatAct, string> = {
   pitch: "The pitch",
   organizer: castLine("organizer"),
-  user1: castLine("aaron"),
-  lisa: castLine("lisa"),
+  user1: castLine("user1"),
+  lisa: castLine("user2"),
   user3: castLine("user3"),
-};
-
-// Who is on screen, named plainly so the room always knows (Aaron's call).
-export const PERSONA_CAPTIONS: Record<PersonaId | "aaron", string> = {
-  aaron: castLine("aaron"),
-  lisa: castLine("lisa"),
-  user3: castLine("user3"),
-  organizer: castLine("organizer"),
 };
 
 const whosGoingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.whosGoing(storyEventId) : null);
@@ -106,23 +132,67 @@ const lisaJoinedPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOF
 const lisaLandingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaLanding(storyEventId, "sample-student") : null);
 
 export const BEATS: Beat[] = [
+  // The opening follows Jolyn's script (hub sources/2026-11-13-jolyn-opening-pitch-script.md).
+  // It will be trimmed for time: the structure is wired, the words are hers and change there.
   {
     id: "P1",
     act: "pitch",
     persona: null,
-    kind: "film",
+    kind: "deck",
+    deck: "problem",
     film: "problem",
     title: "The problem",
-    caption: "Young adults open Facebook to get something done, like Marketplace. Events never gets a look.",
+    caption: "We need a reason to open the app.",
+    // Fallback lines only from the confirmed list (no survey replies); the deck replaces them.
+    sections: [
+      {
+        name: "The hook",
+        line: "What would get you back on Facebook?",
+        note: "We started with a simple question. We asked 50 Gen Z students: what would actually get you back on Facebook? And the responses were pretty brutal.",
+      },
+      {
+        name: "Marketplace",
+        line: "But there was one exception. Marketplace.",
+        note: "But there was one exception: Facebook Marketplace. As Gen Z, we don't go on Facebook to scroll. We go to get something done. It's an app to do.",
+      },
+      {
+        name: "Campus flyers",
+        line: "We don't need another feed to scroll. We need a reason to open the app.",
+        note: "Every day, clubs and departments host events and give away free food. Things we'd actually want to go to.",
+      },
+      {
+        name: "Overload",
+        line: "The opportunities exist. We just can't find them.",
+        note: "But it's scattered across emails, Instagram posts, and group chats. By the time we hear about it, it's already over.",
+      },
+      {
+        name: "The solution",
+        line: "What if finding your next experience was as easy as finding your next deal?",
+        note: "Marketplace made Facebook useful for finding things. So what if finding your next experience was as easy as finding your next deal?",
+      },
+    ],
   },
   {
     id: "P2",
     act: "pitch",
     persona: null,
-    kind: "film",
+    kind: "deck",
+    deck: "muse",
     film: "muse",
-    title: "Muse does three jobs",
-    caption: "It reads a post, knows your day, and brings you to the thing worth leaving for.",
+    title: "How Muse makes it possible",
+    caption: "Less work for organizers. Less searching for students.",
+    sections: [
+      {
+        name: "Muse reads the post",
+        line: "Events, reimagined.",
+        note: "Organizers already post on Instagram, so why post twice? With one share, Muse reads the post and makes the Facebook event. For students, Muse surfaces what fits their interests, place, and schedule.",
+      },
+      {
+        name: "Over to the skit",
+        line: "Less work for organizers. Less searching for students.",
+        note: "Less work for organizers. Less searching for students. Let's see it.",
+      },
+    ],
   },
   {
     id: "O1",
@@ -132,6 +202,7 @@ export const BEATS: Beat[] = [
     staged: "instagram-new-post",
     title: `${CAST.organizer.name}'s club is hosting tonight`,
     caption: "She posts the flyer on Instagram, the way she always does.",
+    note: "Jing: show the club's Instagram post with the flyer and caption. Tap Share.",
     path: ({ now }) => HANDOFF.instagramPost(now.toISOString()),
   },
   {
@@ -142,6 +213,7 @@ export const BEATS: Beat[] = [
     staged: "instagram-crosspost-prompt",
     title: "Instagram notices it's an event",
     caption: "It asks one question: want this on Facebook Events too?",
+    note: "Jing: Instagram asks to post it to Facebook Events too. Tap yes.",
     path: ({ now }) => HANDOFF.instagramPost(now.toISOString()),
   },
   {
@@ -151,6 +223,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Muse reads the flyer",
     caption: "The date, the place, the free food, who can come. All from the post.",
+    note: "Jing: let Muse fill the fields from the flyer, live. Point at the date, place, and free food.",
     path: ({ now }) => HANDOFF.organizerAt(now.toISOString()),
   },
   {
@@ -160,6 +233,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "It's live in one tap",
     caption: `A real Facebook event. ${CAST.organizer.name} typed nothing.`,
+    note: "Jing: tap Post. It is a real Facebook event now.",
     path: ({ now }) => HANDOFF.organizerPosted(now.toISOString()),
   },
   {
@@ -168,8 +242,9 @@ export const BEATS: Beat[] = [
     persona: null,
     kind: "staged",
     staged: "live-activity",
-    title: `${CAST.aaron.name} just got out of class`,
-    caption: "Muse knows he's free and hungry.",
+    title: `${CAST.user1.name} just got out of class`,
+    caption: "Muse knows she's free and hungry.",
+    note: "Jolyn: class just ended. Read the Live Activity out loud, then tap it.",
     path: ({ now }) => `${LIVE_ACTIVITY_PATH}?time=${encodeURIComponent(now.toISOString())}`,
   },
   {
@@ -178,9 +253,10 @@ export const BEATS: Beat[] = [
     persona: null,
     kind: "app",
     title: "Already mapped",
-    caption: "The best free stop on his walk home, before he asks.",
+    caption: "The best free stop on her walk home, before she asks.",
+    note: "Jolyn: the walk home is already mapped. Point at the free stop on the way.",
     path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
-    // Planned while the lock screen is up, so the walk is already drawn ("before he asks").
+    // Planned while the lock screen is up, so the walk is already drawn ("before she asks").
     prefetch: true,
   },
   {
@@ -189,7 +265,8 @@ export const BEATS: Beat[] = [
     persona: null,
     kind: "app",
     title: "Change of plans",
-    caption: `He says it out loud: I'm meeting ${CAST.lisa.name}. Muse finds a spot between them and invites her.`,
+    caption: `She says it out loud: I'm meeting ${CAST.user2.name}. Muse finds a spot between them and invites her.`,
+    note: "Jolyn: say it out loud: I'm meeting Lisa, find something between us and invite her. Wait for the invite line on the plan.",
     path: ({ now }) => HANDOFF.replanLisa(now.toISOString()),
     // Coming from U1b, Ask Muse opens over the walk already on screen: no reload, no second plan.
     inFrame: { from: "U1b", message: { type: "demo-ask", line: REPLAN_LINE } },
@@ -200,8 +277,9 @@ export const BEATS: Beat[] = [
     persona: "lisa",
     kind: "staged",
     staged: "invite-message",
-    title: `${CAST.lisa.name} gets the invite`,
-    caption: `From ${CAST.aaron.name}'s Muse, in her Instagram messages.`,
+    title: `${CAST.user2.name} gets the invite`,
+    caption: `From ${CAST.user1.name}'s Muse, in her Instagram messages.`,
+    note: "Lisa: the invite arrives in her Instagram messages. Tap the event card.",
     path: () => "/demo/instagram/dm",
   },
   {
@@ -209,8 +287,9 @@ export const BEATS: Beat[] = [
     act: "lisa",
     persona: "lisa",
     kind: "app",
-    title: `${CAST.lisa.name} isn't on Facebook`,
+    title: `${CAST.user2.name} isn't on Facebook`,
     caption: "She has Instagram, so she already has a Meta account.",
+    note: "Lisa: no Facebook account. Tap Continue: her Instagram account is enough.",
     path: lisaLandingPath,
   },
   {
@@ -219,7 +298,8 @@ export const BEATS: Beat[] = [
     persona: "lisa",
     kind: "app",
     title: "She's in",
-    caption: `No form, no password. And ${CAST.aaron.name} knows she's coming.`,
+    caption: `No form, no password. And ${CAST.user1.name} knows she's coming.`,
+    note: "Lisa: she is in and going, and Jolyn has been told.",
     // Her landing already joined, so the beat rests on the event even if U2b was not tapped.
     path: lisaJoinedPath,
   },
@@ -230,7 +310,8 @@ export const BEATS: Beat[] = [
     kind: "staged",
     staged: "instagram-feed-prompt",
     title: "Scrolling Instagram",
-    caption: "A club they follow posted the same event.",
+    caption: "A club she follows posted the same event.",
+    note: "Trish: scrolling Instagram, the same event shows up. Tap Open Facebook Events.",
     path: () => "/demo/instagram/feed",
   },
   {
@@ -239,7 +320,8 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "First time in Events",
-    caption: "Muse builds the feed from what they already follow.",
+    caption: "Muse builds the feed from what she already follows.",
+    note: "Trish: first time in Events. Muse reads what she follows and builds her feed. Board Game Night is first.",
     path: () => HANDOFF.curateAuto,
   },
   {
@@ -248,7 +330,8 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "Who's going?",
-    caption: `${CAST.aaron.name} and ${CAST.lisa.name}. So they go too.`,
+    caption: `${CAST.user1.name} and ${CAST.user2.name}. So she goes too.`,
+    note: "Trish: Jolyn and Lisa are going, and Muse suggests who to say hi to. She taps I'm going.",
     path: whosGoingPath,
   },
   {

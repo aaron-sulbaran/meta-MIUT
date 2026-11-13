@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   CloseIcon,
   CommentIcon,
@@ -81,6 +84,73 @@ const POSTS: Post[] = [
   },
 ];
 
+/** Shown in place of a post the student hides with the X, so the feed never runs dry. */
+const MORE_POSTS: Post[] = [
+  {
+    id: "sailing-pavilion",
+    author: "MIT Sailing",
+    kind: "group",
+    color: "#0e7490",
+    action: "Follow",
+    time: "2h",
+    text: "Last open sail of the season this weekend. Calm water, no experience needed.",
+    photos: ["/feed/lake-boat.jpg"],
+    likes: "908",
+    comments: "52",
+    shares: "17",
+  },
+  {
+    id: "sam-pset",
+    author: "Sam",
+    kind: "person",
+    color: "#be185d",
+    time: "4h",
+    text: "Just submitted the pset 3 minutes before the deadline. Going to sleep for a week.",
+    photos: [],
+    likes: "141",
+    comments: "33",
+    shares: "1",
+  },
+  {
+    id: "hiking-club",
+    author: "Boston Hiking Club",
+    kind: "group",
+    color: "#4d7c0f",
+    context: "Leo",
+    action: "Join",
+    time: "6h",
+    text: "Peak foliage is over, but the views are not. Day trip to the White Mountains on Sunday.",
+    photos: ["/feed/peak.jpg"],
+    likes: "2.4K",
+    comments: "96",
+    shares: "58",
+  },
+  {
+    id: "nina-beach",
+    author: "Nina",
+    kind: "person",
+    color: "#7c3aed",
+    time: "2d",
+    text: "Missing this already. Who is up for one more beach day before it gets cold?",
+    photos: ["/feed/beach.jpg"],
+    likes: "264",
+    comments: "18",
+    shares: "2",
+  },
+  {
+    id: "waterfall-walk",
+    author: "Maya",
+    kind: "person",
+    color: "#b45309",
+    time: "3d",
+    text: "Twenty minute walk, one very loud waterfall. Highly recommend.",
+    photos: ["/feed/waterfall.jpg", "/feed/forest-path.jpg", "/feed/mountains-clouds.jpg"],
+    likes: "377",
+    comments: "21",
+    shares: "3",
+  },
+];
+
 function Avatar({ post }: { post: Post }) {
   return (
     <span
@@ -115,9 +185,21 @@ function Photos({ photos }: { photos: string[] }) {
 }
 
 export function FeedPosts() {
+  const [shown, setShown] = useState(POSTS);
+  const [queue, setQueue] = useState(MORE_POSTS);
+
+  // The X hides a post and the next one in line takes its place.
+  function hide(id: string) {
+    const [next, ...rest] = queue;
+    const hidden = shown.find((post) => post.id === id);
+    if (!next || !hidden) return;
+    setShown([...shown.filter((post) => post.id !== id), next]);
+    setQueue([...rest, hidden]);
+  }
+
   return (
     <>
-      {POSTS.map((post) => (
+      {shown.map((post) => (
         <div key={post.id}>
           <article className="pt-[11px]" aria-label={`Post by ${post.author}`}>
             <div className="flex items-center gap-[9px] px-[11.4px]">
@@ -135,7 +217,14 @@ export function FeedPosts() {
                 </p>
               </div>
               <MoreDotsIcon className="h-[20px] w-[20px] shrink-0 text-muted" />
-              <CloseIcon className="ml-[8px] h-[20px] w-[20px] shrink-0 text-muted" />
+              <button
+                type="button"
+                aria-label={`Hide post by ${post.author}`}
+                onClick={() => hide(post.id)}
+                className="ml-[8px] shrink-0 text-muted"
+              >
+                <CloseIcon className="h-[20px] w-[20px]" />
+              </button>
             </div>
             <p className="px-[11.4px] pt-[10px] text-body font-medium">{post.text}</p>
             <Photos photos={post.photos} />
