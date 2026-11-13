@@ -93,15 +93,29 @@ describe("personalizeEvents without a key", () => {
 });
 
 describe("soonestFirst", () => {
-  it("puts what is on now first, then the soonest to start", () => {
+  it("puts what is on now first, then day by day with the best match first", () => {
     const likely = compileCandidates(loadSeedStudent(), getInterestMemory(undefined, now), events, now);
     const starts = new Map(events.map((event) => [event.id, Date.parse(event.start)]));
-    const keys = soonestFirst(likely, events, now).map((candidate) => {
-      const start = starts.get(candidate.eventId)!;
-      return start <= now.getTime() ? -Infinity : start;
-    });
-    expect(keys).toEqual([...keys].sort((a, b) => a - b));
-    expect(soonestFirst(likely, events, now)).toHaveLength(likely.length);
+    const day = (at: number) =>
+      at <= now.getTime() ? "0" : new Date(at).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const sorted = soonestFirst(likely, events, now);
+    const keys = sorted.map((candidate) => day(starts.get(candidate.eventId)!));
+    expect(keys).toEqual([...keys].sort());
+    for (let i = 1; i < sorted.length; i++) {
+      if (keys[i] === keys[i - 1]) expect(sorted[i]!.score).toBeLessThanOrEqual(sorted[i - 1]!.score);
+    }
+    expect(sorted).toHaveLength(likely.length);
+  });
+
+  it("ranks a free-food event that matches nothing else below a real match", () => {
+    const base = { ...events[0]!, food: true, foodNote: "Pizza", organizer: { name: "Club", handle: "test_club" } };
+    const pizza = { ...base, id: "evt-test-pizza", title: "Pizza social", description: "Free pizza." };
+    const hack = { ...base, id: "evt-test-hack", title: "Hackathon info session", description: "Free pizza." };
+    const profile: StudentProfile = { ...student, follows: [], interests: ["free food", "hackathons"] };
+    const [first, second] = compileCandidates(profile, buildInterestMemory("food", [], now), [pizza, hack], now);
+    expect(first!.eventId).toBe("evt-test-hack");
+    expect(second!.eventId).toBe("evt-test-pizza");
+    expect(first!.score - second!.score).toBeGreaterThan(1);
   });
 });
 

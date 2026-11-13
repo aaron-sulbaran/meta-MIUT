@@ -12,6 +12,7 @@ import type { LikelyEvent } from "@/lib/muse/types";
 // Rank sends the best of these to Muse; the UI shows the rest.
 
 export const MAX_WALK_MINUTES = 20; // about one mile
+const FOOD_ONLY_PENALTY = 1;
 
 // Topics are matched by keyword in an event's text. Memory and stated
 // interests use the same topic names.
@@ -164,12 +165,18 @@ export function compileCandidates(
       const creatorAffinity = creators.get(event.organizer.handle) ?? 0;
       const personal = Math.min(interest, 1.5) + (followsClub ? 0.8 : 0) + creatorAffinity * 0.5;
       if (personal <= 0) return [];
+      // Free food and nothing else they like about it: still listed, but below real matches.
+      const foodOnly =
+        matched.includes("free food") &&
+        matched.every((topic) => topic === "free food" || diets.includes(topic)) &&
+        !followsClub &&
+        creatorAffinity <= 0;
 
       const walk = walkMinutes(from, event.place);
       const clash = scheduleClash(event, profile.schedule);
       const today = isInWindow(event, "today", now);
       const nearby = walk <= MAX_WALK_MINUTES ? 0.3 * (1 - walk / MAX_WALK_MINUTES) : -0.5;
-      const score = personal + (event.free ? 0.3 : 0) + (today ? 0.3 : 0) + nearby - (clash ? 0.8 : 0);
+      const score = personal + (event.free ? 0.3 : 0) + (today ? 0.3 : 0) + nearby - (clash ? 0.8 : 0) - (foodOnly ? FOOD_ONLY_PENALTY : 0);
 
       const likely: LikelyEvent = {
         eventId: event.id,

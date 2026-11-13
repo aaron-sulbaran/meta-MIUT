@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { CampusEvent, RankedPick } from "@/lib/events/schema";
 import { isInWindow } from "@/lib/events/time";
 import { walkMinutes } from "@/lib/geo";
@@ -51,14 +52,21 @@ function picksPool(likely: LikelyEvent[], events: CampusEvent[], profile: Studen
   return [...pool, ...rest].slice(0, POOL_SIZE);
 }
 
-/** Likely events by time: what is on now first, then the soonest to start. */
+/**
+ * Likely events by time and interest: what is on now first, then day by day,
+ * and within each, the best match first (soonest breaks ties).
+ */
 export function soonestFirst(likely: LikelyEvent[], events: CampusEvent[], now: Date): LikelyEvent[] {
   const startOf = new Map(events.map((event) => [event.id, Date.parse(event.start)]));
-  const key = (candidate: LikelyEvent) => {
-    const start = startOf.get(candidate.eventId) ?? Number.POSITIVE_INFINITY;
-    return start <= now.getTime() ? Number.NEGATIVE_INFINITY : start;
+  const start = (candidate: LikelyEvent) => startOf.get(candidate.eventId) ?? Number.POSITIVE_INFINITY;
+  const bucket = (candidate: LikelyEvent) => {
+    const at = start(candidate);
+    if (at <= now.getTime()) return "0";
+    return Number.isFinite(at) ? `1${new Date(at).toLocaleDateString("en-CA", { timeZone: CAMPUS_TIME_ZONE })}` : "2";
   };
-  return [...likely].sort((a, b) => key(a) - key(b) || b.score - a.score);
+  return [...likely].sort(
+    (a, b) => bucket(a).localeCompare(bucket(b)) || b.score - a.score || start(a) - start(b),
+  );
 }
 
 export async function personalizeEvents(
