@@ -2,6 +2,7 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Map as MapLibreMap, GeoJSONSource, Marker } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, initials } from "@/components/map/category-icons";
@@ -19,7 +20,8 @@ import type { Category } from "@/lib/map/category";
 // Chips along the top filter the map and cards. A swipeable strip of cards
 // sits at the bottom: swiping flies the map to that event, tapping a bubble
 // scrolls the strip to its card. X hides an event ("Not for me") and cools its
-// hotspot. Directions opens walking directions in the phone's maps app.
+// hotspot, and after the Undo window Muse learns from it. Directions opens
+// walking directions in the phone's maps app.
 // Tiles: OpenFreeMap "liberty" (OpenStreetMap data, no key), softened on load.
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
@@ -29,6 +31,8 @@ const STUDENT_ZOOM = 14.6;
 // bubbles do not pile up their labels.
 const LABEL_ZOOM = 16.2;
 const DISMISSED_KEY = "map:dismissed";
+// How long Undo stays up before Muse learns from a Not for me.
+const UNDO_MS = 5000;
 
 type Point = { lat: number; lng: number };
 
@@ -354,6 +358,7 @@ export function EventsHeatmap({
   studentSpot: Point;
   museLive: boolean;
 }) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLOListElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -514,18 +519,44 @@ export function EventsHeatmap({
     if (mapRef.current) frameStudent(mapRef.current, studentSpot, visibleCards, true);
   }, [studentSpot, visibleCards]);
 
+  // Muse learns from Not for me (POST /api/muse/learn, kind "dismissed"), but
+  // only once the Undo window has passed, since a dismissal cannot be unlearned.
+  // Then the page refreshes so the heat reflects what Muse now knows.
+  const learnTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  useEffect(() => {
+    const timers = learnTimers.current;
+    return () => timers.forEach((timer) => clearTimeout(timer));
+  }, []);
+
   const dismiss = useCallback(
     (card: MapCard) => {
       const next = [...dismissed, card.eventId];
       setDismissed(next);
       writeDismissed(next);
       setLastDismissed(card);
+      const timer = setTimeout(() => {
+        learnTimers.current.delete(card.eventId);
+        setLastDismissed((current) => (current?.eventId === card.eventId ? null : current));
+        void fetch("/api/muse/learn", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ eventId: card.eventId, kind: "dismissed" }),
+        })
+          .then((response) => {
+            if (response.ok) router.refresh();
+          })
+          .catch(() => undefined);
+      }, UNDO_MS);
+      learnTimers.current.set(card.eventId, timer);
     },
-    [dismissed],
+    [dismissed, router],
   );
 
   const undoDismiss = useCallback(() => {
     if (!lastDismissed) return;
+    const timer = learnTimers.current.get(lastDismissed.eventId);
+    if (timer) clearTimeout(timer);
+    learnTimers.current.delete(lastDismissed.eventId);
     const next = dismissed.filter((id) => id !== lastDismissed.eventId);
     setDismissed(next);
     writeDismissed(next);
@@ -669,15 +700,12 @@ export function EventsHeatmap({
                     Directions
                   </a>
                 </p>
-                {/* Every card has the same four lines, so they are all one size: the
-                    last line is Muse's reason, or the place when there is none. */}
-                <p className="mt-[4px] flex items-center gap-[5px] text-[12px] font-semibold leading-[15px] text-ink">
-                  {card.reason ? (
-                    <MuseMark className="h-[12px] w-[12px] shrink-0 text-primary" />
-                  ) : (
-                    <MapPinIcon className="h-[12px] w-[12px] shrink-0 text-muted" />
-                  )}
-                  <span className={`truncate ${card.reason ? "" : "text-muted"}`}>{card.reason ?? card.place.name}</span>
+                {/* Every card has the same four lines, so they are all one size. The
+                    last line is the place: personalization reasons stay inside the
+                    agent, as on the Top 3 and alerts (d-fwq6). */}
+                <p className="mt-[4px] flex items-center gap-[5px] text-[12px] font-semibold leading-[15px] text-muted">
+                  <MapPinIcon className="h-[12px] w-[12px] shrink-0" />
+                  <span className="truncate">{card.place.name}</span>
                 </p>
               </div>
               <button
