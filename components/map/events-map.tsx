@@ -11,7 +11,9 @@ import type { AskPlan } from "@/components/ask/ask-bar";
 import { PEEK_HEIGHT, PEEK_WIDTH, StopPeek } from "@/components/map/stop-peek";
 import { CrawlPlanner, type CrawlStart } from "@/components/map/crawl-planner";
 import { MapAsk } from "@/components/map/map-ask";
+import { MuseConversation } from "@/components/map/muse-conversation";
 import { MuseMenu } from "@/components/map/muse-menu";
+import type { FriendSpot } from "@/lib/map/friend-spots";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
 import { travel } from "@/lib/crawl/order";
 import type { CampusEvent } from "@/lib/events/schema";
@@ -553,6 +555,7 @@ export function EventsMap({
   planAt = null,
   startLabel = null,
   autoAsk = null,
+  holdReveal = false,
 }: {
   cards: MapCard[];
   studentSpot: Point;
@@ -568,6 +571,8 @@ export function EventsMap({
   startLabel?: string | null;
   /** Demo hook (?auto=1): once the walk is up, open Ask Muse and ask this. */
   autoAsk?: string | null;
+  /** The alert path loaded ahead by the /demo stage (?reveal=wait): Muse's plan waits for the stage's reveal. */
+  holdReveal?: boolean;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -593,18 +598,26 @@ export function EventsMap({
   );
   const [askOpen, setAskOpen] = useState(false);
   const [route, setRoute] = useState<Route | null>(null);
+  // The "free bite" alert path (/?plan=home) is a conversation with Muse (muse-conversation.tsx),
+  // not the Food Crawl sheet: Muse plans where you can see it, speaks, and the mic re-plans.
+  const [conversation] = useState(autoPlan === "home");
+  const [previewSpot, setPreviewSpot] = useState<FriendSpot | null>(null);
   // Open once, a beat after the first walk is drawn, so the room sees the plan change.
   const autoAskOpened = useRef(false);
   const hasRoute = route !== null;
   // The /demo stage can ask from inside the walk already on screen (U1b to U1c) instead of
   // reloading the map: it posts {type: "demo-ask", line}. Only when this page is the stage's phone.
   const [askLine, setAskLine] = useState<{ line: string; at: number } | null>(() => (autoAsk ? { line: autoAsk, at: 0 } : null));
+  const conversationRef = useRef(conversation);
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
   useEffect(() => {
     if (window.parent === window) return;
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.source !== window.parent) return;
       const data = event.data as { type?: unknown; line?: unknown } | null;
-      if (data?.type !== "demo-ask" || typeof data.line !== "string") return;
+      if (data?.type !== "demo-ask" || typeof data.line !== "string" || conversationRef.current) return;
       autoAskOpened.current = false;
       setAskOpen(false);
       setAskLine({ line: data.line, at: Date.now() });
@@ -613,7 +626,7 @@ export function EventsMap({
     return () => window.removeEventListener("message", onMessage);
   }, []);
   useEffect(() => {
-    if (!askLine || autoAskOpened.current || (!hasRoute && autoPlan === "home")) return;
+    if (!askLine || autoAskOpened.current || conversation || (!hasRoute && autoPlan === "home")) return;
     const timer = setTimeout(
       () => {
         autoAskOpened.current = true;
@@ -622,7 +635,15 @@ export function EventsMap({
       askLine.at ? 300 : 1400,
     );
     return () => clearTimeout(timer);
-  }, [askLine, hasRoute, autoPlan]);
+  }, [askLine, hasRoute, autoPlan, conversation]);
+  // The Muse button at the top right opens Ask Muse while the Food Crawl sheet is up too
+  // (the menu under it is hidden then); the conversation listens for itself.
+  useEffect(() => {
+    if (!crawlOpen || conversation) return;
+    const onToggle = () => setAskOpen(true);
+    window.addEventListener("muse:toggle", onToggle);
+    return () => window.removeEventListener("muse:toggle", onToggle);
+  }, [crawlOpen, conversation]);
   const routeMarkersRef = useRef<Marker[]>([]);
   // The stop whose popup is open, tied to the route it belongs to, so a new
   // route (or none) closes it without an effect.
@@ -802,6 +823,25 @@ export function EventsMap({
       { padding: { top: 70, bottom: 420, left: 100, right: 50 }, maxZoom: 16.5, duration: 700 },
     );
   }, [mapReady, route]);
+
+  // A friend's spot while Muse plans toward them ("find something between you and Lisa").
+  useEffect(() => {
+    const map = mapRef.current;
+    const MarkerClass = markerClassRef.current;
+    if (!mapReady || !map || !MarkerClass || !previewSpot) return;
+    const marker = new MarkerClass({ element: routeMarkerElement("", true, true) }).setLngLat([previewSpot.lng, previewSpot.lat]).addTo(map);
+    const points = [studentSpot, previewSpot];
+    map.fitBounds(
+      [
+        [Math.min(...points.map((point) => point.lng)), Math.min(...points.map((point) => point.lat))],
+        [Math.max(...points.map((point) => point.lng)), Math.max(...points.map((point) => point.lat))],
+      ],
+      { padding: { top: 90, bottom: 380, left: 60, right: 60 }, maxZoom: 16, duration: 700 },
+    );
+    return () => {
+      marker.remove();
+    };
+  }, [mapReady, previewSpot, studentSpot]);
 
   // The open stop popup: only while its route is the one on the map.
   const peekIndex = peek && route && peek.route === route ? peek.index : null;
@@ -1000,7 +1040,20 @@ export function EventsMap({
         );
       })()}
 
-      {crawlOpen && (
+      {crawlOpen && conversation && (
+        <MuseConversation
+          studentSpot={studentSpot}
+          events={crawlEvents}
+          at={planAt}
+          startLabel={startLabel}
+          holdReveal={holdReveal}
+          autoAsk={autoAsk}
+          onRoute={setRoute}
+          onPreviewSpot={setPreviewSpot}
+        />
+      )}
+
+      {crawlOpen && !conversation && (
         <CrawlPlanner
           key={crawlStart?.key ?? "choose"}
           studentSpot={studentSpot}
