@@ -3,7 +3,7 @@ import type { ExtractOutput } from "@/lib/muse/extract";
 
 // Recorded stand-in for the extract job. Used when Muse is not configured or fails.
 export const SAMPLE_FLYER_CAPTION =
-  "Free pho night! Vietnamese Student Association, tomorrow 6 to 8pm at the Texas Union Ballroom. Open to everyone, first 80 bowls. Bring a friend.";
+  "Free pho night! Vietnamese Students at MIT, tomorrow 6 to 8pm in Lobdell Dining Hall. Open to everyone, first 80 bowls. Bring a friend.";
 
 const HOUR = 3_600_000;
 
@@ -24,10 +24,10 @@ export function extractFixture(now: Date): ExtractOutput {
   const end = tomorrowAtCampusHour(now, 20);
   return {
     title: "Free pho night",
-    description: "Vietnamese Student Association pho night. Open to everyone, first 80 bowls.",
+    description: "Vietnamese Students at MIT pho night. Open to everyone, first 80 bowls.",
     start: start.toISOString(),
     end: end.toISOString(),
-    placeName: "Texas Union Ballroom",
+    placeName: "Lobdell Dining Hall",
     free: true,
     food: true,
     foodNote: "Pho, first 80 bowls",
@@ -37,7 +37,7 @@ export function extractFixture(now: Date): ExtractOutput {
       title: { quote: "Free pho night!", from: "caption" },
       start: { quote: "tomorrow 6 to 8pm", from: "caption" },
       end: { quote: "tomorrow 6 to 8pm", from: "caption" },
-      place: { quote: "Texas Union Ballroom", from: "caption" },
+      place: { quote: "Lobdell Dining Hall", from: "caption" },
       free: { quote: "Free pho night!", from: "caption" },
       food: { quote: "first 80 bowls", from: "caption" },
       access: { quote: "Open to everyone", from: "caption" },

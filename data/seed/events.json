@@ -1,127 +1,579 @@
 {
-  "_note": "PLACEHOLDER seed data, invented for the scaffold. Replace with real campus flyers once they are gathered. Times are relative: startsInMinutes from load time, so the demo never looks stale.",
+  "_note": "Real upcoming MIT events (public calendar.mit.edu, Eventbrite, club pages), gathered 2026-11-12. startsInMinutes counts from 7:00 PM campus time on the day nearest to load, so every event keeps its real clock time and only the date moves with the demo day. Organizer handles are short slugs, not verified Instagram accounts.",
+  "anchorCampusTime": "19:00",
   "events": [
     {
-      "id": "evt-acm-pizza-gdc",
-      "title": "ACM general meeting and pizza",
-      "description": "Kickoff meeting for the semester project teams. Pizza while it lasts.",
-      "startsInMinutes": -20,
-      "durationMinutes": 90,
-      "place": { "name": "Gates Dell Complex (GDC) 2.216", "lat": 30.2862, "lng": -97.7366 },
-      "free": true,
-      "food": true,
-      "foodNote": "Pizza, vegetarian options",
-      "access": { "kind": "open" },
-      "organizer": { "name": "Sample CS Club", "handle": "sample_cs_club" },
-      "source": { "kind": "instagram", "postUrl": "https://www.instagram.com/p/placeholder01/", "caption": "GM tonight in GDC 2.216! Free pizza, all majors welcome." }
-    },
-    {
-      "id": "evt-tacos-south-mall",
-      "title": "Breakfast tacos on the South Mall",
-      "description": "Grab a taco between classes and meet the student government reps.",
-      "startsInMinutes": 25,
-      "durationMinutes": 60,
-      "place": { "name": "South Mall", "lat": 30.2848, "lng": -97.7394 },
-      "free": true,
-      "food": true,
-      "foodNote": "Breakfast tacos",
-      "access": { "kind": "open" },
-      "organizer": { "name": "Sample Student Government", "handle": "sample_student_gov" },
-      "source": { "kind": "instagram", "postUrl": "https://www.instagram.com/p/placeholder02/", "caption": "Free tacos on the South Mall. Come say hi!" }
-    },
-    {
-      "id": "evt-climbing-gregory",
-      "title": "Intro to bouldering night",
-      "description": "Beginner session at the climbing wall. Shoes provided, first 30 people.",
-      "startsInMinutes": 180,
-      "durationMinutes": 120,
-      "place": { "name": "Gregory Gym climbing wall", "lat": 30.2843, "lng": -97.7366 },
+      "id": "evt-hsa-movie-night",
+      "title": "HSA Movie Night",
+      "description": "Movie night hosted by the Harvard-MIT student group HSA. Drop in, grab a seat.",
+      "startsInMinutes": 0,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Building 4, Room 4-237",
+        "lat": 42.358262,
+        "lng": -71.090045
+      },
       "free": true,
       "food": false,
-      "access": { "kind": "rsvp", "capacity": 30 },
-      "organizer": { "name": "Sample Climbing Club", "handle": "sample_climbing" },
-      "source": { "kind": "instagram", "postUrl": "https://www.instagram.com/p/placeholder03/", "caption": "Never climbed? Intro night, shoes on us. RSVP, limited to 30." }
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "HSA at MIT",
+        "handle": "mit_hsa"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/hsa-movie-night-1289",
+        "imagePath": "/flyers/evt-hsa-movie-night.jpg"
+      }
     },
     {
-      "id": "evt-study-pcl",
-      "title": "Late night study jam with coffee",
-      "description": "Quiet study floor with free coffee and tutors on call for intro courses.",
-      "startsInMinutes": 300,
-      "durationMinutes": 180,
-      "place": { "name": "Perry-Castaneda Library (PCL)", "lat": 30.2827, "lng": -97.7381 },
-      "free": true,
-      "food": true,
-      "foodNote": "Coffee and snacks",
-      "access": { "kind": "open" },
-      "organizer": { "name": "Sample Tutoring Collective", "handle": "sample_tutoring" },
-      "source": { "kind": "manual" }
-    },
-    {
-      "id": "evt-film-union",
-      "title": "Student film screening",
-      "description": "Short films from student directors, Q and A after.",
-      "startsInMinutes": 420,
-      "durationMinutes": 120,
-      "place": { "name": "Texas Union Theater", "lat": 30.2866, "lng": -97.7411 },
+      "id": "evt-beowulf-w97",
+      "title": "BEOWULF, MIT Theater Arts fall production",
+      "description": "Beowulf reimagined in a surreal corporate office. Also Nov 14 and Nov 19 to 21 at 7:30 PM. Tickets from $6.24.",
+      "startsInMinutes": 1470,
+      "durationMinutes": 90,
+      "place": {
+        "name": "MIT Theater Arts Building W97, 345 Vassar St",
+        "lat": 42.36195,
+        "lng": -71.10345
+      },
       "free": false,
       "food": false,
-      "access": { "kind": "open" },
-      "organizer": { "name": "Sample Film Society", "handle": "sample_film" },
-      "source": { "kind": "instagram", "postUrl": "https://www.instagram.com/p/placeholder04/", "caption": "Screening night! 5 dollars at the door, students 3." }
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "MIT Music and Theater Arts",
+        "handle": "mit_mta"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://www.eventbrite.com/e/beowulf-tickets-2003431941869"
+      }
     },
     {
-      "id": "evt-hack-night-eer",
-      "title": "Build night: hardware hack",
-      "description": "Bring a project or join one. Soldering stations and dinner.",
-      "startsInMinutes": 1500,
-      "durationMinutes": 180,
-      "place": { "name": "Engineering Education and Research Center (EER)", "lat": 30.288, "lng": -97.7353 },
+      "id": "evt-ukraine-hackathon-info",
+      "title": "Build for Ukraine Hackathon 3.0 info session",
+      "description": "Learn about the Build for Ukraine Hackathon and meet the organizers. Pizza provided.",
+      "startsInMinutes": 1230,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Stratton Student Center W20, Wellbeing Lab",
+        "lat": 42.359083,
+        "lng": -71.094761
+      },
       "free": true,
       "food": true,
-      "foodNote": "Dinner provided",
-      "access": { "kind": "rsvp", "capacity": 50 },
-      "organizer": { "name": "Sample Makers Club", "handle": "sample_makers" },
-      "source": { "kind": "instagram", "postUrl": "https://www.instagram.com/p/placeholder05/", "caption": "Build night tomorrow in EER. Dinner on us. RSVP, 50 spots." }
+      "foodNote": "Pizza",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Center for International Studies",
+        "handle": "mit_cis"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/build-for-ukraine-hackathon-30-info-session",
+        "imagePath": "/flyers/evt-ukraine-hackathon-info.jpg"
+      }
     },
     {
-      "id": "evt-yoga-tower",
-      "title": "Sunset yoga by the Tower",
-      "description": "All levels. Bring a mat or borrow one of ours.",
-      "startsInMinutes": 1680,
-      "durationMinutes": 60,
-      "place": { "name": "Main Building lawn", "lat": 30.2861, "lng": -97.7394 },
+      "id": "evt-diwali-chapel",
+      "title": "Diwali celebration",
+      "description": "Celebrate Diwali with lights, music, and a community dinner. Registration requested.",
+      "startsInMinutes": 1380,
+      "durationMinutes": 105,
+      "place": {
+        "name": "MIT Chapel W15",
+        "lat": 42.358135,
+        "lng": -71.095031
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Dinner",
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "MIT Religious, Spiritual, and Ethical Life",
+        "handle": "mit_orsel"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/dewali-event",
+        "imagePath": "/flyers/evt-diwali-chapel.jpg"
+      }
+    },
+    {
+      "id": "evt-thai-fall-biannual",
+      "title": "Fall Biannual 2026, Thai Students at MIT x Harvard Thai Students Association",
+      "description": "Thai food, games, and prizes for Greater Boston's Thai community. Everyone is welcome. Ticketed, RSVP by QR code.",
+      "startsInMinutes": 1380,
+      "durationMinutes": 240,
+      "place": {
+        "name": "Lobdell Dining Hall, Stratton Student Center W20, 2nd floor",
+        "lat": 42.359083,
+        "lng": -71.094761
+      },
+      "free": false,
+      "food": true,
+      "foodNote": "Thai food",
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "Thai Students at MIT",
+        "handle": "mit_tsmit"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://stayhappening.com/e/fall-biannual-2026-E2IT01GC2CV"
+      }
+    },
+    {
+      "id": "evt-energy-climate-night",
+      "title": "MIT Energy & Climate Night",
+      "description": "About 50 interactive demos from MIT labs and climate start-ups. Free and open to the public.",
+      "startsInMinutes": 1380,
+      "durationMinutes": 240,
+      "place": {
+        "name": "MIT Museum, 314 Main St",
+        "lat": 42.36226,
+        "lng": -71.08679
+      },
       "free": true,
       "food": false,
-      "access": { "kind": "open" },
-      "organizer": { "name": "Sample Wellness Group", "handle": "sample_wellness" },
-      "source": { "kind": "manual" }
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Energy and Climate Club",
+        "handle": "mit_energy_climate"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://mitenergynight.org/"
+      }
     },
     {
-      "id": "evt-career-sac",
-      "title": "Resume review and boba",
-      "description": "Recruiters review resumes one on one. Boba for everyone who stops by.",
-      "startsInMinutes": 2900,
+      "id": "evt-herb-pomeroy-jazz",
+      "title": "Festival Jazz Ensemble: Herb Pomeroy Memorial Concert",
+      "description": "The 19th annual Herb Pomeroy memorial concert, Giant Steps in Jazz. Free for the MIT community, $20 general.",
+      "startsInMinutes": 1500,
       "durationMinutes": 120,
-      "place": { "name": "Student Activity Center (SAC)", "lat": 30.2849, "lng": -97.736 },
+      "place": {
+        "name": "Thomas Tull Concert Hall, W18",
+        "lat": 42.357869,
+        "lng": -71.095941
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Music and Theater Arts",
+        "handle": "mit_mta"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/festival-jazz-ensembles-fall-concert",
+        "imagePath": "/flyers/evt-herb-pomeroy-jazz.jpg"
+      }
+    },
+    {
+      "id": "evt-chess-museum",
+      "title": "Drop-in chess",
+      "description": "Casual chess at the MIT Museum. Boards provided, all levels.",
+      "startsInMinutes": 2400,
+      "durationMinutes": 120,
+      "place": {
+        "name": "MIT Museum, 314 Main St",
+        "lat": 42.36226,
+        "lng": -71.08679
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Museum",
+        "handle": "mit_museum"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/drop-in-chess"
+      }
+    },
+    {
+      "id": "evt-boba-a-cappella",
+      "title": "BOBA: The Best of Boston A Cappella",
+      "description": "A cappella groups from across Boston in one showcase. Free for MIT, $7 for non-MIT students.",
+      "startsInMinutes": 2820,
+      "durationMinutes": 150,
+      "place": {
+        "name": "Kresge Auditorium W16",
+        "lat": 42.358138,
+        "lng": -71.094977
+      },
       "free": true,
       "food": true,
       "foodNote": "Boba",
-      "access": { "kind": "open" },
-      "organizer": { "name": "Sample Career Club", "handle": "sample_careers" },
-      "source": { "kind": "instagram", "postUrl": "https://www.instagram.com/p/placeholder06/", "caption": "Resume review plus boba in the SAC. Drop in anytime." }
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "MIT A Cappella",
+        "handle": "mit_acappella"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/boba-the-best-of-boston-a-cappella-showcase",
+        "imagePath": "/flyers/evt-boba-a-cappella.jpg"
+      }
     },
     {
-      "id": "evt-concert-bass",
-      "title": "Student orchestra fall concert",
-      "description": "Discounted student tickets at the box office.",
-      "startsInMinutes": 4400,
+      "id": "evt-littea",
+      "title": "LitTea",
+      "description": "Afternoon tea and conversation about books with Literature students and faculty.",
+      "startsInMinutes": 5595,
+      "durationMinutes": 75,
+      "place": {
+        "name": "Building 14, Room 14-417",
+        "lat": 42.358576,
+        "lng": -71.089568
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Tea and snacks",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Literature",
+        "handle": "mit_literature"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/littea",
+        "imagePath": "/flyers/evt-littea.jpg"
+      }
+    },
+    {
+      "id": "evt-ai-discussion-night",
+      "title": "Discussion night: AI issues, policy, and a potential pause",
+      "description": "Open student discussion on AI risk and policy. Pizza provided.",
+      "startsInMinutes": 5640,
       "durationMinutes": 120,
-      "place": { "name": "Bass Concert Hall", "lat": 30.2858, "lng": -97.731 },
+      "place": {
+        "name": "Building 10, Room 10-105",
+        "lat": 42.359748,
+        "lng": -71.091836
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pizza",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT AI Alignment",
+        "handle": "mit_ai_alignment"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/discussion-night-ai-issues-policy-potential-pause",
+        "imagePath": "/flyers/evt-ai-discussion-night.jpg"
+      }
+    },
+    {
+      "id": "evt-tango-class",
+      "title": "Argentine tango class series",
+      "description": "Weekly beginner and intermediate tango classes. $8 and up.",
+      "startsInMinutes": 5745,
+      "durationMinutes": 135,
+      "place": {
+        "name": "Stratton Student Center W20, Room 401",
+        "lat": 42.359083,
+        "lng": -71.094761
+      },
       "free": false,
       "food": false,
-      "access": { "kind": "open" },
-      "organizer": { "name": "Sample Orchestra", "handle": "sample_orchestra" },
-      "source": { "kind": "manual" }
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Argentine Tango Club",
+        "handle": "mit_tango"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/argentine-tango-class-series-9783",
+        "imagePath": "/flyers/evt-tango-class.jpg"
+      }
+    },
+    {
+      "id": "evt-mad-tea-party",
+      "title": "MAD Tea Party: snacks and design activities",
+      "description": "Hands-on design activities with snacks at the Morningside Academy for Design.",
+      "startsInMinutes": 8520,
+      "durationMinutes": 90,
+      "place": {
+        "name": "MET Warehouse W41, Room 1402",
+        "lat": 42.35982,
+        "lng": -71.09605
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Snacks",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Morningside Academy for Design",
+        "handle": "mit_mad"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/mad-tea-party-snacks-design-activities",
+        "imagePath": "/flyers/evt-mad-tea-party.jpg"
+      }
+    },
+    {
+      "id": "evt-starr-forum-ai",
+      "title": "Starr Forum: AI and Global Power",
+      "description": "Panel on democracy, competition, and AI. Refreshments after. Registration requested.",
+      "startsInMinutes": 8520,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Wong Auditorium, E51-115",
+        "lat": 42.360565,
+        "lng": -71.084446
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Refreshments",
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "Center for International Studies",
+        "handle": "mit_cis"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/starr-forum-ai-and-global-power"
+      }
+    },
+    {
+      "id": "evt-the-table-dinner",
+      "title": "The Table: weekly dinner",
+      "description": "Weekly community dinner and conversation hosted by the Lutheran Episcopal Ministry. All welcome.",
+      "startsInMinutes": 8535,
+      "durationMinutes": 195,
+      "place": {
+        "name": "MIT Chapel W15",
+        "lat": 42.358135,
+        "lng": -71.095031
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Dinner",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Lutheran Episcopal Ministry at MIT",
+        "handle": "mit_lem"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/the-table"
+      }
+    },
+    {
+      "id": "evt-tango-night-lous",
+      "title": "Tango Night at Lou's",
+      "description": "Social tango night with live music in Harvard Square. $15 for students, $20 general.",
+      "startsInMinutes": 8640,
+      "durationMinutes": 240,
+      "place": {
+        "name": "Lou's Harvard Square, Live Music Room",
+        "lat": 42.373532,
+        "lng": -71.120232
+      },
+      "free": false,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Argentine Tango Club",
+        "handle": "mit_tango"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/tango-night-lous-nov-2026",
+        "imagePath": "/flyers/evt-tango-night-lous.jpg"
+      }
+    },
+    {
+      "id": "evt-climate-careers-panel",
+      "title": "Careers in Climate and Sustainability panel",
+      "description": "Alumni panel on climate careers, then networking. Registration requested.",
+      "startsInMinutes": 10020,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Grier Room, 34-401",
+        "lat": 42.361336,
+        "lng": -71.092069
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "MIT Career Advising",
+        "handle": "mit_capd"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/careers-in-climate-sustainability-panel"
+      }
+    },
+    {
+      "id": "evt-famle-concert",
+      "title": "FaMLE fall concert: East Coast Patch Out",
+      "description": "The MIT Laptop Ensemble's fall concert of live electronic music.",
+      "startsInMinutes": 10140,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Killian Hall, Building 14",
+        "lat": 42.358576,
+        "lng": -71.089568
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Music and Theater Arts",
+        "handle": "mit_mta"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/famle-fall-concert"
+      }
+    },
+    {
+      "id": "evt-carmina-burana",
+      "title": "MIT Concert Choir and Symphony Orchestra: Carmina Burana",
+      "description": "Orff's Carmina Burana with the MIT Concert Choir and MIT Symphony Orchestra.",
+      "startsInMinutes": 11580,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Kresge Auditorium W16",
+        "lat": 42.358138,
+        "lng": -71.094977
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Music and Theater Arts",
+        "handle": "mit_mta"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://www.eventbrite.com/o/mit-music-theater-arts-section-1350166467"
+      }
+    },
+    {
+      "id": "evt-boulez-100",
+      "title": "Boulez at 100",
+      "description": "A centennial concert of Pierre Boulez's music. Free for MIT, $5 general.",
+      "startsInMinutes": 15870,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Thomas Tull Concert Hall, W18",
+        "lat": 42.357869,
+        "lng": -71.095941
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Arts at MIT",
+        "handle": "mit_arts"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/boulez-at-100",
+        "imagePath": "/flyers/evt-boulez-100.jpg"
+      }
+    },
+    {
+      "id": "evt-japan-film-festival",
+      "title": "Boston Japan Film Festival 2026",
+      "description": "A day of Japanese films with snacks. Free, suggested donation $15. Registration requested.",
+      "startsInMinutes": 24000,
+      "durationMinutes": 420,
+      "place": {
+        "name": "Building 32, Room 32-123",
+        "lat": 42.361965,
+        "lng": -71.090261
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Snacks",
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "Center for International Studies",
+        "handle": "mit_cis"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/2026-boston-japan-film-festival",
+        "imagePath": "/flyers/evt-japan-film-festival.jpg"
+      }
+    },
+    {
+      "id": "evt-wreath-coffee-social",
+      "title": "Coffee social and holiday wreath making",
+      "description": "Make a holiday wreath over coffee. Supplies provided, registration requested.",
+      "startsInMinutes": 28230,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Stratton Student Center W20, Room 401",
+        "lat": 42.359083,
+        "lng": -71.094761
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Coffee",
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "MIT Women's League",
+        "handle": "mit_womens_league"
+      },
+      "source": {
+        "kind": "manual",
+        "postUrl": "https://calendar.mit.edu/event/coffee-social-holiday-wreath-making-2026"
+      }
     }
   ]
 }

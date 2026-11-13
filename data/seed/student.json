@@ -1,16 +1,48 @@
 {
-  "_note": "PLACEHOLDER profile, invented for the scaffold.",
+  "_note": "PLACEHOLDER profile. The student is pinned at the Stata Center (32 Vassar St) for the demo.",
   "profile": {
     "name": "Sample Student",
-    "school": "UT Austin",
-    "follows": ["sample_cs_club", "sample_climbing", "sample_makers"],
-    "interests": ["rock climbing", "free food", "hackathons", "film"],
-    "schedule": [
-      { "label": "Data Structures", "weekday": 1, "startTime": "11:00", "endTime": "12:30" },
-      { "label": "Data Structures", "weekday": 3, "startTime": "11:00", "endTime": "12:30" },
-      { "label": "Calculus II", "weekday": 2, "startTime": "14:00", "endTime": "15:30" },
-      { "label": "Calculus II", "weekday": 4, "startTime": "14:00", "endTime": "15:30" }
+    "school": "MIT",
+    "follows": [
+      "mit_mta",
+      "mit_cis",
+      "mit_tsmit"
     ],
-    "home": { "lat": 30.2875, "lng": -97.7445 }
+    "interests": [
+      "rock climbing",
+      "free food",
+      "hackathons",
+      "film"
+    ],
+    "schedule": [
+      {
+        "label": "Data Structures",
+        "weekday": 1,
+        "startTime": "11:00",
+        "endTime": "12:30"
+      },
+      {
+        "label": "Data Structures",
+        "weekday": 3,
+        "startTime": "11:00",
+        "endTime": "12:30"
+      },
+      {
+        "label": "Calculus II",
+        "weekday": 2,
+        "startTime": "14:00",
+        "endTime": "15:30"
+      },
+      {
+        "label": "Calculus II",
+        "weekday": 4,
+        "startTime": "14:00",
+        "endTime": "15:30"
+      }
+    ],
+    "home": {
+      "lat": 42.3616,
+      "lng": -71.0906
+    }
   }
 }

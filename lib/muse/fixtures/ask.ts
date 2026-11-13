@@ -1,11 +1,11 @@
 import type { AskOutput } from "@/lib/muse/ask";
 
 // Recorded stand-in for the ask job, for the question below.
-export const RECORDED_QUESTION = "I want to go rock climbing";
+export const RECORDED_QUESTION = "Any free concerts this week?";
 
 export function askFixture(): AskOutput {
   return {
-    answer: "There is a free intro to bouldering night at Gregory Gym tonight. It is RSVP only, 30 spots.",
-    eventIds: ["evt-climbing-gregory"],
+    answer: "The Festival Jazz Ensemble plays Thomas Tull Concert Hall on Friday at 8 PM, free for MIT students.",
+    eventIds: ["evt-herb-pomeroy-jazz"],
   };
 }

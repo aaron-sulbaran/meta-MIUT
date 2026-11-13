@@ -1,6 +1,7 @@
 // Event images as poster compositions: color fields, one bold shape, big type.
-// No photos and no hotlinks; every poster is drawn from its seed string so the
-// same event always gets the same poster.
+// No hotlinks; every poster is drawn from its seed string so the same event
+// always gets the same poster. An event with its own flyer (a local image path)
+// shows the flyer in the same frame instead.
 
 type Palette = { field: string; shape: string; ink: string; accent: string };
 
@@ -70,13 +71,16 @@ export function Poster({
   kicker,
   size = "large",
   className = "",
+  imagePath,
 }: {
   seed: string;
   title: string;
   kicker?: string;
   size?: "large" | "small";
   className?: string;
+  imagePath?: string;
 }) {
+  if (imagePath) return <Flyer src={imagePath} className={className} />;
   const { palette, layout } = posterStyle(seed);
   const titleSize = size === "large" ? "text-[30px] leading-[31px] line-clamp-3" : "text-[17px] leading-[18px] line-clamp-2";
   const kickerSize = size === "large" ? "text-[13px]" : "text-[10px]";
@@ -97,6 +101,19 @@ export function Poster({
         )}
         <span className={`${titleSize} font-extrabold tracking-[-0.02em]`}>{title}</span>
       </div>
+      <span className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)]" />
+    </div>
+  );
+}
+
+// The whole flyer fits the 2:1 frame, over a blurred copy of itself so the frame never looks empty.
+function Flyer({ src, className }: { src: string; className: string }) {
+  return (
+    <div aria-hidden className={`relative aspect-[2/1] w-full overflow-hidden bg-wash ${className}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-[14px] opacity-70" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className="absolute inset-0 h-full w-full object-contain" />
       <span className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)]" />
     </div>
   );

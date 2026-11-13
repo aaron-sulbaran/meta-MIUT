@@ -40,7 +40,7 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
                     href={`/events/${event.id}`}
                     className="flex h-full flex-col overflow-hidden rounded-card border border-hairline bg-card"
                   >
-                    <Poster seed={event.id} title={event.title} size="small" />
+                    <Poster seed={event.id} title={event.title} size="small" imagePath={event.source.imagePath} />
                     <div className="flex flex-1 flex-col px-[10px] pb-[10px] pt-[9px]">
                       <p className="truncate text-meta font-semibold text-muted">{formatDateLine(event, now)}</p>
                       <h3 className="mt-[2px] line-clamp-2 font-display text-label font-bold">{event.title}</h3>
