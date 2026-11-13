@@ -8,6 +8,7 @@ import { ChevronRightIcon, CloseIcon, InstagramPostIcon, WaveIcon } from "@/comp
 import { updateAttendance } from "@/lib/attendance/client";
 import { EVENT_FULL_ERROR } from "@/lib/attendance/schema";
 import { getViewerId } from "@/lib/attendance/viewer";
+import { HANDOFF } from "@/lib/demo/staged";
 import { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
 
 // The event page's going button and Who's going section, in the measured
@@ -25,8 +26,13 @@ type Seats = { capacity: number; left: number };
 type MusePick = { line: string; people: { id: string; why: string }[] };
 type MuseResponse = { data: (MusePick & { who: WhoIsGoing }) | null; error: string | null; source?: "muse" | "fixture" };
 // Say hi: Muse writes the hello, then it goes to everyone named (POST /api/social/hello with write).
-type HelloResponse = Response & { hello?: { message: string; source: "muse" | "fixture"; ms: number } | null };
-type Hi = { names: string[]; state: "writing" | "sent" | "error"; message?: string; source?: "muse" | "fixture"; ms?: number };
+type HelloResponse = Response & { hello?: { message: string; source: "muse" | "fixture"; ms: number | null } | null };
+type Hi = { names: string[]; state: "writing" | "sent" | "error"; message?: string; source?: "muse" | "fixture"; ms?: number | null };
+type SentHello = { data: { to: string[]; names: string[]; message: string | null; source: "muse" | "fixture" } | null };
+// How long "Muse is writing" shows when a hi sent from another screen of the same person arrives.
+const WRITING_BEAT_MS = 1400;
+const SENT_POLL_MS = 1500;
+const framed = () => typeof window !== "undefined" && window.self !== window.top;
 
 /** "Lisa", "Lisa and Jolyn", "Lisa, Jolyn and Maya". */
 function joinNames(names: string[]): string {
@@ -96,6 +102,7 @@ export function WhosGoing({
   rsvp = false,
   seats: initialSeats = null,
   autoAsk = false,
+  autoSayHi = false,
 }: {
   initial: WhoIsGoing;
   rsvp?: boolean;
@@ -103,6 +110,8 @@ export function WhosGoing({
   seats?: Seats | null;
   /** Demo hook (?auto=1, beat U3d): ask Muse who to go with on arrival and bring the answer into view. */
   autoAsk?: boolean;
+  /** Demo hook (?hi=1, beat U3e): say hi to everyone open to company once Muse has suggested them. */
+  autoSayHi?: boolean;
 }) {
   const [who, setWho] = useState(initial);
   const [seats, setSeats] = useState(initialSeats);
@@ -199,7 +208,7 @@ export function WhosGoing({
   }, [autoAsk, muse.state]);
 
   // Muse writes the hi (a real call), shows it, and sends it to everyone named.
-  async function sayHi(personIds: string[]) {
+  async function sayHi(personIds: string[], tapped = true) {
     const names = personIds.map((id) => who.openToCompany.find((person) => person.id === id)?.name ?? "them");
     setHelloBusy(personIds[0] ?? null);
     setHelloError(null);
@@ -214,6 +223,8 @@ export function WhosGoing({
     const written = "hello" in result ? result.hello : null;
     setHi({ names, state: "sent", message: written?.message, source: written?.source, ms: written?.ms });
     setWho(result.data);
+    // On a presenter's phone, the stage moves to the next beat (U3e), where its own copy shows it too.
+    if (tapped && framed() && autoAsk) window.parent.postMessage({ type: "demo-handoff", path: HANDOFF.saidHi(who.eventId) }, window.location.origin);
     // They answer a few seconds later; check back until they have.
     for (let attempt = 0; attempt < 4; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -223,6 +234,67 @@ export function WhosGoing({
       if (personIds.every((id) => latest.data!.openToCompany.find((person) => person.id === id)?.hello === "accepted")) return;
     }
   }
+
+  // Every screen of the same person (the stage's copy of this page, the phone) shows a hi once it
+  // exists on the server, with a short "Muse is writing" first so the room sees it happen.
+  const hiNowRef = useRef<Hi | null>(null);
+  useEffect(() => {
+    hiNowRef.current = hi;
+  }, [hi]);
+  const showSent = async (): Promise<boolean> => {
+    const sent = await fetch(`/api/social/hello?eventId=${encodeURIComponent(who.eventId)}`, { cache: "no-store" })
+      .then((response) => response.json() as Promise<SentHello>)
+      .catch(() => null);
+    if (!sent?.data || hiNowRef.current) return Boolean(sent?.data);
+    const found = sent.data;
+    setHi({ names: found.names, state: "writing" });
+    await new Promise((resolve) => setTimeout(resolve, WRITING_BEAT_MS));
+    setHi({ names: found.names, state: "sent", message: found.message ?? undefined, source: found.source, ms: null });
+    const latest = await fetch(goingUrl, { cache: "no-store" }).then((response) => response.json() as Promise<Response>).catch(() => null);
+    if (latest?.data) setWho(latest.data);
+    return true;
+  };
+  const showSentRef = useRef(showSent);
+  const sayHiRef = useRef(sayHi);
+  const askMuseRef = useRef(askMuse);
+  useEffect(() => {
+    showSentRef.current = showSent;
+    sayHiRef.current = sayHi;
+    askMuseRef.current = askMuse;
+  });
+  useEffect(() => {
+    if (!framed()) return;
+    const timer = setInterval(() => {
+      if (!hiNowRef.current) void showSentRef.current();
+    }, SENT_POLL_MS);
+    return () => clearInterval(timer);
+  }, []);
+  // The stage's Next on the last beat (U3e, {type: "demo-say-hi"}) or a fresh ?hi=1: when no
+  // phone has said hi yet, this page does it, the same real call.
+  const [sayHiWanted, setSayHiWanted] = useState(autoSayHi);
+  const sayHiStarted = useRef(false);
+  useEffect(() => {
+    if (!framed()) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      if ((event.data as { type?: unknown } | null)?.type === "demo-say-hi") setSayHiWanted(true);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  useEffect(() => {
+    if (!sayHiWanted || hi || sayHiStarted.current) return;
+    if (muse.state === "idle") {
+      void askMuseRef.current();
+      return;
+    }
+    if (muse.state !== "done") return;
+    sayHiStarted.current = true;
+    void showSentRef.current().then((already) => {
+      const ids = who.openToCompany.filter((person) => !person.hello).map((person) => person.id);
+      if (!already && !hiNowRef.current && ids.length > 0) void sayHiRef.current(ids, false);
+    });
+  }, [sayHiWanted, hi, muse.state, who.openToCompany]);
 
   const namesLine = friendsNamesLine(who.friends);
   const companyCount = who.openToCompany.length;
@@ -405,8 +477,8 @@ export function WhosGoing({
                           <CheckGlyph className="h-[14px] w-[14px]" />
                           Sent to {joinNames(hi.names)}
                         </p>
-                        {hi.source === "muse" && hi.ms !== undefined ? (
-                          <p className="text-meta text-muted">Written by Muse · Live, {(hi.ms / 1000).toFixed(1)} s</p>
+                        {hi.source === "muse" ? (
+                          <p className="text-meta text-muted">Written by Muse · Live{typeof hi.ms === "number" ? `, ${(hi.ms / 1000).toFixed(1)} s` : ""}</p>
                         ) : hi.source === "fixture" ? (
                           <SourceBadge source="fixture" />
                         ) : null}

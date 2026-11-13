@@ -21,7 +21,11 @@ export type StagedScreen =
 
 // A message the stage posts into a phone still on the screen a beat continues from:
 // U1c asks Muse over the walk home; Trish's Reels beats move to the next reel or open the sheet.
-export type InFrameMessage = { type: "demo-ask"; line: string } | { type: "demo-reel"; reel: number; sheet?: boolean };
+export type InFrameMessage =
+  | { type: "demo-ask"; line: string }
+  | { type: "demo-reel"; reel: number; sheet?: boolean }
+  // U3e: the event page says hi for Trish when her phone has not.
+  | { type: "demo-say-hi" };
 
 // now is the run's clock: stamped when the first live beat opens, so every
 // screen (the flyer, the organizer's draft, the walk home) shows the same
@@ -139,6 +143,7 @@ export const ACT_LABELS: Record<BeatAct, string> = {
 };
 
 const whosGoingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.whosGoing(storyEventId) : null);
+const saidHiPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.saidHi(storyEventId) : null);
 const lisaJoinedPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaJoined(storyEventId, "sample-student") : null);
 const lisaLandingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaLanding(storyEventId, "sample-student") : null);
 const lisaStepPath =
@@ -417,6 +422,18 @@ export const BEATS: Beat[] = [
     caption: "She knows nobody going. Muse finds two people open to company and says hi for her.",
     note: "Trish: none of her friends are going. Muse suggests Jolyn and Lisa from what they share. Tap Say hi to Jolyn and Lisa: Muse writes the hi, sends it, and they say yes.",
     path: whosGoingPath,
+  },
+  {
+    id: "U3e",
+    act: "user3",
+    persona: "user3",
+    kind: "app",
+    title: "Muse says hi for her",
+    caption: "It writes the hello from what they share and sends it. Jolyn and Lisa say yes.",
+    note: "Trish: tap Say hi to Jolyn and Lisa (or press Next). Read Muse's line out loud, then point at Jolyn's and Lisa's phones.",
+    path: saidHiPath,
+    // On the stage, the page already open says hi in place (or shows the hi Trish's phone sent).
+    inFrame: { from: "U3d", message: { type: "demo-say-hi" } },
   },
   {
     // After the skit: what Muse just did, six moments with their real screens, models, and

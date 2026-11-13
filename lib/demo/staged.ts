@@ -91,6 +91,8 @@ export const HANDOFF = {
   lisaLanding: (eventId: string, inviter: string) => withAppSwitch(`/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`),
   // U3d: the story event, with Muse asked who to go with on arrival.
   whosGoing: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1`,
+  // U3e: the same page, Trish's hi said (by her phone, or by the page itself on the stage's Next).
+  saidHi: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1&hi=1`,
   // U2c to U2e: Lisa's landing on one step (the account sheet, the account ready, the event unlocked).
   lisaStep: (eventId: string, inviter: string, step: "account" | "ready" | "event") =>
     `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}&state=${step}`,
