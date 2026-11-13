@@ -30,8 +30,9 @@ export type Beat = {
   act: BeatAct;
   // Null plays Aaron, the sample student (no cookie).
   persona: PersonaId | null;
-  // A video beat plays `video` full bleed; a slide does too when its file exists.
-  kind: "slide" | "staged" | "app" | "video";
+  // A film plays public/demo/films/<film>.mp4 full bleed, stepping through its
+  // cue points; until the file exists it shows as a slide.
+  kind: "slide" | "staged" | "app" | "film";
   title: string;
   // What the audience should take from this beat, shown large beside the phone.
   caption: string;
@@ -39,13 +40,16 @@ export type Beat = {
   // Null while the beat waits for the story event.
   path?: (context: BeatContext) => string | null;
   staged?: StagedScreen;
-  // The drawn visual a slide carries.
-  slide?: SlideVisual;
-  // A file under public/demo/ that replaces the beat when it exists (a teammate's animation).
-  video?: string;
+  // A film beat's name: public/demo/films/<film>.mp4 and <film>.cues.json.
+  film?: FilmName;
 };
 
-export type SlideVisual = "problem" | "muse" | "build";
+export type FilmName = "problem" | "muse" | "build";
+
+/** Where a film beat's video and its cue points (an array of seconds) live. */
+export function filmFiles(film: FilmName): { video: string; cues: string } {
+  return { video: `/demo/films/${film}.mp4`, cues: `/demo/films/${film}.cues.json` };
+}
 
 // The cast, in one place: rename User 3 here once they are cast.
 export type CastId = "organizer" | "aaron" | "lisa" | "user3";
@@ -99,9 +103,8 @@ export const BEATS: Beat[] = [
     id: "P1",
     act: "pitch",
     persona: null,
-    kind: "slide",
-    slide: "problem",
-    video: "/demo/problem.mp4",
+    kind: "film",
+    film: "problem",
     title: "The problem",
     caption: "Young adults open Facebook to get something done, like Marketplace. Events never gets a look.",
   },
@@ -109,9 +112,8 @@ export const BEATS: Beat[] = [
     id: "P2",
     act: "pitch",
     persona: null,
-    kind: "slide",
-    slide: "muse",
-    video: "/demo/muse.mp4",
+    kind: "film",
+    film: "muse",
     title: "Muse does three jobs",
     caption: "It reads a post, knows your day, and brings you to the thing worth leaving for.",
   },
@@ -121,8 +123,8 @@ export const BEATS: Beat[] = [
     persona: "organizer",
     kind: "staged",
     staged: "instagram-new-post",
-    title: `${CAST.organizer.name} posts a flyer on Instagram`,
-    caption: "The club posts its event the way it always does.",
+    title: `${CAST.organizer.name}'s club is hosting tonight`,
+    caption: "She posts the flyer on Instagram, the way she always does.",
     path: ({ now }) => HANDOFF.instagramPost(now.toISOString()),
   },
   {
@@ -131,8 +133,8 @@ export const BEATS: Beat[] = [
     persona: "organizer",
     kind: "staged",
     staged: "instagram-crosspost-prompt",
-    title: "Instagram spots an event",
-    caption: "One prompt: post it to Facebook Events too?",
+    title: "Instagram notices it's an event",
+    caption: "It asks one question: want this on Facebook Events too?",
     path: ({ now }) => HANDOFF.instagramPost(now.toISOString()),
   },
   {
@@ -141,7 +143,7 @@ export const BEATS: Beat[] = [
     persona: "organizer",
     kind: "app",
     title: "Muse reads the flyer",
-    caption: "Date, place, free food, and who can come, filled in from the image in seconds.",
+    caption: "The date, the place, the free food, who can come. All from the post.",
     path: ({ now }) => HANDOFF.organizerAt(now.toISOString()),
   },
   {
@@ -149,9 +151,9 @@ export const BEATS: Beat[] = [
     act: "organizer",
     persona: "organizer",
     kind: "app",
-    title: "One tap, and it is live",
-    caption: `${CAST.organizer.name} checks the draft and posts. Students nearby get an alert.`,
-    path: ({ now }) => HANDOFF.organizerAt(now.toISOString()),
+    title: "It's live in one tap",
+    caption: `A real Facebook event. ${CAST.organizer.name} typed nothing.`,
+    path: ({ now }) => HANDOFF.organizerPosted(now.toISOString()),
   },
   {
     id: "U1a",
@@ -159,8 +161,8 @@ export const BEATS: Beat[] = [
     persona: null,
     kind: "staged",
     staged: "live-activity",
-    title: "Class just ended",
-    caption: `3:05 PM. Muse knows ${CAST.aaron.name}'s day: want a free bite on the way home?`,
+    title: `${CAST.aaron.name} just got out of class`,
+    caption: "Muse knows he's free and hungry.",
     path: ({ now }) => `${LIVE_ACTIVITY_PATH}?time=${encodeURIComponent(now.toISOString())}`,
   },
   {
@@ -168,8 +170,8 @@ export const BEATS: Beat[] = [
     act: "user1",
     persona: null,
     kind: "app",
-    title: "Muse plans the walk home",
-    caption: "The best free food on his usual route, already on the map.",
+    title: "Already mapped",
+    caption: "The best free stop on his walk home, before he asks.",
     path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
   },
   {
@@ -177,8 +179,8 @@ export const BEATS: Beat[] = [
     act: "user1",
     persona: null,
     kind: "app",
-    title: `"Actually, I'm meeting ${CAST.lisa.name}"`,
-    caption: "He says it out loud. Muse finds a spot between them and invites her.",
+    title: "Change of plans",
+    caption: `He says it out loud: I'm meeting ${CAST.lisa.name}. Muse finds a spot between them and invites her.`,
     path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
   },
   {
@@ -188,7 +190,7 @@ export const BEATS: Beat[] = [
     kind: "staged",
     staged: "invite-message",
     title: `${CAST.lisa.name} gets the invite`,
-    caption: `${CAST.aaron.name}'s Muse sends it to her on Instagram.`,
+    caption: `From ${CAST.aaron.name}'s Muse, in her Instagram messages.`,
     path: () => "/demo/instagram/dm",
   },
   {
@@ -196,8 +198,8 @@ export const BEATS: Beat[] = [
     act: "lisa",
     persona: "lisa",
     kind: "app",
-    title: "No Facebook account? One tap.",
-    caption: "The account she already has on Instagram opens Facebook. No sign-up form.",
+    title: `${CAST.lisa.name} isn't on Facebook`,
+    caption: "She has Instagram, so she already has a Meta account.",
     path: lisaLandingPath,
   },
   {
@@ -205,8 +207,8 @@ export const BEATS: Beat[] = [
     act: "lisa",
     persona: "lisa",
     kind: "app",
-    title: `${CAST.aaron.name} knows she is coming`,
-    caption: "She lands on the event, marked Going, and he gets told.",
+    title: "She's in",
+    caption: `No form, no password. And ${CAST.aaron.name} knows she's coming.`,
     // The same landing as U2b, so it stays on her "you're going" screen.
     path: lisaLandingPath,
   },
@@ -216,8 +218,8 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "staged",
     staged: "instagram-feed-prompt",
-    title: `${CAST.user3.name} is scrolling Instagram`,
-    caption: "A club they follow posted an event. Check it out on Facebook Events?",
+    title: "Scrolling Instagram",
+    caption: "A club they follow posted the same event.",
     path: () => "/demo/instagram/feed",
   },
   {
@@ -225,26 +227,25 @@ export const BEATS: Beat[] = [
     act: "user3",
     persona: "user3",
     kind: "app",
-    title: "Muse curates a first feed",
-    caption: "From what they already like, Muse builds an Events feed in seconds.",
-    path: () => HANDOFF.curate,
+    title: "First time in Events",
+    caption: "Muse builds the feed from what they already follow.",
+    path: () => HANDOFF.curateAuto,
   },
   {
     id: "U3d",
     act: "user3",
     persona: "user3",
     kind: "app",
-    title: `${CAST.aaron.name} and ${CAST.lisa.name} are going`,
-    caption: "Number one is the same event. Friends going is the reason to get up and go.",
+    title: "Who's going?",
+    caption: `${CAST.aaron.name} and ${CAST.lisa.name}. So they go too.`,
     path: eventPath,
   },
   {
     id: "P4",
     act: "pitch",
     persona: null,
-    kind: "slide",
-    slide: "build",
-    video: "/demo/build.mp4",
+    kind: "film",
+    film: "build",
     title: "How we built it",
     caption: "Five people, five agents, one shared board.",
   },
