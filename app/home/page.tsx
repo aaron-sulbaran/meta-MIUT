@@ -5,7 +5,7 @@ import { FeedPosts } from "@/components/home/feed-posts";
 import { SideMenu } from "@/components/home/side-menu";
 import { FeedSeparator } from "@/components/ui/card";
 import { FbEventCard } from "@/components/ui/event-card";
-import { HeaderAction, HomeHeader } from "@/components/ui/header";
+import { GET_FACEBOOK, HeaderAction, HomeHeader } from "@/components/ui/header";
 import { ChatBoltIcon, PhotoIcon, PlusSquareIcon, SearchIcon } from "@/components/ui/icons";
 import { Poster } from "@/components/ui/poster";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -31,7 +31,7 @@ export default async function HomePage() {
           <>
             <HeaderAction label="Create an event" Icon={PlusSquareIcon} href="/organizer" />
             <HeaderAction label="Ask Muse" Icon={SearchIcon} href="/ask" />
-            <HeaderAction label="Messages" Icon={ChatBoltIcon} />
+            <HeaderAction label="Messages" Icon={ChatBoltIcon} iconClass="h-[24px] w-[24px]" />
           </>
         }
       />
@@ -39,7 +39,9 @@ export default async function HomePage() {
       <div className="flex items-center gap-[9px] px-[11.4px] pb-[14px] pt-[10px]">
         <ProfileAvatar size={39} />
         <span className="flex h-[38px] flex-1 items-center rounded-full bg-wash px-[14px] text-body font-semibold">What&apos;s on your mind?</span>
-        <PhotoIcon className="mr-[11px] h-[20px] w-[20px] text-muted" />
+        <Link href={GET_FACEBOOK} aria-label="Photo" className="mr-[5.9px] text-muted">
+          <PhotoIcon className="h-[24px] w-[24px]" />
+        </Link>
       </div>
 
       <section aria-labelledby="home-events-heading" className="pb-[16px]">

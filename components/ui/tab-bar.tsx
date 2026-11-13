@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GET_FACEBOOK } from "@/components/ui/header";
 import { isStagedScreen } from "@/lib/demo/staged";
 import { Fragment, type ComponentType } from "react";
 import {
@@ -36,9 +37,9 @@ const EVENTS_PATHS = ["/events", "/map", "/ask"];
 const tab = (active: boolean) =>
   `flex h-[38.6px] items-center justify-center rounded-full ${active ? "bg-primary-soft text-primary" : "text-ink"}`;
 
-function InertTabIcon({ Icon, dot, count }: InertTab) {
+function InertTabIcon({ label, Icon, dot, count }: InertTab) {
   return (
-    <span aria-hidden className="relative flex h-[39px] items-center justify-center text-ink">
+    <Link href={GET_FACEBOOK} aria-label={label} className="relative flex h-[39px] items-center justify-center text-ink">
       <span className="relative">
         <Icon className="h-[23.5px] w-[23.5px]" />
         {dot && <span className="absolute left-[calc(50%+9.7px-3.85px)] top-[calc(50%-9.5px-3.85px)] h-[7.7px] w-[7.7px] rounded-full bg-badge" />}
@@ -48,7 +49,7 @@ function InertTabIcon({ Icon, dot, count }: InertTab) {
           </span>
         )}
       </span>
-    </span>
+    </Link>
   );
 }
 
@@ -78,9 +79,9 @@ export function TabBar() {
             )}
           </Fragment>
         ))}
-        <span aria-hidden className="flex h-[39px] items-center justify-center">
+        <Link href={GET_FACEBOOK} aria-label="Profile" className="flex h-[39px] items-center justify-center">
           <ProfileAvatar size={25} ring />
-        </span>
+        </Link>
       </div>
     </nav>
   );
