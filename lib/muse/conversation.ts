@@ -3,7 +3,7 @@ import { z } from "zod";
 import { loadState, saveState } from "@/lib/store/state";
 
 // What each student and Muse said in Ask Muse, so a follow-up ("and tomorrow?")
-// has context and Muse can refer back later. Process-local: a restart clears it.
+// has context and Muse can refer back later. Kept in the shared store when Redis is set, else in this process.
 
 export type Turn = { role: "student" | "muse"; text: string; at: string };
 
