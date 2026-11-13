@@ -4,6 +4,7 @@ import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine, isInWindow } from "@/lib/events/time";
 import { eventCategory } from "@/lib/map/category";
 import { heatPoints } from "@/lib/map/heat";
+import { organizerLogo } from "@/lib/map/organizer-logos";
 import { personalizeEvents } from "@/lib/muse/rank";
 
 // Server half of the map home: asks Muse for this student's picks (with their
@@ -38,7 +39,7 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
         free: event.free,
         category: eventCategory(event),
         organizerName: event.organizer.name,
-        logoUrl: event.organizer.logoUrl ?? null,
+        logoUrl: organizerLogo(event.organizer),
         chips: mapChips(event, now),
         weight: point.weight,
         pickRank: point.pickRank,

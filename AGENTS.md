@@ -85,6 +85,7 @@ lib/store/redis.ts   minimal Upstash Redis REST client (fetch, no SDK)
 lib/muse/            client.ts, job.ts, extract.ts, rank.ts, ask.ts, fixtures/
 lib/geo.ts           distance and walking minutes
 lib/map/heat.ts      event weights that order the map cards: Muse picks first, then interest scores
+lib/map/organizer-logos.ts  organizer logos by handle (from their own sites) until the seed carries organizer.logoUrl
 lib/map/category.ts  guesses an event's kind (pizza, film, climb...) from its words; components/map/category-icons.ts draws its badge and the organizer monogram
 data/seed/           placeholder events and student profile
 ```
