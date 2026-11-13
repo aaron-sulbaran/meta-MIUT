@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DrawnAvatar, IG, IgIcons, StagedScreen } from "@/components/demo/instagram";
-import { MuseMark } from "@/components/ui/icons";
+import { CrossAppSheet, DrawnAvatar, IG, IgIcons, SheetGlyphs, StagedScreen } from "@/components/demo/instagram";
 import { HANDOFF, handOff } from "@/lib/demo/staged";
 
 // O1: the organizer finishes an Instagram post of their flyer. O2: on Share,
@@ -30,11 +29,14 @@ function Row({ label, value, toggle }: { label: string; value?: string; toggle?:
 
 export function InstagramNewPost({
   handle,
+  organizerName,
   caption,
   flyerSrc,
   atIso,
 }: {
   handle: string;
+  /** The club's display name, as Instagram names the Facebook page it posts as. */
+  organizerName: string;
   caption: string;
   flyerSrc: string;
   /** Set when the page was given a pinned clock (?at=), so the organizer flow uses the same one. */
@@ -56,7 +58,7 @@ export function InstagramNewPost({
         <div className="flex justify-center bg-[#fafafa] py-3">
           {/* The drawn flyer, made at request time for the demo clock. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={flyerSrc} alt="The club's flyer: free dumplings and board games" className="h-[300px] w-[240px] rounded-[4px] object-cover shadow-sm" />
+          <img src={flyerSrc} alt="The club's flyer: free dumplings and board games" className="h-[300px] w-[240px] rounded-[4px] object-cover outline outline-1 -outline-offset-1 outline-black/10" />
         </div>
         <div className="flex gap-3 px-4 py-3">
           <DrawnAvatar name={handle} size={30} />
@@ -76,7 +78,7 @@ export function InstagramNewPost({
             setAsking(true);
             handOff(HANDOFF.instagramPost(atIso), () => undefined);
           }}
-          className="h-[44px] w-full rounded-[10px] text-[15px] font-semibold text-white"
+          className="h-[44px] w-full rounded-[12px] text-[15px] font-bold text-white"
           style={{ background: IG.blue }}
         >
           {shared ? "Shared" : "Share"}
@@ -84,48 +86,32 @@ export function InstagramNewPost({
       </div>
 
       {asking && (
-        <div className="absolute inset-0 z-10 flex items-end bg-black/40" onClick={() => setAsking(false)}>
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="crosspost-title"
-            onClick={(click) => click.stopPropagation()}
-            className="w-full rounded-t-[18px] bg-white px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-2 motion-safe:animate-[staged-sheet-up_260ms_ease-out]"
-          >
-            <div className="mx-auto mb-4 h-[4px] w-[36px] rounded-full bg-[#dbdbdb]" />
-            <div className="flex items-start gap-3">
-              <span className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full bg-[#e7f0ff] text-[#0866ff]">
-                <MuseMark className="h-[24px] w-[24px]" />
-              </span>
-              <div className="min-w-0">
-                <h2 id="crosspost-title" className="text-[17px] font-semibold leading-[22px]">
-                  This looks like event promo. Post it to Facebook Events?
-                </h2>
-                <p className="mt-1 text-[14px] leading-[19px]" style={{ color: IG.muted }}>
-                  Muse reads your post and makes the event: when, where, free food, and who can come. You check it before it goes live.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => handOff(HANDOFF.organizerAt(atIso), router.push)}
-              className="mt-5 h-[44px] w-full rounded-[10px] text-[15px] font-semibold text-white"
-              style={{ background: IG.blue }}
-            >
-              Post to Facebook Events
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAsking(false);
-                setShared(true);
-              }}
-              className="mt-1 h-[40px] w-full text-[15px] font-semibold"
-            >
-              Just share on Instagram
-            </button>
-          </div>
-        </div>
+        <CrossAppSheet
+          titleId="crosspost-title"
+          title="Post this to Facebook Events?"
+          rows={[
+            {
+              glyph: SheetGlyphs.facebook,
+              detail: (
+                <>
+                  Muse turns this post into a Facebook event as <strong className="font-bold text-black">{organizerName}</strong>. You check it before it goes live.
+                </>
+              ),
+            },
+            {
+              glyph: SheetGlyphs.globe,
+              lead: "Audience: Public",
+              detail: "Anyone on Facebook can find the event, mark Interested, and invite friends.",
+            },
+          ]}
+          action="Post to Facebook Events"
+          onAction={() => handOff(HANDOFF.organizerAt(atIso), router.push)}
+          decline="Share this post only"
+          onDecline={() => {
+            setAsking(false);
+            setShared(true);
+          }}
+        />
       )}
     </StagedScreen>
   );
