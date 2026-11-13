@@ -36,7 +36,10 @@ describe("demo beats", () => {
     expect(beat("U3b").path!(context)).toBe(HANDOFF.curateAuto);
     expect(beat("O5").path!(context)).toBe(HANDOFF.organizerPosted(iso));
     expect(beat("U1c").path!(context)).toBe(HANDOFF.replanLisa(iso));
-    expect(beat("U2c").path!(context)).toBe(HANDOFF.lisaJoined("evt-story", "sample-student"));
+    expect(beat("U2c").path!(context)).toBe(HANDOFF.lisaStep("evt-story", "sample-student", "account"));
+    expect(beat("U2d").path!(context)).toBe(HANDOFF.lisaStep("evt-story", "sample-student", "ready"));
+    expect(beat("U2e").path!(context)).toBe(HANDOFF.lisaStep("evt-story", "sample-student", "event"));
+    expect(beat("U2f").path!(context)).toBe(HANDOFF.lisaJoined("evt-story", "sample-student"));
     expect(beat("U3d").path!(context)).toBe(HANDOFF.whosGoing("evt-story"));
   });
 
