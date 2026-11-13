@@ -16,7 +16,7 @@ import { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type 
 // the attendance store (t-vp0w). Open to company is a checkbox only (lisa).
 // Who's going leads with friends by name ("Aaron and Lisa are going"), which
 // opens a sheet of friends going (trish); Ask Muse says who to go with (demo
-// beat U3d); Looking for company sits after Details (LookingForCompany).
+// beat U3d); Looking for company is Muse's card at the end of it.
 
 type Response = { data: WhoIsGoing | null; error: string | null };
 type Seats = { capacity: number; left: number };
@@ -268,7 +268,7 @@ export function WhosGoing({
               <MuseBadge size={30} />
               <span className="min-w-0 flex-1">
                 <span className="block font-display text-label font-bold">
-                  {muse.state === "asking" ? "Muse is checking who's going..." : "Who do I know that's going?"}
+                  {muse.state === "asking" ? "Muse is checking who's going..." : "Looking for company"}
                 </span>
                 <span className="block text-meta text-muted">{muse.error ?? "Muse looks for friends and people to go with"}</span>
               </span>
@@ -327,60 +327,5 @@ function FriendsSheet({ friends, close }: { friends: GoingPerson[]; close: () =>
         </ul>
       </div>
     </div>
-  );
-}
-
-/** Looking for company as its own section, placed after Details. */
-export function LookingForCompany({ initial }: { initial: WhoIsGoing }) {
-  const [who, setWho] = useState(initial);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function sayHi(personId: string) {
-    setBusy(true);
-    const result = await post<Response>("/api/social/hello", { eventId: who.eventId, to: personId });
-    setBusy(false);
-    setError(result.error);
-    if (result.data) setWho(result.data);
-  }
-
-  if (who.openToCompany.length === 0) return null;
-  return (
-    <section aria-labelledby="company-heading" className="px-3">
-      <h2 id="company-heading" className="font-display text-title font-bold">
-        Looking for company
-      </h2>
-      <p className="text-meta text-muted">Students going on their own, best match first</p>
-      <ul className="mt-[6px] flex flex-col divide-y divide-hairline">
-        {who.openToCompany.map((person) => (
-          <li key={person.id} className="flex items-start gap-[10px] py-[10px]">
-            <Avatar person={person} size={40} />
-            <div className="min-w-0 flex-1">
-              <p className="font-display text-label font-bold">{person.name}</p>
-              <p className="text-meta font-semibold text-muted">
-                {person.year} · {person.major}
-              </p>
-              <p className="mt-[2px] text-meta">
-                {person.mutual?.length ? `Friends with ${person.mutual.join(" and ")}. ` : ""}
-                {sharedLine(person.shared)}
-              </p>
-              {person.note && <p className="mt-[2px] text-meta text-muted">&ldquo;{person.note}&rdquo;</p>}
-              {person.instagram && (
-                <p className="mt-[4px] flex items-center gap-[5px] text-meta font-semibold">
-                  <InstagramPostIcon className="h-[15px] w-[15px] shrink-0" />
-                  They said yes: @{person.instagram}
-                </p>
-              )}
-            </div>
-            {!person.hello && (
-              <button type="button" disabled={busy} onClick={() => void sayHi(person.id)} className={buttonClass("secondary", "shrink-0")}>
-                Say hi
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-      {error && <p className="mt-[8px] text-meta text-muted">{error}</p>}
-    </section>
   );
 }

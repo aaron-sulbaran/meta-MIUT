@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { ComponentType, ReactNode } from "react";
 import { EventShareAction } from "@/components/events/event-actions";
-import { LookingForCompany, WhosGoing } from "@/components/social/whos-going";
+import { WhosGoing } from "@/components/social/whos-going";
 import { posterKicker } from "@/components/events/event-card";
 import { SubPageHeader } from "@/components/ui/header";
 import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon, TicketIcon } from "@/components/ui/icons";
@@ -81,13 +81,6 @@ export default async function EventPage({
         </ul>
         {event.description && <p className="mt-[14px] text-body">{event.description}</p>}
       </section>
-
-      {who.openToCompany.length > 0 && (
-        <>
-          <Divider />
-          <LookingForCompany initial={who} />
-        </>
-      )}
     </>
   );
 }
