@@ -71,8 +71,11 @@ app/api/events/      GET all events, POST publish a confirmed draft (stores it, 
 app/api/alerts/      GET ?since=<cursor> new alerts, POST send an alert for an event
 app/api/events/[id]/ GET one event, PATCH { updates } for a repost Muse matched
 app/api/events/[id]/attendance/  GET ?viewer=<id> counts and seats left, POST {viewerId, action} interested or RSVP
-app/api/demo/reset/  POST reseed events and clear alerts (token in production)
-app/demo/            operator console: publish a sample event, fire an alert, reset
+app/api/demo/reset/  POST the full demo reset: events, alerts, going, comments, Muse memory, Ask history (token in production)
+app/demo/            the pitch stage (beats from lib/demo/beats.ts, persona per beat, keys, reset); /demo/console the operator console
+app/api/demo/story/  GET the event the demo follows (created quietly if the organizer act was skipped)
+components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed)
+lib/demo/            beats.ts (client safe), story.ts, reset.ts (one reset for every persona's saved state)
 components/alerts/   AlertListener (mount once in the root layout), banner, demo console
 components/ui/       Facebook shell: tab-bar (TabBar, ProfileAvatar), header (HomeHeader, SectionHeader,
                      SubPageHeader, HeaderAction), chips, button, section-heading, event-card
@@ -103,7 +106,7 @@ Stay in your folders. Touching another lane's folder means a hub note to its own
 | Map | `app/map/`, `components/map/`, `lib/map/`, `lib/geo.ts` |
 | Organizer and notification | `app/organizer/`, `components/organizer/`, `lib/organizer/` |
 | Design, seed, pitch | `data/seed/`, `app/globals.css`, `components/ui/`, `app/layout.tsx` |
-| Integration | `lib/store/`, `lib/alerts/` (except `policy.ts` and `compose.ts`, who gets alerted and what it says, owned by the alert item), `lib/events/publish.ts`, `lib/attendance/`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/` |
+| Integration | `lib/store/`, `lib/alerts/` (except `policy.ts` and `compose.ts`, who gets alerted and what it says, owned by the alert item), `lib/events/publish.ts`, `lib/attendance/`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/`, `lib/demo/`, `components/demo/` |
 
 Shared, change with care and a hub note: `lib/events/schema.ts` (record with `hub propose`), `lib/events/store.ts`, `lib/brand.ts`, `package.json`.
 
@@ -123,6 +126,7 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (record with `hu
 - Pages that show times call `await connection()` so they render per request, not at build.
 - Seed times are relative (`startsInMinutes`). The memory store resolves them at first load; the Redis store seeds on first read, re-seeds when its 12 hour seed marker expires, and on a `/demo` reset. Redis keys are namespaced by `VERCEL_ENV`, so preview deploys never touch production data.
 - Without Redis the store and alert feed live per server process (kept on `globalThis`, because Next dev compiles route handlers and pages as separate module graphs). On Vercel that means a published event can miss another screen: set the Redis env vars there.
+- `/demo` switches persona with the `demo-persona` cookie (lib/social/persona.ts): unset is Aaron (sample-student), then lisa, user3, organizer. A new module with saved state adds its key prefix to `DEMO_STATE_PREFIXES` in lib/demo/reset.ts, or the demo reset will not clear it.
 - Redis reads that fail fall back to the in-memory seed and log to the server console; writes return the error.
 - Alerts reach screens by polling `GET /api/alerts` every 2.5 s. The first poll only learns the cursor, so a freshly opened screen does not replay old alerts. A new alert also calls `router.refresh()`, so the feed already has the event when the student taps through.
 - Times display in the campus time zone (`CAMPUS_TIME_ZONE`), not the viewer's.
