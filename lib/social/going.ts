@@ -26,20 +26,33 @@ function state(): SocialState {
   return globalForSocial.__socialState;
 }
 
+/** FNV-1a with a final mix, so similar ids (evt-test-a, evt-test-b) still roll differently. */
 function hash(text: string): number {
-  let value = 0;
-  for (const char of text) value = (value * 31 + char.charCodeAt(0)) >>> 0;
-  return value;
+  let value = 2166136261;
+  for (const char of text) value = Math.imul(value ^ char.charCodeAt(0), 16777619);
+  value = Math.imul(value ^ (value >>> 16), 0x85ebca6b);
+  value = Math.imul(value ^ (value >>> 13), 0xc2b2ae35);
+  return (value ^ (value >>> 16)) >>> 0;
 }
 
-/** Fixture students go to events that match their interests, picked by a stable hash. The demo's own people never are. */
+const DEMO_FRIENDS = new Set(Object.values(FRIENDS).flat());
+
+/** Students from campus going who are not in the fixtures, so counts look like a real event: 25 to 88, stable per event. */
+export function crowdAt(eventId: string): number {
+  return 25 + (hash(`crowd@${eventId}`) % 64);
+}
+
+/**
+ * Fixture students go to events that match their interests, picked by a stable hash. The demo's own people never are.
+ * Friends go less often, so each event names a different one or two of them instead of the same faces everywhere.
+ */
 function seedGoing(event: CampusEvent): Map<string, GoingEntry> {
   const topics = new Set(eventTopics(event));
   const going = new Map<string, GoingEntry>();
   for (const person of PEOPLE) {
     if (!person.interests.some((interest) => topics.has(interest))) continue;
     const roll = hash(`${person.id}@${event.id}`);
-    if (roll % 4 === 0) continue;
+    if (DEMO_FRIENDS.has(person.id) ? roll % 3 !== 0 : roll % 4 === 0) continue;
     const open = roll % 3 !== 0;
     going.set(person.id, open ? { open, note: OPEN_NOTES[roll % OPEN_NOTES.length] } : { open });
   }
@@ -64,7 +77,7 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
   const mine = new Set(viewerInterests.map((interest) => interest.toLowerCase()));
   const friends: GoingPerson[] = [];
   const openToCompany: GoingPerson[] = [];
-  let othersCount = 0;
+  let othersCount = crowdAt(event.id);
 
   for (const [personId, entry] of going) {
     if (personId === viewerId) continue;
@@ -91,6 +104,8 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
     }
   }
 
+  // A different friend leads at each event, not whoever is first in the fixture.
+  friends.sort((a, b) => hash(`${a.id}@${event.id}`) - hash(`${b.id}@${event.id}`));
   openToCompany.sort((a, b) => b.shared.length - a.shared.length || a.name.localeCompare(b.name));
   othersCount += Math.max(0, openToCompany.length - COMPANY_LIMIT);
   const self = going.get(viewerId);

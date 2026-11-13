@@ -25,6 +25,7 @@ const SYSTEM = [
   'Return JSON only: {"line":"one or two short sentences to the student, friends first by name, warm and plain, no emoji, no dashes","people":[{"id","why"}]}.',
   "people: up to 3, best first, only ids from the list. why: under 60 characters, like Your friend, or Friends with Lisa, likes film.",
   "If no friend is going, suggest the best person open to company. Never invent people or facts.",
+  "The page already shows which friends are going, right above your line. Do not restate it (no 'X and Y are going'): say who to go with and why, like a friend would.",
 ].join(" ");
 
 function describe(person: GoingPerson, kind: "friend" | "company") {
@@ -45,7 +46,7 @@ export function goingFixture(who: WhoIsGoing): GoingPick {
   const friendsLine = friendsNamesLine(who.friends);
   if (friendsLine) {
     return {
-      line: `${friendsLine}. Want to go with ${who.friends.length === 1 ? "them" : "them both"}?`,
+      line: `Ask ${who.friends.slice(0, 2).map((friend) => friend.name).join(" or ")} to walk over with you.`,
       people: who.friends.slice(0, 3).map((friend) => ({ id: friend.id, why: "Your friend" })),
     };
   }
