@@ -34,7 +34,7 @@ describe("the stage position", () => {
 describe("moves from a presenter's own phone", () => {
   it("moves on its own beat once, refuses a repeat and anyone else, and the laptop always wins", async () => {
     const { setStateClient } = await import("@/lib/store/state");
-    const { moveStage, movePhone } = await import("@/lib/demo/stage-position");
+    const { moveStage, movePhone, PhoneMoveSchema } = await import("@/lib/demo/stage-position");
     const { BEATS } = await import("@/lib/demo/beats");
     setStateClient(null);
     const o1 = BEATS.findIndex((beat) => beat.id === "O1");
@@ -45,6 +45,19 @@ describe("moves from a presenter's own phone", () => {
     expect(await movePhone({ action: "next", from: "organizer", at: o1 }, new Date(NOW.getTime() + 2))).toMatchObject({ moved: false, data: { index: o1 + 1 } });
     expect(await movePhone({ action: "next", from: "user2", at: o1 + 1 })).toMatchObject({ moved: false });
     expect((await moveStage({ action: "next" }, new Date(NOW.getTime() + 3))).index).toBe(o1 + 2);
+    // The hand-over: on the last beat of Jolyn's act, Lisa starts her own act from her phone, once.
+    const u1c = BEATS.findIndex((beat) => beat.id === "U1c");
+    await moveStage({ action: "goto", index: u1c }, new Date(NOW.getTime() + 4));
+    expect(await movePhone({ action: "join", from: "user3", at: u1c }, new Date(NOW.getTime() + 5))).toMatchObject({ moved: false });
+    expect(await movePhone({ action: "join", from: "user2", at: u1c }, new Date(NOW.getTime() + 6))).toMatchObject({ moved: true, data: { index: u1c + 1 } });
+    expect(await movePhone({ action: "join", from: "user2", at: u1c }, new Date(NOW.getTime() + 7))).toMatchObject({ moved: false });
+    expect(PhoneMoveSchema.safeParse({ action: "join", from: "user2", at: u1c }).success).toBe(true);
+    // A screen passes the show on: from Lisa's first beat straight to Trish's first beat, once, and only from Lisa.
+    const u2a = u1c + 1;
+    const u3a = BEATS.findIndex((beat) => beat.id === "U3a");
+    expect(await movePhone({ action: "pass", from: "user3", at: u2a }, new Date(NOW.getTime() + 8))).toMatchObject({ moved: false });
+    expect(await movePhone({ action: "pass", from: "user2", at: u2a }, new Date(NOW.getTime() + 9))).toMatchObject({ moved: true, data: { index: u3a } });
+    expect(await movePhone({ action: "pass", from: "user2", at: u2a }, new Date(NOW.getTime() + 10))).toMatchObject({ moved: false });
     setStateClient(undefined);
   });
 });

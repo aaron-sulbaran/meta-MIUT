@@ -37,7 +37,8 @@ import type { AskReply, MuseRouteResponse } from "@/lib/muse/types";
 // from the real call's source and time.
 //
 // Stage contract (only when framed by the /demo stage or a phone wrapper):
-//   screen to parent: {source: "demo-screen", type: "listening", on} and {source: "demo-screen", type: "said", text}
+//   screen to parent: {source: "demo-screen", type: "listening", on}, {source: "demo-screen", type: "said", text},
+//                     and {source: "demo-screen", type: "pass"} (the Sent chip passes the show to the friend)
 //   parent to screen: {source: "demo-stage", type: "heard", text}, {type: "listening", on}, {type: "reveal"},
 //                     and the older {type: "demo-ask", line} (typed).
 
@@ -89,6 +90,11 @@ function postToParent(message: Record<string, unknown>) {
       { source: "demo-screen", ...message },
       window.location.origin,
     );
+}
+
+/** In a demo frame, the "Sent to" chip passes the show to the next person's act. */
+function handOverToFriend() {
+  postToParent({ type: "pass" });
 }
 
 function clock(iso: string): string {
@@ -986,7 +992,12 @@ export function MuseConversation({
           (invite || legs?.source === "fixture" || legs?.museSuggested) && (
             <div className="mt-[6px] flex flex-wrap gap-[6px] pl-[42px]">
               {invite && (
-                <span className="mc-rise flex items-center gap-[6px] rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-meta font-bold text-link">
+                // On the demo stage, tapping "Sent to Lisa" passes the show to her act (the stage and the presenter phone both listen).
+                <span
+                  role={invite.state === "sent" && isFramed() ? "button" : undefined}
+                  tabIndex={invite.state === "sent" && isFramed() ? 0 : undefined}
+                  onClick={invite.state === "sent" ? handOverToFriend : undefined}
+                  className="mc-rise flex items-center gap-[6px] rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-meta font-bold text-link">
                   <Avatar
                     person={{ id: invite.friend.id, name: invite.friend.name }}
                     size={20}

@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BrandMark } from "@/components/demo/brand-mark";
 import { CastAvatar } from "@/components/demo/cast-avatar";
-import { PHONE_SLUG, beatScreen, inFrameMessage, phoneView, storyDue, type PhoneView } from "@/lib/demo/beat-context";
+import { PHONE_SLUG, beatScreen, inFrameMessage, nextActStart, phoneView, storyDue, type PhoneView } from "@/lib/demo/beat-context";
 import { CAST, type CastId } from "@/lib/demo/beats";
+import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { demoClock } from "@/lib/demo/clock";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
@@ -16,9 +18,19 @@ import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 // it into a move. A small Next and Back cover the beats that move on by voice.
 // The stage only accepts moves on this person's own beats (decidePhoneMove), so
 // a stray tap never jumps the show; the laptop's keys and /demo/remote always win.
+// The hand-over: while the stage rests on the last beat of the act before theirs,
+// the next person's waiting screen shows something real to tap (Jolyn's lock
+// screen alert, Lisa's invite once it is really sent, Trish's Instagram), and that
+// tap starts their act ("join"). A screen can also pass the show on itself:
+// {source: "demo-screen", type: "pass"} moves to the next person's first beat ("pass").
 // Nothing here moves on a timer.
 
 const NOTICE_MS = 2_500;
+// A hand-over moment arrives a beat after the stage settles on the last beat before it.
+const ARRIVE_MS = 1_200;
+const INVITE_POLL_MS = 1_500;
+// An invite counts for this run when it was sent this recently (the demo reset clears older ones anyway).
+const INVITE_FRESH_MS = 15 * 60_000;
 
 type Position = { index: number; seq: number };
 type Frame = { src: string; key: number };
@@ -92,14 +104,14 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   }, [notice]);
 
   const move = useCallback(
-    async (action: "next" | "back") => {
+    async (action: "next" | "back" | "join" | "pass") => {
       const at = indexRef.current;
       if (at === null || pendingRef.current) return;
       pendingRef.current = true;
       // A tap inside the screen never reaches this page's listeners: keep polling fast from here.
       pollRef.current?.active();
       // Move here at once; the stage's answer settles it.
-      const target = action === "next" ? at + 1 : at - 1;
+      const target = action === "back" ? at - 1 : action === "pass" ? (nextActStart(at) ?? at) : at + 1;
       indexRef.current = target;
       setPosition((current) => (current ? { ...current, index: target } : current));
       try {
@@ -200,6 +212,8 @@ export function PhoneScene({ cast }: { cast: CastId }) {
       if (heard?.source === "demo-screen") {
         if (heard.type === "listening" && typeof heard.on === "boolean") signal("listening", { on: heard.on });
         if (heard.type === "said" && typeof heard.text === "string") signal("said", { text: heard.text.slice(0, 600) });
+        // The screen passes the show to the next person (Lisa's "Open to company", Jolyn's "Sent to Lisa").
+        if (heard.type === "pass") void move("pass");
         return;
       }
       const data = event.data as { type?: unknown; path?: unknown } | null;
@@ -265,7 +279,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
           </nav>
         </>
       ) : (
-        <Waiting cast={cast} view={view} online={online} />
+        <Waiting cast={cast} view={view} online={online} now={now} onJoin={() => void move("join")} />
       )}
       {notice && (
         <p role="status" className="absolute top-[max(12px,env(safe-area-inset-top))] left-1/2 z-10 w-max max-w-[90vw] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-body text-card">
@@ -276,8 +290,9 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   );
 }
 
-function Waiting({ cast, view, online }: { cast: CastId; view: PhoneView | null; online: boolean }) {
+function Waiting({ cast, view, online, now, onJoin }: { cast: CastId; view: PhoneView | null; online: boolean; now: Date; onJoin: () => void }) {
   const waiting = view?.kind === "waiting" ? view : null;
+  const arrived = useArrival(cast, waiting?.canJoin === true);
   return (
     <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-[20px] pt-[clamp(16px,6dvh,56px)] pb-[24px]">
       <div className="flex flex-col items-center gap-[12px] text-center">
@@ -289,7 +304,8 @@ function Waiting({ cast, view, online }: { cast: CastId; view: PhoneView | null;
       </div>
 
       <section className="mt-[32px] flex flex-col gap-[12px]">
-        {waiting?.upNext && (
+        {arrived && <JoinMoment cast={cast} now={now} onJoin={onJoin} />}
+        {waiting?.upNext && !arrived && (
           <p role="status" className="rounded-card bg-primary-soft px-[16px] py-[14px] text-center font-display text-title font-bold text-link">
             You&apos;re up next
           </p>
@@ -317,5 +333,115 @@ function Waiting({ cast, view, online }: { cast: CastId; view: PhoneView | null;
         {online ? "Keep this open. Your screen appears here on your turn." : "Can't reach the stage right now. Retrying."}
       </p>
     </main>
+  );
+}
+
+/**
+ * Whether the hand-over moment has arrived on this waiting screen: a beat after
+ * the stage settles (Jolyn's alert, Trish's Instagram), or, for Lisa, once
+ * Jolyn's invite has really been sent to her.
+ */
+function useArrival(cast: CastId, canJoin: boolean): boolean {
+  const [arrived, setArrived] = useState(false);
+  useEffect(() => {
+    if (!canJoin) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (cast !== "user2") {
+      timer = setTimeout(() => setArrived(true), ARRIVE_MS);
+    } else {
+      const check = async () => {
+        try {
+          const response = await fetch("/api/social/invites?to=lisa", { cache: "no-store" });
+          const body = (await response.json()) as { data: { invites: { at: string }[] } | null };
+          const newest = body.data?.invites.at(-1);
+          if (!stopped && newest && Date.now() - Date.parse(newest.at) < INVITE_FRESH_MS) {
+            setArrived(true);
+            return;
+          }
+        } catch {
+          // Try again on the next tick.
+        }
+        if (!stopped) timer = setTimeout(check, INVITE_POLL_MS);
+      };
+      void check();
+    }
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      setArrived(false);
+    };
+  }, [cast, canJoin]);
+  return canJoin && arrived;
+}
+
+const ARRIVE_CSS = "@keyframes join-in{from{opacity:0;transform:translateY(-16px) scale(0.97)}to{opacity:1;transform:none}}";
+
+/** The real thing the next person taps to start their act. */
+function JoinMoment({ cast, now, onJoin }: { cast: CastId; now: Date; onJoin: () => void }) {
+  const time = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: CAMPUS_TIME_ZONE }).replace(/\s?[AP]M$/, "");
+  if (cast === "user1") {
+    // Her lock screen: the alert from Muse as class ends.
+    return (
+      <div
+        className="flex flex-col items-center rounded-[28px] px-[12px] pt-[20px] pb-[12px] text-white"
+        style={{ background: "linear-gradient(165deg, #10204a 0%, #2b2a6b 45%, #6d3a7d 75%, #c76b6b 110%)", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif" }}
+      >
+        <style>{ARRIVE_CSS}</style>
+        <p className="text-[56px] leading-none font-semibold tracking-[-0.02em]">{time}</p>
+        <button
+          type="button"
+          onClick={onJoin}
+          className="mt-[18px] flex w-full items-start gap-[10px] rounded-[20px] bg-white/20 px-[12px] py-[10px] text-left backdrop-blur-md motion-safe:animate-[join-in_420ms_ease-out_both]"
+        >
+          <BrandMark name="facebook" size={34} className="rounded-[8px]" />
+          <span className="min-w-0 flex-1">
+            <span className="flex justify-between text-[13px] font-semibold">
+              <span>Muse</span>
+              <span className="font-normal opacity-80">now</span>
+            </span>
+            <span className="block text-[14px] leading-[1.3]">Just out of class. Want a free bite on your walk home?</span>
+          </span>
+        </button>
+      </div>
+    );
+  }
+  if (cast === "user2") {
+    // An Instagram notification: Jolyn's invite has arrived.
+    return (
+      <button
+        type="button"
+        onClick={onJoin}
+        className="flex w-full items-center gap-[12px] rounded-[18px] border border-hairline bg-card px-[14px] py-[12px] text-left shadow-[0_6px_24px_rgba(0,0,0,0.12)] motion-safe:animate-[join-in_420ms_ease-out_both]"
+        style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif" }}
+      >
+        <style>{ARRIVE_CSS}</style>
+        <BrandMark name="instagram" size={36} />
+        <span className="min-w-0 flex-1">
+          <span className="flex justify-between text-[13px] text-muted">
+            <span className="font-semibold text-ink">Instagram</span>
+            <span>now</span>
+          </span>
+          <span className="block text-[14px] leading-[1.3] text-ink">
+            <span className="font-semibold">{CAST.user1.name}</span> sent you an invite
+          </span>
+        </span>
+      </button>
+    );
+  }
+  // Trish: her Instagram, one tap to open.
+  return (
+    <button
+      type="button"
+      onClick={onJoin}
+      className="mx-auto flex flex-col items-center gap-[8px] rounded-[24px] px-[16px] py-[12px] motion-safe:animate-[join-in_420ms_ease-out_both]"
+    >
+      <style>{ARRIVE_CSS}</style>
+      <span className="flex h-[84px] w-[84px] items-center justify-center rounded-[22px] border border-hairline bg-card shadow-[0_6px_20px_rgba(0,0,0,0.12)]">
+        <BrandMark name="instagram" size={56} />
+      </span>
+      <span className="font-display text-label font-bold">Instagram</span>
+      <span className="text-meta text-muted">Tap to open</span>
+    </button>
   );
 }
