@@ -133,10 +133,12 @@ export function applyMove(current: StagePosition | null, move: StageMove, beatCo
   };
 }
 
-// The stage and every presenter phone poll this several times a second. Readers
-// on the same server instance share one store read for READ_SHARE_MS, so the
-// store sees a few reads a second however many screens are open.
-const READ_SHARE_MS = 50;
+// The stage, the remote, and every presenter phone poll this (lib/demo/stage-poll.ts).
+// Readers on the same server instance share one store read for READ_SHARE_MS
+// (concurrent readers wait on the same read), so Redis sees at most four reads a
+// second per instance however many screens are open. A move on this instance
+// updates the shared copy at once, so its readers see it with no wait.
+export const READ_SHARE_MS = 250;
 const shared = globalThis as typeof globalThis & { __demoStageRead?: { at: number; value: Promise<StagePosition | null> } };
 
 async function readStored(): Promise<StagePosition | null> {
@@ -192,8 +194,8 @@ export async function movePhone(
 // Which presenter phones are open: each phone's polls stamp it, at most every
 // PHONE_STAMP_MS per server instance, one small record per phone so phones never
 // overwrite each other. The console shows a phone as connected while its stamp is fresh.
-const PHONE_STAMP_MS = 3_000;
-export const PHONE_CONNECTED_MS = 10_000;
+const PHONE_STAMP_MS = 15_000;
+export const PHONE_CONNECTED_MS = 40_000;
 const PhoneSeenSchema = z.object({ at: z.string() });
 const stamps = globalThis as typeof globalThis & { __demoPhoneSeen?: Partial<Record<CastId, string>> };
 const phoneState = (cast: CastId) => `demo-phone-seen:${cast}`;

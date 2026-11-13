@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CastAvatar } from "@/components/demo/cast-avatar";
 import { PresenterNotes } from "@/components/demo/presenter-notes";
 import { BEATS, castLine, castOf } from "@/lib/demo/beats";
+import { startStagePoll } from "@/lib/demo/stage-poll";
 
 // A presenter's phone as a clicker for the /demo stage on the laptop. Next and
 // Back write the stage's position (/api/demo/stage); the laptop follows within
@@ -14,7 +15,6 @@ import { BEATS, castLine, castOf } from "@/lib/demo/beats";
 type Position = { index: number; seq: number };
 
 const POSITION_URL = "/api/demo/stage";
-const POLL_MS = 1_000;
 
 type WakeLockLike = { release: () => Promise<void> };
 
@@ -30,10 +30,10 @@ export function StageRemote() {
     setPosition(next);
   }, []);
 
+  // Polls on lib/demo/stage-poll.ts's schedule: fast while the skit moves, slow when quiet, never when hidden.
   useEffect(() => {
     let stopped = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    async function poll() {
+    const poll = startStagePoll(async () => {
       try {
         const response = await fetch(POSITION_URL, { cache: "no-store" });
         const body = (await response.json()) as { data: Position | null };
@@ -41,15 +41,15 @@ export function StageRemote() {
           setConnected(true);
           show(body.data);
         }
+        return body.data?.index ?? null;
       } catch {
         if (!stopped) setConnected(false);
+        return null;
       }
-      if (!stopped) timer = setTimeout(poll, POLL_MS);
-    }
-    void poll();
+    });
     return () => {
       stopped = true;
-      if (timer) clearTimeout(timer);
+      poll.stop();
       void wakeLock.current?.release().catch(() => {});
     };
   }, [show]);
