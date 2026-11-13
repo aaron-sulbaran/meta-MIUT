@@ -27,15 +27,18 @@ describe("For you list", () => {
     expect(compileCandidates(student, memory, [far], now, "upcoming")).toHaveLength(1);
   });
 
-  it("keeps every upcoming event, the likely ones first, minus the skipped ones", () => {
+  it("keeps only the likely upcoming events, by time and interest, minus the skipped ones", () => {
     const likely = compileCandidates(student, getInterestMemory(undefined, now), events, now, "upcoming");
     const skip = new Set([likely[0]!.eventId]);
     const list = forYouOrder(likely, events, now, skip);
-    const upcoming = events.filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime());
-    expect(list).toHaveLength(upcoming.length - 1);
-    expect(list.map((event) => event.id)).not.toContain(likely[0]!.eventId);
-    expect(list[0]!.id).toBe(likely[1]!.eventId);
-    expect(list.map((event) => event.id)).toContain("evt-yoga-tower");
+    const ids = list.map((event) => event.id);
+    expect(ids).toEqual(
+      soonestFirst(likely, events, now)
+        .map((candidate) => candidate.eventId)
+        .filter((id) => !skip.has(id)),
+    );
+    // Only likely events: one they keep skipping never shows.
+    expect(ids).not.toContain("evt-yoga-tower");
   });
 });
 

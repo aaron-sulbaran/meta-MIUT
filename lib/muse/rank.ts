@@ -70,19 +70,20 @@ export function soonestFirst(likely: LikelyEvent[], events: CampusEvent[], now: 
 }
 
 /**
- * For you under the Top 3: every upcoming event except `skip`. The ones Muse thinks the student
- * will like come first (best match, then soonest), then the rest by time.
+ * For you under the Top 3: only the events the student is likely to care
+ * about, minus `skip`, in soonestFirst order (on now, then day by day, best
+ * match first). Unrelated events are left to the Free, Today and This week chips.
  */
 export function forYouOrder(likely: LikelyEvent[], events: CampusEvent[], now: Date, skip: Set<string>): CampusEvent[] {
-  const scores = new Map(likely.map((candidate) => [candidate.eventId, candidate.score]));
-  return events
-    .filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime() && !skip.has(event.id))
-    .sort(
-      (a, b) =>
-        Number(scores.has(b.id)) - Number(scores.has(a.id)) ||
-        (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0) ||
-        Date.parse(a.start) - Date.parse(b.start),
-    );
+  const byId = new Map(events.map((event) => [event.id, event]));
+  return soonestFirst(
+    likely.filter((candidate) => !skip.has(candidate.eventId)),
+    events,
+    now,
+  ).flatMap((candidate) => {
+    const event = byId.get(candidate.eventId);
+    return event && event.status === "published" && Date.parse(event.end) > now.getTime() ? [event] : [];
+  });
 }
 
 export async function personalizeEvents(
