@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import type { Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, monogram } from "@/components/map/category-icons";
+import { CrawlPlanner } from "@/components/map/crawl-planner";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
+import type { Route } from "@/lib/map/crawl-route";
 
 // Full-screen map for the Events tab: a clean, quiet base map with each event
 // as a round bubble showing the organizer's logo (the club, association or
@@ -53,6 +55,8 @@ export type MapCard = {
   /** The organizer's logo image, when the event data has one. */
   logoUrl: string | null;
   chips: MapChip[];
+  startIso: string;
+  endIso: string;
   weight: number;
   pickRank: number | null;
   reason: string | null;
@@ -314,6 +318,52 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
 
 // The selected event's bubble grows to well over one and a half times its
 // size and lifts with a deeper shadow; its name pill stays readable below.
+// The food crawl's route: a dotted line from the student through each stop to
+// where the walk ends, with numbered stop markers and a home marker.
+const ROUTE_SOURCE = "crawl-route";
+
+function routeLine(route: Route) {
+  const points = [route.from, ...route.stops, route.destination];
+  return {
+    type: "Feature" as const,
+    properties: {},
+    geometry: { type: "LineString" as const, coordinates: points.map((point) => [point.lng, point.lat]) },
+  };
+}
+
+function routeMarkerElement(label: string, home: boolean): HTMLDivElement {
+  const element = document.createElement("div");
+  element.textContent = home ? "" : label;
+  if (home) {
+    element.innerHTML =
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10"/></svg>';
+  }
+  element.setAttribute("aria-label", home ? "Where the walk ends" : `Stop ${label}`);
+  Object.assign(element.style, {
+    width: "28px",
+    height: "28px",
+    borderRadius: "9999px",
+    background: home ? "#2c2c2a" : "#1e6b33",
+    color: "#ffffff",
+    border: "2.5px solid #ffffff",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    font: "700 12px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+  });
+  return element;
+}
+
+// While a crawl is on the map, events off the route fade and bubbles stop
+// taking taps, so the route reads clearly.
+// MapLibre manages the marker element's own opacity, so fade the bubble inside.
+function setMarkerFaded(element: HTMLElement, faded: boolean, locked: boolean) {
+  const inner = element.firstElementChild as HTMLElement | null;
+  if (inner) inner.style.opacity = faded ? "0.3" : "1";
+  element.style.pointerEvents = locked ? "none" : "";
+}
+
 function setMarkerActive(wrapper: HTMLElement, active: boolean) {
   const bubble = wrapper.querySelector<HTMLElement>("button > span");
   const photo = bubble?.firstElementChild as HTMLElement | null;
@@ -384,6 +434,9 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [lastDismissed, setLastDismissed] = useState<MapCard | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [crawlOpen, setCrawlOpen] = useState(false);
+  const [route, setRoute] = useState<Route | null>(null);
+  const routeMarkersRef = useRef<Marker[]>([]);
 
   const visibleCards = useMemo(
     () => cards.filter((card) => !dismissed.includes(card.eventId) && card.chips.includes(chip)),
@@ -501,6 +554,60 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
     if (mapRef.current) setLabelsForZoom(markersRef.current, mapRef.current.getZoom());
   }, [currentActive, mapReady, visibleCards]);
 
+  // The crawl's route on the map: dotted line, numbered stops, the rest faded.
+  useEffect(() => {
+    const map = mapRef.current;
+    const MarkerClass = markerClassRef.current;
+    if (!mapReady || !map || !MarkerClass) return;
+    for (const marker of routeMarkersRef.current) marker.remove();
+    routeMarkersRef.current = [];
+    const stopIds = new Set(route?.stops.map((stop) => stop.eventId) ?? []);
+    for (const [id, { element }] of markersRef.current) setMarkerFaded(element, route !== null && !stopIds.has(id), route !== null);
+    const source = map.getSource(ROUTE_SOURCE) as { setData: (data: unknown) => void } | undefined;
+    if (!route) {
+      if (map.getLayer(ROUTE_SOURCE)) map.removeLayer(ROUTE_SOURCE);
+      if (source) map.removeSource(ROUTE_SOURCE);
+      return;
+    }
+    if (source) source.setData(routeLine(route));
+    else {
+      map.addSource(ROUTE_SOURCE, { type: "geojson", data: routeLine(route) });
+      map.addLayer({
+        id: ROUTE_SOURCE,
+        type: "line",
+        source: ROUTE_SOURCE,
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#0866ff", "line-width": 4, "line-dasharray": [0.2, 2] },
+      });
+    }
+    route.stops.forEach((stop, index) => {
+      routeMarkersRef.current.push(
+        new MarkerClass({ element: routeMarkerElement(String(index + 1), false) }).setLngLat([stop.lng, stop.lat]).addTo(map),
+      );
+    });
+    const sameAsStart = route.destination.lat === route.from.lat && route.destination.lng === route.from.lng;
+    if (!sameAsStart) {
+      routeMarkersRef.current.push(
+        new MarkerClass({ element: routeMarkerElement("", true) }).setLngLat([route.destination.lng, route.destination.lat]).addTo(map),
+      );
+    }
+    const points = [route.from, ...route.stops, route.destination];
+    const lats = points.map((point) => point.lat);
+    const lngs = points.map((point) => point.lng);
+    map.fitBounds(
+      [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ],
+      { padding: { top: 70, bottom: 420, left: 50, right: 50 }, maxZoom: 16.5, duration: 700 },
+    );
+  }, [mapReady, route]);
+
+  const crawlEvents = useMemo(
+    () => cards.map((card) => ({ eventId: card.eventId, title: card.title, place: card.place, startIso: card.startIso, endIso: card.endIso })),
+    [cards],
+  );
+
   const recenter = useCallback(() => {
     if (mapRef.current) frameStudent(mapRef.current, studentSpot, visibleCards, true);
   }, [studentSpot, visibleCards]);
@@ -599,6 +706,7 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
         role="group"
         aria-label="Filter the map"
         className="no-scrollbar absolute left-0 right-[124px] top-3 z-10 flex gap-[6px] overflow-x-auto pl-3 pr-2"
+        style={{ display: crawlOpen ? "none" : undefined }}
       >
         {CHIPS.map((item) => (
           <button
@@ -624,12 +732,45 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
       </div>
 
 
+      {!crawlOpen && (
+        <button
+          type="button"
+          onClick={() => {
+            setLastDismissed(null);
+            setCrawlOpen(true);
+          }}
+          aria-label="Plan a food crawl"
+          title="Food crawl"
+          className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-card text-ink shadow-md active:scale-95"
+          style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 196px)" }}
+        >
+          <svg viewBox="0 0 24 24" className="h-[21px] w-[21px]" aria-hidden fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6" cy="19" r="2.2" />
+            <circle cx="18" cy="5" r="2.2" />
+            <path d="M8.2 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.8" />
+          </svg>
+        </button>
+      )}
+
+      {crawlOpen && (
+        <CrawlPlanner
+          studentSpot={studentSpot}
+          events={crawlEvents}
+          dismissed={dismissed}
+          onRoute={setRoute}
+          onClose={() => {
+            setRoute(null);
+            setCrawlOpen(false);
+          }}
+        />
+      )}
+
       <button
         type="button"
         onClick={recenter}
         aria-label="Recenter on my location"
         className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-card text-ink shadow-md active:scale-95"
-        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 144px)" }}
+        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 144px)", display: crawlOpen ? "none" : undefined }}
       >
         <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden fill="none" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="7" />
@@ -651,7 +792,7 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
         </div>
       )}
 
-      {visibleCards.length === 0 && (
+      {visibleCards.length === 0 && !crawlOpen && (
         <p
           className="absolute inset-x-3 z-10 rounded-[18px] bg-card px-3 py-3 text-center text-body text-muted shadow-md"
           style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 12px)" }}
@@ -676,7 +817,7 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
         onKeyDown={() => (interacted.current = true)}
         aria-label="Events on the map"
         className="no-scrollbar absolute inset-x-0 z-10 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-3 px-3 pb-1"
-        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 10px)" }}
+        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 10px)", display: crawlOpen ? "none" : undefined }}
       >
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
