@@ -5,7 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import type { MapCard } from "@/components/map/events-map";
 import { CATEGORY_TINTS, monogram } from "@/components/map/category-icons";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
-import { Poster } from "@/components/ui/poster";
+import { posterStyle } from "@/components/ui/poster";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { arrivesTooLate, type Point, type RouteStop } from "@/lib/map/crawl-route";
 
@@ -28,7 +28,7 @@ const KIND_LABELS: Record<string, string> = {
 
 export const PEEK_WIDTH = 272;
 /** About how tall the card is, so the map can make room above a stop. */
-export const PEEK_HEIGHT = 232;
+export const PEEK_HEIGHT = 240;
 
 function clock(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: CAMPUS_TIME_ZONE });
@@ -47,6 +47,17 @@ function walkingTo(from: Point, to: Point): string {
 function Row({ children, tone = "muted" }: { children: ReactNode; tone?: "muted" | "free" | "late" }) {
   const color = tone === "free" ? "text-[#1e6b33]" : tone === "late" ? "text-badge" : "text-muted";
   return <p className={`truncate text-[12.5px] font-semibold leading-[17px] ${color}`}>{children}</p>;
+}
+
+/** A stand-in flyer: the event's poster colors with its title, for events without one. */
+function MiniFlyer({ seed, title }: { seed: string; title: string }) {
+  const { palette } = posterStyle(seed);
+  return (
+    <div className="flex h-full w-full flex-col justify-between p-[7px]" style={{ background: palette.field, color: palette.ink }}>
+      <span className="line-clamp-5 font-display text-[11px] font-extrabold leading-[12.5px] tracking-[-0.01em]">{title}</span>
+      <span className="h-[8px] w-full rounded-full" style={{ background: palette.shape }} />
+    </div>
+  );
 }
 
 export function StopPeek({
@@ -100,14 +111,14 @@ export function StopPeek({
         </button>
 
         <div className="flex gap-[10px] pr-[18px]">
-          <div className="relative h-[68px] w-[68px] shrink-0">
-            <div className="h-full w-full overflow-hidden rounded-[12px] bg-wash">
+          <div className="relative h-[100px] w-[76px] shrink-0">
+            <div className="h-full w-full overflow-hidden rounded-[12px] bg-wash shadow-[0_2px_8px_rgba(0,0,0,0.18)]">
               {card?.imagePath ? (
                 // Flyers are local files or small stored images; a plain img keeps both working.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={card.imagePath} alt="" className="h-full w-full object-cover" />
               ) : (
-                <Poster seed={stop.eventId ?? stop.title} title="" size="small" className="h-full !aspect-auto" />
+                <MiniFlyer seed={stop.eventId ?? stop.title} title={stop.title} />
               )}
             </div>
             <span
