@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { DraftCard } from "@/components/organizer/draft-card";
 import { prepareFlyer } from "@/components/organizer/flyer-image";
-import { MuseMaking, type MakingState } from "@/components/organizer/muse-making";
+import { FlyerMoment } from "@/components/demo/moments/flyer-moment";
+import type { MakingState } from "@/components/organizer/muse-making";
 import type { ExtractDraft, ExtractDraftsResponse, FlyerImage, InputMode, OrganizerOption } from "@/components/organizer/types";
 import { Button } from "@/components/ui/button";
 import { SourceBadge } from "@/components/ui/card";
+import { handOff } from "@/lib/demo/staged";
 import type { KnownPlace } from "@/lib/organizer/place";
 
 // The organizer side of the demo: a flyer photo (with its caption) or a spoken line in,
@@ -15,7 +17,16 @@ import type { KnownPlace } from "@/lib/organizer/place";
 // caption: no picker, Muse starts at once behind the "making your event" card (O3).
 
 /** A post handed over from the staged Instagram screen: its flyer, caption, and club. */
-export type OrganizerHandoff = { flyerSrc: string; caption: string; organizer: OrganizerOption };
+export type OrganizerHandoff = {
+  flyerSrc: string;
+  caption: string;
+  organizer: OrganizerOption;
+  // The flyer's printed time line and the demo clock, so boxes land on the right words.
+  timeLine: string;
+  nowIso: string;
+  // Where the stage goes once the event is posted (O5), or null outside the stage.
+  postedPath: string | null;
+};
 
 const NO_CAPTION = "(No caption. Read everything from the flyer image.)";
 
@@ -60,6 +71,8 @@ export function OrganizerFlow({
   const [reading, setReading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [making, setMaking] = useState<MakingState | null>(null);
+  // In the handoff moment the draft form stays folded until the organizer asks to edit.
+  const [editing, setEditing] = useState(false);
 
   const canSend = mode === "photo" ? Boolean(flyer || caption.trim()) : Boolean(spoken.trim());
 
@@ -155,12 +168,22 @@ export function OrganizerFlow({
 
   return (
     <div className="flex flex-col gap-[12px] px-[12px] pt-[12px]">
-      {handoff && (
-        <p className="text-venue text-muted">
-          From your Instagram post as <span className="font-display font-bold text-ink">{handoff.organizer.name}</span> (@{handoff.organizer.handle})
-        </p>
+      {handoff && making && !editing && (
+        <FlyerMoment
+          flyerSrc={flyer?.previewUrl ?? handoff.flyerSrc}
+          caption={handoff.caption}
+          timeLine={handoff.timeLine}
+          now={new Date(handoff.nowIso)}
+          state={making}
+          places={places}
+          organizer={organizer}
+          onEdit={() => setEditing(true)}
+          onPosted={() => {
+            // Tell the /demo stage the post happened, so it moves on to O5 without a reload.
+            if (handoff.postedPath && typeof window !== "undefined" && window.parent !== window) handOff(handoff.postedPath, () => {});
+          }}
+        />
       )}
-      {handoff && making && <MuseMaking flyerSrc={flyer?.previewUrl ?? handoff.flyerSrc} state={making} />}
       <section className="flex flex-col gap-[10px]" hidden={Boolean(handoff)}>
         <div className="text-venue text-muted">
           Posting as
@@ -180,7 +203,7 @@ export function OrganizerFlow({
       )}
 
       {result && (
-        <section aria-live="polite" className="flex flex-col gap-[10px] pb-[8px]">
+        <section aria-live="polite" className="flex flex-col gap-[10px] pb-[8px]" hidden={Boolean(handoff) && !editing && !result.error}>
           <div className="flex flex-wrap items-baseline justify-between gap-[6px]" hidden={Boolean(handoff) && !result.error}>
             <h2 className="font-display text-title font-bold">
               {result.error

@@ -31,11 +31,13 @@ describe("staged screens", () => {
     expect(HANDOFF.organizer).toBe("/organizer?handoff=story");
     expect(HANDOFF.lisaLanding("evt-1", "sample-student")).toBe("/invite/evt-1?from=sample-student");
     expect(HANDOFF.curate).toBe("/curate");
+    expect(HANDOFF.organizerPosted("2026-11-12T20:00:00.000Z")).toBe("/organizer?handoff=story&state=posted&at=2026-11-12T20%3A00%3A00.000Z");
   });
 });
 
 describe("hidesNearbyOptIn", () => {
-  it("covers the demo, the invite, and curate, and nothing else", () => {
+  it("covers the demo, the invite, curate, and the organizer, and nothing else", () => {
+    expect(hidesNearbyOptIn("/organizer")).toBe(true);
     expect(hidesNearbyOptIn("/invite/abc")).toBe(true);
     expect(hidesNearbyOptIn("/curate")).toBe(true);
     expect(hidesNearbyOptIn("/demo")).toBe(true);

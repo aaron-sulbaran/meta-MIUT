@@ -19,8 +19,9 @@ export function isStagedScreen(pathname: string | null): boolean {
 }
 
 // Screens that never mount the nearby alert opt-in: every /demo screen, Lisa's
-// no-account invite, and the first curate visit, where nobody has an account yet.
-const NO_NEARBY_ROOTS = ["/demo", "/invite", "/curate"];
+// no-account invite, the first curate visit, where nobody has an account yet,
+// and the organizer's screen, which is not a student's.
+const NO_NEARBY_ROOTS = ["/demo", "/invite", "/curate", "/organizer"];
 
 /** True where the nearby alert watcher and its opt-in banner must not mount. */
 export function hidesNearbyOptIn(pathname: string | null): boolean {
@@ -70,6 +71,9 @@ export const HANDOFF = {
   instagramPost: (atIso: string | null) => withClock(`${STAGED_PREFIX}/post`, atIso),
   // O3 on the same clock as the post.
   organizerAt: (atIso: string | null) => withClock(ORGANIZER_HANDOFF, atIso),
+  // O5: the organizer's event as posted to Facebook Events. Without the organizer
+  // tapping Post first, it shows the story event (listed quietly if missing).
+  organizerPosted: (atIso: string | null) => withClock(`${ORGANIZER_HANDOFF}&state=posted`, atIso),
   // U1b: the map with Muse's walk home planned from the demo clock (?time= pins it).
   walkHome: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}`,
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
