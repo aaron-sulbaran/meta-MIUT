@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { stageOnLoad } from "@/lib/demo/beat-context";
 import { StageMoveSchema, applyMove } from "@/lib/demo/stage-position";
 
 const NOW = new Date("2026-11-13T15:00:00Z");
@@ -117,5 +118,16 @@ describe("what a presenter's phone heard", () => {
     // Hearing failed on her phone: recorded with the line it showed, so the stage stops Listening.
     const failed = applyPhoneSignal(said.position, { action: "signal", from: "user1", at: u1c, kind: "failed", text: "I couldn't hear that." }, new Date(NOW.getTime() + 3));
     expect(failed).toMatchObject({ ok: true, position: { signal: { kind: "failed", text: "I couldn't hear that." } } });
+  });
+});
+
+describe("a stage that loads", () => {
+  it("joins the show where it is instead of sending it back to the start", () => {
+    expect(stageOnLoad({ index: 8 })).toEqual({ kind: "join", index: 8 });
+    expect(stageOnLoad({ index: 0 })).toEqual({ kind: "join", index: 0 });
+  });
+
+  it("claims the record only when there is none yet", () => {
+    expect(stageOnLoad(null)).toEqual({ kind: "claim" });
   });
 });
