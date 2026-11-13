@@ -340,7 +340,7 @@ export const BEATS: Beat[] = [
     kind: "app",
     title: "Now she sees it all",
     caption: "The time, the place, who's going. She decides.",
-    note: "Lisa: now I can see when and where. Tap Join.",
+    note: "Lisa: now I can see when and where. Tap I'm going.",
     path: lisaStepPath("event"),
   },
   {

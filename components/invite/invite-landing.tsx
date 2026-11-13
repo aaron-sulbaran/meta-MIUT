@@ -16,7 +16,7 @@ import { SAVE_FAILED } from "@/lib/http";
 // 2. account: Meta's own "Your Meta Account is here" sheet (the hub's
 //             kb/meta-accounts-reference), her Instagram account, one blue pill.
 // 3. ready:   "Your Facebook account is ready", her Instagram name and photo carried over.
-// 4. event:   the sheet lifts and the event unlocks, with a Join button.
+// 4. event:   the sheet lifts and the event unlocks, with an I'm going button (the event page's own words).
 // 5. joined:  only now the accept call runs: "You're going", "<inviter> knows
 //             you're going", and Open to company, which hands the show to the next person.
 // The account is staged (and says so); Going and Open to company are real.
@@ -295,7 +295,7 @@ export function InviteLanding({
             disabled={busy}
             className="flex h-[44px] w-full items-center justify-center gap-[8px] rounded-[8px] bg-primary font-display text-label font-bold text-on-primary active:scale-[0.99] disabled:opacity-70"
           >
-            {busy ? "Joining..." : "Join"}
+            I&apos;m going
           </button>
           <p className="mt-[8px] text-center text-meta text-muted">{inviter} will know you&apos;re going.</p>
         </section>
