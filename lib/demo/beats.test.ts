@@ -34,7 +34,8 @@ describe("demo beats", () => {
     expect(HANDOFF.organizerAt(iso)).toBe(`/organizer?handoff=story&at=${encodeURIComponent(iso)}`);
     expect(HANDOFF.instagramPost(null)).toBe("/demo/instagram/post");
     expect(beat("U2b").path!(context)).toBe(HANDOFF.lisaLanding("evt-story", "sample-student"));
-    expect(beat("U3b").path!(context)).toBe(HANDOFF.curateAuto);
+    expect(beat("U3b").path!(context)).toBe(HANDOFF.firstEvents);
+    expect(HANDOFF.firstEvents).toBe("/?first=1&opened=instagram");
     expect(beat("O5").path!(context)).toBe(HANDOFF.organizerPosted(iso));
     expect(beat("U1c").path!(context)).toBe(HANDOFF.replanLisa(iso));
     expect(beat("U2c").path!(context)).toBe(HANDOFF.lisaStep("evt-story", "sample-student", "account"));

@@ -99,7 +99,10 @@ export const HANDOFF = {
   // U3a: Trish's Reels, one beat per reel (1 to 3), then the Facebook Events sheet open over reel 3.
   // The screen moves between them in place, so each path must match its beat exactly.
   reels: (reel: number, sheet = false) => `${STAGED_PREFIX}/reels?reel=${reel}${sheet ? "&sheet=1" : ""}`,
-  // U3b: the curate step (t-s8eh).
+  // U3b: Trish's first time in Events, opened from Instagram (the app switch plays): the real
+  // Events home, the map, with the Muse card curating her top events over it.
+  firstEvents: withAppSwitch("/?first=1"),
+  // The curate step (t-s8eh), no longer in the demo.
   curate: "/curate",
   // U3b on the stage: curating starts on arrival, so the clicker is the one tap.
   curateAuto: "/curate?auto=1",
