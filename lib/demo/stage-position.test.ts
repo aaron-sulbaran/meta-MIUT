@@ -54,7 +54,7 @@ describe("moves from a presenter's own phone", () => {
     expect(PhoneMoveSchema.safeParse({ action: "join", from: "user2", at: u1c }).success).toBe(true);
     // A screen passes the show on: from Lisa's first beat straight to Trish's first beat, once, and only from Lisa.
     const u2a = u1c + 1;
-    const u3a = BEATS.findIndex((beat) => beat.id === "U3a");
+    const u3a = BEATS.findIndex((beat) => beat.id === "U3a1");
     expect(await movePhone({ action: "pass", from: "user3", at: u2a }, new Date(NOW.getTime() + 8))).toMatchObject({ moved: false });
     expect(await movePhone({ action: "pass", from: "user2", at: u2a }, new Date(NOW.getTime() + 9))).toMatchObject({ moved: true, data: { index: u3a } });
     expect(await movePhone({ action: "pass", from: "user2", at: u2a }, new Date(NOW.getTime() + 10))).toMatchObject({ moved: false });
