@@ -12,7 +12,10 @@ import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 // until a staged route exists, a placeholder stands in). Keys: Right, Space or Page Down next; Left or Page Up back; Home
 // first; R reloads this beat; Shift+R resets the whole demo; H shows the beat
 // list; F full screen. A presenter window on the same browser follows along
-// through the "demo-stage" channel.
+// through the "demo-stage" channel. A phone remote (/demo/remote) can move the
+// show too: the stage keeps its beat in the shared store (/api/demo/stage) and
+// follows any newer move within about a second. The laptop stays the master:
+// if that store or the network fails, the stage keeps running on its keys.
 
 const PHONE_WIDTH = 390;
 const PHONE_HEIGHT = 844;
@@ -20,6 +23,36 @@ const CHANNEL = "demo-stage";
 const TOKEN_KEY = "demo-reset-token";
 
 type StageMessage = { type: "goto"; index: number } | { type: "reset" };
+// Where a move came from: this window, another window on this browser, or the store (a phone remote).
+type MoveSource = "local" | "channel" | "remote";
+type StagePosition = { index: number; seq: number };
+
+const POSITION_URL = "/api/demo/stage";
+const POSITION_POLL_MS = 1_000;
+
+async function readPosition(): Promise<StagePosition | null> {
+  try {
+    const response = await fetch(POSITION_URL, { cache: "no-store" });
+    const body = (await response.json()) as { data: StagePosition | null };
+    return body.data;
+  } catch {
+    return null;
+  }
+}
+
+async function writePosition(index: number): Promise<StagePosition | null> {
+  try {
+    const response = await fetch(POSITION_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "goto", index }),
+    });
+    const body = (await response.json()) as { data: StagePosition | null };
+    return body.data;
+  } catch {
+    return null;
+  }
+}
 
 function setPersonaCookie(persona: PersonaId | null) {
   document.cookie = persona
@@ -74,6 +107,9 @@ export function Stage() {
   // Staged routes checked so far: true when the route exists.
   const [stagedReady, setStagedReady] = useState<Record<string, boolean>>({});
   const channelRef = useRef<BroadcastChannel | null>(null);
+  // The newest stage move this window has seen in the store, and its own beat, for the remote.
+  const lastSeqRef = useRef(0);
+  const indexRef = useRef(0);
 
   const beat: Beat = BEATS[index] ?? BEATS[0]!;
 
@@ -95,15 +131,44 @@ export function Stage() {
   }, [storyDue, storyEventId]);
   const beatSrc = beat.path ? beat.path({ storyEventId, now: runStartedAt }) : null;
 
-  const goTo = useCallback((next: number, fromChannel = false) => {
+  const goTo = useCallback((next: number, source: MoveSource = "local") => {
     const clamped = Math.max(0, Math.min(BEATS.length - 1, next));
     if (!clockStamped.current && BEATS[clamped]?.kind !== "slide") {
       clockStamped.current = true;
       setRunStartedAt(new Date());
     }
+    indexRef.current = clamped;
     setIndex(clamped);
-    if (!fromChannel) channelRef.current?.postMessage({ type: "goto", index: clamped } satisfies StageMessage);
+    if (source !== "channel") channelRef.current?.postMessage({ type: "goto", index: clamped } satisfies StageMessage);
+    if (source === "local") {
+      void writePosition(clamped).then((position) => {
+        if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
+      });
+    }
   }, []);
+
+  // A phone remote moves the show through the store: follow any move newer than
+  // the last one seen. On load the stage first claims the record for its own beat.
+  useEffect(() => {
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    async function poll() {
+      const position = await readPosition();
+      if (!stopped && position && position.seq > lastSeqRef.current) {
+        lastSeqRef.current = position.seq;
+        if (position.index !== indexRef.current) goTo(position.index, "remote");
+      }
+      if (!stopped) timer = setTimeout(poll, POSITION_POLL_MS);
+    }
+    void writePosition(indexRef.current).then((position) => {
+      if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
+      if (!stopped) void poll();
+    });
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [goTo]);
 
   // Open the beat: its persona, its screen.
   useEffect(() => {
@@ -166,7 +231,7 @@ export function Stage() {
     const channel = new BroadcastChannel(CHANNEL);
     channelRef.current = channel;
     channel.onmessage = (message: MessageEvent<StageMessage>) => {
-      if (message.data.type === "goto") goTo(message.data.index, true);
+      if (message.data.type === "goto") goTo(message.data.index, "channel");
       if (message.data.type === "reset") void resetDemo();
     };
     return () => channel.close();
