@@ -156,6 +156,7 @@ export async function personalizeEvents(
   const interestMemory = {
     topics: memory.topics.slice(0, 8).map(({ topic, score, evidence }) => ({ topic, score, evidence })),
     creators: memory.creators.slice(0, 5),
+    skips: memory.avoided ?? [],
   };
 
   // Keep the same Top 3 until something real changes: a new candidate or one leaving
@@ -172,7 +173,7 @@ export async function personalizeEvents(
   const result = await runMuseJob({
     request: {
       system:
-        'You are the student\'s event agent. Weigh every upcoming candidate event against this student and decide how likely they are to go: rate each one from 0 (not for them) to 100 (they would not miss it), then pick the 3 on today (today: true) they are most likely to go to. Return JSON only: {"ratings":[{"eventId":"...","relevance":0-100}],"picks":[{"eventId":"...","reason":"one short sentence"}]}. Rate every candidate once; picks are the 3 highest rated among those on today, best first. Use only ids from the candidates. The interest memory comes from how they use Instagram (videos they watch to the end, likes, comments, saves) and the events they marked interested, RSVPed to, went to, or dismissed. Weigh it most, events they went to above all. Then use what the student told us: age, class year, major, languages, communities they listed, diet, and the clubs they follow; then free, short walks from where they are now, and no clash with their classes. Never guess or use race, ethnicity, religion, or other protected traits. Each reason names the behavior or follow it comes from, in plain words.',
+        'You are the student\'s event agent. Weigh every upcoming candidate event against this student and decide how likely they are to go: rate each one from 0 (not for them) to 100 (they would not miss it), then pick the 3 on today (today: true) they are most likely to go to. Return JSON only: {"ratings":[{"eventId":"...","relevance":0-100}],"picks":[{"eventId":"...","reason":"one short sentence"}]}. Rate every candidate once; picks are the 3 highest rated among those on today, best first. Use only ids from the candidates. The interest memory comes from how they use Instagram (videos they watch to the end, likes, comments, saves) and the events they marked interested, RSVPed to, went to, or dismissed. Weigh it most, events they went to above all. skips are topics they hid with Not for me: rate events on those topics low unless the student listed that interest. Then use what the student told us: age, class year, major, languages, communities they listed, diet, and the clubs they follow; then free, short walks from where they are now, and no clash with their classes. Never guess or use race, ethnicity, religion, or other protected traits. Each reason names the behavior or follow it comes from, in plain words.',
       prompt: `Now: ${now.toISOString()}\nStudent: ${JSON.stringify(profile)}\nInterest memory: ${JSON.stringify(interestMemory)}\nCandidates: ${JSON.stringify(candidates)}`,
       structuredOutput: RANK_STRUCTURED_OUTPUT,
     },

@@ -15,13 +15,14 @@ const FOR: Record<string, string> = {
   share: "To really share it:",
 };
 
-export default async function GetFacebookPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
-  const { from } = await searchParams;
-  const line = (from && FOR[from]) || "For the real thing:";
+export default async function GetFacebookPage({ searchParams }: { searchParams: Promise<{ from?: string; name?: string }> }) {
+  const { from, name } = await searchParams;
+  const person = from === "person" && typeof name === "string" ? name.trim().slice(0, 40) : "";
+  const line = person ? `To view ${person}'s profile:` : (from && FOR[from]) || "For the real thing:";
 
   return (
     <>
-      <SubPageHeader title="Facebook" backHref="/home" backLabel="Back to Home" fixedBack />
+      <SubPageHeader title="Facebook" backHref="/home" backLabel="Back" previousBack />
       <div className="flex flex-col items-center px-[28px] pt-[72px] text-center">
         <span className="font-display text-[44px] leading-[52px] font-extrabold tracking-[-0.05em] text-primary">facebook</span>
         <h2 className="mt-[18px] font-display text-[20px] font-bold">We can&apos;t code all of Facebook in 36 hours</h2>
