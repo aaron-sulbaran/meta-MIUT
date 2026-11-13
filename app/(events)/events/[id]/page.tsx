@@ -19,7 +19,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <SubPageHeader title="Event" backHref="/" backLabel="Back to Events" />
-      <Poster seed={event.id} title={event.title} kicker={posterKicker(event)} />
+      <Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />
 
       <section className="px-3 pt-[14px]">
         <p className="text-meta font-semibold text-muted">{formatDateLine(event, now)}</p>

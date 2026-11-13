@@ -48,7 +48,7 @@ export default async function HomePage() {
                 href={`/events/${event.id}`}
                 className="flex h-full flex-col overflow-hidden rounded-card border border-hairline bg-card"
               >
-                <Poster seed={event.id} title={event.title} size="small" />
+                <Poster seed={event.id} title={event.title} size="small" imagePath={event.source.imagePath} />
                 <div className="px-[9px] pb-[10px] pt-[8px]">
                   <p className="truncate text-meta font-semibold text-muted">{formatDateLine(event, now)}</p>
                   <h3 className="mt-[2px] line-clamp-2 font-display text-label font-bold">{event.title}</h3>
@@ -80,7 +80,7 @@ export default async function HomePage() {
           <div className="px-3 pt-[10px]">
             <FbEventCard
               href={`/events/${shared.id}`}
-              image={<Poster seed={shared.id} title={shared.title} kicker={posterKicker(shared)} />}
+              image={<Poster seed={shared.id} title={shared.title} kicker={posterKicker(shared)} imagePath={shared.source.imagePath} />}
               dateLine={formatDateLine(shared, now)}
               title={shared.title}
               venue={shared.place.name}

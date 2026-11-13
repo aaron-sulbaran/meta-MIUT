@@ -122,6 +122,6 @@ Shared, change with care and a hub note: `lib/events/schema.ts` (proposal requir
 - Times display in the campus time zone (`CAMPUS_TIME_ZONE`), not the viewer's.
 - Tailwind v4: tokens are in `@theme` in `app/globals.css`. Pages are white (`bg-page`); `bg-wash` is the desktop backdrop and input fill. Text `text-ink`, `text-muted`, `text-link` (blue text), icons and brand `text-primary`, tint `bg-primary-soft`, card outline `border-hairline`, grey buttons `bg-button`. Type: `font-display` (Geologica, every bold label and heading; bold renders at 790) and the default system face for running text; sizes `text-title` 16, `text-label` 14, `text-body` 14, `text-venue` 12.5, `text-meta` 11.5, `text-root-title` 26. Measured from Facebook iOS screenshots at 390 px.
 - Each screen draws its own header from `components/ui/header.tsx`; the root layout holds only the 390 px frame, the floating `TabBar`, and `AlertListener`. Main has bottom padding for the tab bar. Tab bar Home goes to `/home`; the other five tabs are drawn but inert (not links, not focusable).
-- Event images are `Poster` compositions seeded by event id: no photos, no hotlinks.
+- Event images are `Poster` compositions seeded by event id. An event with `source.imagePath` (a local file under `public/flyers/`) shows its flyer in the same 2:1 frame instead. No hotlinks.
 - `server-only` is stubbed in tests by `vitest.config.ts`, and in scripts by `node --conditions=react-server`; `scripts/register-ts-paths.mjs` resolves `@/` for plain Node.
 - ESLint reads any function named `use...` as a React hook.
