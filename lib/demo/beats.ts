@@ -444,11 +444,11 @@ export const BEATS: Beat[] = [
     kind: "deck",
     deck: "recap",
     title: "What Muse just did",
-    caption: "Six live calls to Meta's Muse models.",
+    caption: "Every one a live call to Meta's Muse models.",
     sections: [
       {
         name: "What Muse just did",
-        line: "Six live calls to Meta's Muse models.",
+        line: "Every one a live call to Meta's Muse models.",
         note: "Muse read the flyer, planned the walk, heard her, re-planned, built a feed, wrote the hello.",
       },
     ],

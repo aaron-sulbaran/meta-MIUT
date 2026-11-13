@@ -165,7 +165,9 @@
         ctx.show(seg, "s1");
         ctx.ft(seg, "#s1-eyebrow", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 1.2, ease: "power2.out" }, 0);
         ctx.ft(seg, "#s1-caret", { x: S1.caret.centerX, y: S1.caret.y1, opacity: 1 }, { x: S1.chars[0].left - 14, duration: 0.5, ease: "power2.inOut" }, 0.55);
-        typeQuestion(seg, ctx, 1.1);
+        const typed = typeQuestion(seg, ctx, 1.1);
+        /* Hold past the last character, so the rest frame always includes the question mark. */
+        seg.to({}, { duration: 0.35 }, typed);
       },
       idle(api) {
         api.loop("#s1-caret-blink", { opacity: 0, duration: 0.55, ease: "steps(1)" });
@@ -650,8 +652,8 @@
       title: "Spring Hackathon Info Session",
       meta: "3 PM · Stata Center, 32-155",
       tag: "Free food",
-      /* Lands where it really shows up: the middle tile of the feed's Top 3. */
-      to: [711, 376],
+      /* Lands where it really shows up: the third tile of the feed's Top 3. */
+      to: [840, 372],
     },
     {
       key: "boulder",
@@ -661,7 +663,8 @@
       title: "Intro to Bouldering",
       meta: "3:30 PM · Z-Center Climbing Wall",
       tag: "Free swag",
-      to: [716, 718],
+      /* The middle tile of the same Top 3. */
+      to: [716, 372],
     },
     {
       key: "pizza",
@@ -672,7 +675,7 @@
       meta: "2 PM · Stata Center lobby",
       tag: "Free food",
       /* The map's walk home: Muse's first stop. */
-      to: [1150, 652],
+      to: [1130, 679],
     },
   ];
   const ROW = { size: 380, top: 200 };
@@ -830,6 +833,8 @@
         ctx.ft(seg, "#s5-feed", { opacity: 0, y: 1120, rotation: -3 }, { opacity: 1, y: 107, rotation: 0, duration: 1.0, ease: "power3.out" }, land);
         ctx.ft(seg, "#s5-map", { opacity: 0, y: 1180, rotation: 3 }, { opacity: 1, y: 107, rotation: 0, duration: 1.0, ease: "power3.out" }, land + 0.12);
         ctx.sfx(seg, "whoosh", { dur: 0.8, level: 0.1, from: 400, to: 1800 }, land);
+        /* Then the payoff settles in: both phones push in together. */
+        ctx.ft(seg, ["#s5-feed", "#s5-map"], { scale: 1 }, { scale: 1.07, duration: 1.3, ease: "power2.inOut" }, land + 1.9);
       },
       idle(api) {
         api.loop("#s5-feed .screen img", { y: -6, duration: 3.6 });
@@ -839,11 +844,11 @@
       id: "events-reimagined",
       title: "Events, reimagined.",
       lead: "speaker",
-      notes: "Introducing [name]: Facebook Events, reimagined. No more missing out.",
+      notes: "Facebook Events, reimagined, powered by Muse. No more missing out.",
       build(seg, ctx) {
         ctx.show(seg, "s5");
-        ctx.ft(seg, "#s5-feed", { opacity: 1, scale: 1 }, { opacity: 0, scale: 1.5, duration: 0.6, ease: "power3.in" }, 0);
-        ctx.ft(seg, "#s5-map", { opacity: 1, scale: 1 }, { opacity: 0, scale: 1.5, duration: 0.6, ease: "power3.in" }, 0);
+        ctx.ft(seg, "#s5-feed", { opacity: 1, scale: 1.07 }, { opacity: 0, scale: 1.5, duration: 0.6, ease: "power3.in" }, 0);
+        ctx.ft(seg, "#s5-map", { opacity: 1, scale: 1.07 }, { opacity: 0, scale: 1.5, duration: 0.6, ease: "power3.in" }, 0);
         ctx.ft(seg, "#s5-fb", { opacity: 0, scale: 0.4, rotation: -20 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.7, ease: "back.out(1.7)" }, 0.62);
         ctx.ft(seg, "#s5-title", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.9, ease: "power3.out" }, 0.78);
         ctx.sfx(seg, "swell", { dur: 2.6, level: 0.08 }, 0.6);

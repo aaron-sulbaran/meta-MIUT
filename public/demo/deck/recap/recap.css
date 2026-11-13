@@ -150,3 +150,23 @@
   letter-spacing: -0.015em;
   color: var(--gray);
 }
+
+/* The ring that finds the proof on the screen: the app's own time stamp, or her words. */
+.proof {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.proof b {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  border: 4px solid var(--blue);
+  box-shadow: 0 0 22px rgba(8, 102, 255, 0.6);
+}
+
+.m-time .num {
+  font-variant-numeric: tabular-nums;
+}
