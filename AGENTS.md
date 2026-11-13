@@ -76,6 +76,11 @@ app/demo/            the pitch stage (beats from lib/demo/beats.ts, persona per 
 app/api/demo/story/  GET the event the demo follows (created quietly if the organizer act was skipped)
 components/demo/     the stage and its staged screens (Instagram post, invite message, Instagram feed)
 lib/demo/            beats.ts (client safe), story.ts, reset.ts (one reset for every persona's saved state)
+app/curate/          User 3's first Events visit: Muse reads email, calendar, Instagram, Reels and ranks a first feed
+app/api/curate/      POST a curated feed (Muse job, story event pinned first and flagged storyPinned if Muse ranked it lower)
+lib/curate/          connectors.ts (seeded sources, client safe), curate.ts (request, fixture, pinStory)
+app/invite/[id]/     Lisa's no-account landing: invited by a friend, one tap account, joined state
+app/api/invite/[id]/accept/  POST {from} marks the viewer and the inviter going
 components/alerts/   AlertListener (mount once in the root layout), banner, demo console
 components/ui/       Facebook shell: tab-bar (TabBar, ProfileAvatar), header (HomeHeader, SectionHeader,
                      SubPageHeader, HeaderAction), chips, button, section-heading, event-card
@@ -105,6 +110,7 @@ Stay in your folders. Touching another lane's folder means a hub note to its own
 | Events tab | `app/(events)/`, `components/events/`, `app/ask/`, `components/ask/`, `lib/events/time.ts` |
 | Map | `app/map/`, `components/map/`, `lib/map/`, `lib/geo.ts` |
 | Organizer and notification | `app/organizer/`, `components/organizer/`, `lib/organizer/` |
+| First-time experience | `app/curate/`, `app/api/curate/`, `components/curate/`, `lib/curate/`, `app/invite/`, `app/api/invite/`, `components/invite/` |
 | Design, seed, pitch | `data/seed/`, `app/globals.css`, `components/ui/`, `app/layout.tsx` |
 | Integration | `lib/store/`, `lib/alerts/` (except `policy.ts` and `compose.ts`, who gets alerted and what it says, owned by the alert item), `lib/events/publish.ts`, `lib/attendance/`, `app/api/events/`, `app/api/alerts/`, `app/api/demo/`, `app/demo/`, `components/alerts/`, `lib/demo/`, `components/demo/` |
 
