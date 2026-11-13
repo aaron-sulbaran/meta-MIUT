@@ -52,6 +52,23 @@ export function storyExtractFixture(caption: string, now = demoClock()): Extract
   };
 }
 
+/**
+ * The story's times are printed on its flyer and caption ("3:30 to 5:30 PM", on
+ * the demo clock). A live read that lands anywhere else (a misread, or "now"
+ * taken as the start) gets the printed times back, quoted from the caption, so
+ * the posted event and every screen after it say the same thing. Only when the
+ * caption carries this clock's time line; other posts and clocks pass through.
+ */
+export function withStoryTimes<Draft extends Pick<ExtractOutput, "start" | "end" | "evidence">>(draft: Draft, caption: string, now = demoClock()): Draft {
+  if (!isStoryCaption(caption)) return draft;
+  const timeLine = storyTimeLine(now);
+  if (!caption.includes(timeLine)) return draft;
+  const { start, end } = storyTimes(now);
+  if (Date.parse(draft.start) === start.getTime() && Date.parse(draft.end) === end.getTime()) return draft;
+  const quote = { quote: timeLine, from: "caption" as const };
+  return { ...draft, start: start.toISOString(), end: end.toISOString(), evidence: { ...draft.evidence, start: quote, end: quote } };
+}
+
 /** The story event among the listed ones: the club's newest. */
 export function findStoryEvent(events: CampusEvent[]): CampusEvent | undefined {
   return events

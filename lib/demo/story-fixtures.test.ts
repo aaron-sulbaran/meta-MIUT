@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { storyFallbackEvent } from "@/lib/demo/story";
-import { isStoryCaption, storyAskFixture, storyCrawlFixture, storyExtractFixture, storyInviteMessage, withStoryTitle } from "@/lib/demo/story-fixtures";
+import { isStoryCaption, storyAskFixture, storyCrawlFixture, storyExtractFixture, storyInviteMessage, withStoryTimes, withStoryTitle } from "@/lib/demo/story-fixtures";
 import { STORY } from "@/lib/demo/story-data";
 import { REPLAN_LINE, storyCaption } from "@/lib/demo/staged";
 import { ExtractOutputSchema } from "@/lib/muse/extract";
@@ -30,6 +30,18 @@ describe("the demo story's recorded answers", () => {
     expect(withStoryTitle(read, caption)).toEqual({ title: STORY.title, evidence: { title: { quote: STORY.title, from: "caption" } } });
     expect(withStoryTitle({ ...read, title: "Museum tour" }, caption).title).toBe("Museum tour");
     expect(withStoryTitle(read, "Free pho night! Lobdell Dining Hall").title).toBe("Board Game Night");
+  });
+
+  it("give a live read of the story's caption the printed times, and leave other clocks alone", () => {
+    const caption = storyCaption(now);
+    const right = storyExtractFixture(caption, now);
+    const wrong = { ...right, start: "2026-11-13T10:05:00.000Z", end: "2026-11-13T12:05:00.000Z" };
+    const fixed = withStoryTimes(wrong, caption, now);
+    expect([fixed.start, fixed.end]).toEqual([right.start, right.end]);
+    expect(fixed.evidence.start?.from).toBe("caption");
+    expect(withStoryTimes(right, caption, now)).toBe(right);
+    expect(withStoryTimes(wrong, storyCaption(new Date(now.getTime() + 3 * 3_600_000)), now)).toBe(wrong);
+    expect(withStoryTimes(wrong, "Free pho night! Lobdell Dining Hall", now)).toBe(wrong);
   });
 
   it("answer the re-plan with the story event and the invite, and nothing else", () => {
