@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { eventFacts, posterKicker } from "@/components/events/event-card";
 import { FeedPosts } from "@/components/home/feed-posts";
+import { SideMenu } from "@/components/home/side-menu";
 import { FeedSeparator } from "@/components/ui/card";
 import { FbEventCard } from "@/components/ui/event-card";
 import { HeaderAction, HomeHeader } from "@/components/ui/header";
@@ -25,6 +26,7 @@ export default async function HomePage() {
     <>
       <HomeHeader
         wordmark="facebook"
+        menu={<SideMenu />}
         actions={
           <>
             <HeaderAction label="Create an event" Icon={PlusSquareIcon} href="/organizer" />
@@ -36,7 +38,7 @@ export default async function HomePage() {
 
       <div className="flex items-center gap-[9px] px-[11.4px] pb-[14px] pt-[10px]">
         <ProfileAvatar size={39} />
-        <span className="flex-1 text-body font-semibold">What&apos;s on your mind?</span>
+        <span className="flex h-[38px] flex-1 items-center rounded-full bg-wash px-[14px] text-body font-semibold">What&apos;s on your mind?</span>
         <PhotoIcon className="mr-[11px] h-[20px] w-[20px] text-muted" />
       </div>
 
