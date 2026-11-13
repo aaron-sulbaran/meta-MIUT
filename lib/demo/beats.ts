@@ -78,7 +78,7 @@ export type Beat = {
 };
 
 export type FilmName = "problem" | "muse" | "build";
-export type DeckName = "problem" | "muse" | "recap";
+export type DeckName = "problem" | "muse" | "recap" | "next" | "appendix";
 
 /** Where a deck beat's page lives. */
 export function deckPath(deck: DeckName): string {
@@ -514,13 +514,33 @@ export const BEATS: Beat[] = [
     ],
   },
   {
+    // The close: four or five future applications, then the thank you with the code to the
+    // live product (public/demo/deck/next; its words in content.json beside it).
     id: "P4",
     act: "pitch",
     persona: null,
-    kind: "film",
-    film: "build",
-    title: "How we built it",
-    caption: "Five people, five agents, one shared board.",
+    kind: "deck",
+    deck: "next",
+    title: "What's next, and thank you",
+    caption: "Help us reimagine Facebook Events.",
+    sections: [
+      { name: "What's next", line: "What's next", note: "Ray-Ban Display first, then the rest, in about ten seconds." },
+      { name: "Thank you", line: "Help us reimagine Facebook Events.", note: "Thank you." },
+    ],
+  },
+  {
+    // Appendix, past the thank you, for Q and A only: how we built it, then one slide per
+    // question we expect (public/demo/deck/appendix; its words in content.json beside it).
+    id: "P5",
+    act: "pitch",
+    persona: null,
+    kind: "deck",
+    deck: "appendix",
+    title: "Appendix: how we built it, questions",
+    caption: "Five people, their coding agents, one shared board.",
+    sections: [
+      { name: "How we built it", line: "Five people, their coding agents, one shared board.", note: "Only if asked." },
+    ],
   },
 ];
 

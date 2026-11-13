@@ -18,20 +18,20 @@
     "notes": "Quiet. Let them read the replies."
   },
   {
-    "id": "hook-love",
-    "title": "If the love of my life was only on Facebook",
-    "lead": "screen",
-    "notes": "Quiet. Let the laugh land."
-  },
-  {
     "id": "hook-avalanche",
     "title": "The replies pile up",
     "lead": "screen",
-    "notes": "Quiet while it fills. Click for the cut to black."
+    "notes": "Quiet while it fills."
+  },
+  {
+    "id": "hook-standout",
+    "title": "If it helped me get more things done",
+    "lead": "screen",
+    "notes": "Quiet. Let them read the reply that led us here."
   },
   {
     "id": "exception",
-    "title": "Hard cut: But there was one exception",
+    "title": "But there was one exception",
     "lead": "speaker",
     "notes": "But there was one exception."
   },
@@ -90,10 +90,10 @@
     "notes": "Quiet. Let them read the question."
   },
   {
-    "id": "muse-organizes",
-    "title": "Muse turns posts into events",
+    "id": "instagram-to-events",
+    "title": "Club posts on Instagram come over to Facebook Events",
     "lead": "screen",
-    "notes": "Let it play. Then: 'Muse turns campus posts into personal, nearby plans.'"
+    "notes": "Let it play. Then: what clubs post on Instagram, easy to find here."
   },
   {
     "id": "events-reimagined",

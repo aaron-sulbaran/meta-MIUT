@@ -6,6 +6,59 @@
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
+  /* ---------- Before the pitch: the code to the live product ---------- */
+  /* Only with openingQr in content.json: what the room sees while the laptop is plugged in. */
+  let CONTENT = { openingQr: false, tryLine: "", address: "" };
+  const S0 = { code: { x: 900, y: 210, size: 580 }, sprout: { x: 430, y: 560 }, say: { x: 390, y: 350 }, arrow: { x: 700, y: 540 } };
+
+  function prepareScene0() {
+    $("#s0-line").textContent = CONTENT.tryLine || "";
+    $("#s0-addr").textContent = CONTENT.address || "";
+    /* A wrapped bubble hugs its longest line, the way a real message bubble does. */
+    const bubble = $("#s0-line");
+    const range = document.createRange();
+    range.selectNodeContents(bubble);
+    const rects = Array.from(range.getClientRects());
+    if (rects.length) {
+      /* Client rects are in screen pixels: undo the deck's fit scale to get frame pixels. */
+      const scale = bubble.getBoundingClientRect().width / bubble.offsetWidth || 1;
+      const widest = Math.max(...rects.map((r) => r.width)) / scale;
+      const style = getComputedStyle(bubble);
+      bubble.style.width = `${Math.ceil(widest + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)) + 2}px`;
+    }
+    gsap.set("#s0-code", { x: S0.code.x, y: S0.code.y });
+    gsap.set("#s0-addr", { x: S0.code.x, y: S0.code.y + S0.code.size + 30 });
+    gsap.set("#s0-sprout", { x: S0.sprout.x, y: S0.sprout.y });
+    gsap.set("#s0-arrow", { x: S0.arrow.x, y: S0.arrow.y });
+    const sayH = $("#s0-say").offsetHeight;
+    gsap.set("#s0-say", { x: S0.say.x, y: S0.sprout.y - 34 - sayH });
+  }
+
+  const TRY_IT = {
+    id: "try-it",
+    title: "Try it yourself while we set up",
+    lead: "screen",
+    notes: "Leave this up while we plug in. Click when ready.",
+    build(seg, ctx) {
+      ctx.show(seg, "s0");
+      ctx.ft(seg, "#s0-code", { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }, 0.1);
+      ctx.ft(seg, "#s0-addr", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0.6);
+      ctx.ft(seg, "#s0-sprout", { opacity: 0, y: S0.sprout.y + 60 }, { opacity: 1, y: S0.sprout.y, duration: 0.8, ease: "back.out(1.6)" }, 0.45);
+      ctx.ft(seg, "#s0-say", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)" }, 0.95);
+      const path = $("#s0-arrow-path");
+      const len = path.getTotalLength();
+      path.style.strokeDasharray = `${len}`;
+      ctx.ft(seg, "#s0-arrow", { opacity: 0 }, { opacity: 1, duration: 0.1 }, 1.25);
+      ctx.ft(seg, path, { strokeDashoffset: len }, { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, 1.25);
+      ctx.ft(seg, "#s0-arrow-head", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 1.65);
+    },
+    idle(api) {
+      /* Sprout moves a little; the code itself never moves, so it scans. */
+      api.loop("#s0-sprout", { y: S0.sprout.y - 10, rotation: 2, duration: 1.8 });
+      api.loop("#s0-arrow", { x: S0.arrow.x + 10, y: S0.arrow.y - 6, duration: 0.9 });
+    },
+  };
+
   /* ---------- Scene 1: the hook ---------- */
   const S1 = {
     chars: [],
@@ -153,6 +206,12 @@
       notes: "We asked 50 Gen Z students one question.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
+        if (CONTENT.openingQr) {
+          /* The code, Sprout and the line clear, and the hook begins as it always has. */
+          seg.set("#s0", { autoAlpha: 1 }, 0);
+          ctx.ft(seg, "#s0", { opacity: 1 }, { opacity: 0, duration: 0.45, ease: "power2.in" }, 0);
+          seg.set("#s0", { autoAlpha: 0 }, 0.5);
+        }
         seg.set("#s1-caret", { x: S1.caret.centerX, y: S1.caret.y1 }, 0);
         ctx.ft(seg, "#s1-caret", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power1.inOut" }, 0.1);
       },
@@ -663,7 +722,7 @@
   const POSTS = [
     { key: "boulder", file: "evt-test-demo-z-center-bouldering", handle: "mit_outing", initials: "MO", color: "#2e7d4f", to: [195, 256] },
     { key: "hack", file: "evt-test-demo-stata-hack-info", handle: "mit_hacks", initials: "MH", color: "#1f3a68", to: [319, 256] },
-    { key: "pizza", file: "evt-test-demo-stata-pizza", handle: "mit_eecs", initials: "EE", color: "#a3361f", to: [195, 440] },
+    { key: "pizza", file: "evt-test-demo-stata-pizza", handle: "mit_eecs", initials: "EE", color: "#a3361f", to: [195, 522] },
   ];
   const CARD = { w: 360, h: 58 + 360 + 54, img: 58 };
   const ROW = { x: (1920 - (3 * 360 + 2 * 56)) / 2, y: 304, step: 360 + 56 };
@@ -820,17 +879,20 @@
     },
   ];
 
-  const STEPS = [...SCENE1, ...SCENE2, ...SCENE3, ...SCENE4, ...SCENE5];
-
-  Deck.start({
-    id: "problem",
-    steps: STEPS,
-    prepare() {
-      prepareScene1();
-      placeQuotes();
-      prepareScene2();
-      prepareScene3();
-      prepareScene5();
-    },
+  Deck.load("./content.json", CONTENT).then((content) => {
+    CONTENT = Object.assign(CONTENT, content);
+    const STEPS = [...(CONTENT.openingQr ? [TRY_IT] : []), ...SCENE1, ...SCENE2, ...SCENE3, ...SCENE4, ...SCENE5];
+    Deck.start({
+      id: "problem",
+      steps: STEPS,
+      prepare() {
+        prepareScene0();
+        prepareScene1();
+        placeQuotes();
+        prepareScene2();
+        prepareScene3();
+        prepareScene5();
+      },
+    });
   });
 })();

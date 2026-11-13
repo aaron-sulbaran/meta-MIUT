@@ -2,6 +2,11 @@
   "about": "Every claim or piece of content on screen in the opening decks, with where it comes from. Survey replies: only the six real ones listed here are ever readable (Aaron's rule after the dry run, 2026-11-13); every other bubble is unreadable by design. Never write a reply.",
   "problem": [
     {
+      "step": "try-it",
+      "text": "QR code to https://meta-miut.vercel.app, the address under it, Sprout, and the line Try it yourself while we set up",
+      "source": "Generated at build time by motion/opening/tools/make-qr.mjs (npm qrcode 1.5.4, error correction H, version 4, a four-module quiet zone inside a white circle), embedded as vector (shared/qr-live.svg); nothing is fetched at runtime. Decoded from the rendered frame by motion/opening/tools/qr-check.mjs. Sprout is the product's own still (public/muse/sprout-miut-still.png), unmodified apart from position and a small idle motion. Shown only when openingQr is true in public/demo/deck/problem/content.json (Aaron's request via the lead, 2026-11-13; default off until the lead says go)."
+    },
+    {
       "step": "hook-question",
       "text": "We asked 50 Gen Z students",
       "source": "Real informal survey of 50 friends and classmates (Jolyn's motion script, team hub kb/demo-script.md, decided 2026-11-13)."
@@ -69,7 +74,7 @@
     {
       "step": "flyers",
       "text": "Campus flyers",
-      "source": "The team's seeded flyers (data/seed/demo-day-events.json and data/seed/events.json), copied unmodified into shared/flyers."
+      "source": "The team's seeded flyers (data/seed/demo-day-events.json and data/seed/events.json), copied unmodified into shared/flyers. Six of them (anime, tacos, T-shirts, pancakes, boba, midnight pizza) are deck-only redesigns with the same words, so the wall looks like different clubs made it (Aaron's dry-run note, 2026-11-13); the app keeps its own flyers in public/flyers."
     },
     {
       "step": "overload",
@@ -142,13 +147,13 @@
     },
     {
       "step": "moment-1",
-      "text": "Read the club's flyer; Muse Ember; 2.1 seconds",
-      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. Flyer read, as Jing (/organizer?handoff=story; the page calls /api/muse/extract/events with the flyer): runs 2.8, 2.8, 1.7, 2.1, 1.7 s, median 2.1 s, shown with that run's screen (Read in 2.1 s). Model: muse-ember-1.0 (lib/muse/client.ts)."
+      "text": "Read the club's flyer; Muse Ember; 2.7 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 4:09 and 4:25 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs, driven by capture-pass.sh). Each run loads the real screen in a 390 x 797 frame, the app area the stage's phone gives an app below its status bar, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app answers once per server (re-plan, picks, hello) ran on a fresh server per run, so every stamp is a first, real call. The deck shows the median run's screen and that run's own number, so they cannot disagree. Flyer read, as Jing (/organizer?handoff=story; the page calls /api/muse/extract/events with the flyer): runs 2.5, 2.3, 3.8, 2.7, 3.1 s, median 2.7 s, shown with that run's screen (Read in 2.7 s). Model: muse-ember-1.0 (lib/muse/client.ts)."
     },
     {
       "step": "moment-2",
-      "text": "Planned her walk home; Muse Ember; 4.1 seconds",
-      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. Walk home, as Jolyn (/?plan=home): runs 4.9, 3.3, 3.2, 4.4, 4.1 s, median 4.1 s, shown with that run's screen (planned 4.1 s). Model: muse-ember-1.0."
+      "text": "Planned her walk home; Muse Ember; 4.8 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 4:09 and 4:25 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs, driven by capture-pass.sh). Each run loads the real screen in a 390 x 797 frame, the app area the stage's phone gives an app below its status bar, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app answers once per server (re-plan, picks, hello) ran on a fresh server per run, so every stamp is a first, real call. The deck shows the median run's screen and that run's own number, so they cannot disagree. Walk home, as Jolyn (/?plan=home): runs 7.3, 5.6, 4.7, 4.5, 4.8 s, median 4.8 s, shown with that run's screen (planned 4.8 s). Model: muse-ember-1.0."
     },
     {
       "step": "moment-3",
@@ -157,23 +162,82 @@
     },
     {
       "step": "moment-4",
-      "text": "Re-planned, sent the invite; Muse Ember; 1.7 seconds",
-      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. Re-plan, as Jolyn (/?plan=home&auto=1): runs 1.6, 2, 1.7, 1.7 s, median 1.7 s, shown with that run's screen (asked 1.7 s, Sent to Lisa). Model: muse-ember-1.0."
+      "text": "Re-planned, sent the invite; Muse Ember; 2.8 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 4:09 and 4:25 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs, driven by capture-pass.sh). Each run loads the real screen in a 390 x 797 frame, the app area the stage's phone gives an app below its status bar, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app answers once per server (re-plan, picks, hello) ran on a fresh server per run, so every stamp is a first, real call. The deck shows the median run's screen and that run's own number, so they cannot disagree. Re-plan, as Jolyn (/?plan=home&auto=1): runs 4.1, 3.1, 2.8, 1.5 s, median 2.8 s, shown with that run's screen (asked 2.8 s, Sent to Lisa). Model: muse-ember-1.0."
     },
     {
       "step": "moment-5",
-      "text": "Built her first feed; Muse Ember; 2.7 seconds",
-      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. Trish's first picks (/?first=1, which calls /api/curate): runs 2.1, 3.6, 2.7 s, median 2.7 s, shown with that run's screen (picked 2.7 s). Model: muse-ember-1.0."
+      "text": "Built her first feed; Muse Ember; 3.9 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 4:09 and 4:25 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs, driven by capture-pass.sh). Each run loads the real screen in a 390 x 797 frame, the app area the stage's phone gives an app below its status bar, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app answers once per server (re-plan, picks, hello) ran on a fresh server per run, so every stamp is a first, real call. The deck shows the median run's screen and that run's own number, so they cannot disagree. Trish's first picks (/?first=1, which calls /api/curate): runs 3.9, 2.9, 3.9 s, median 3.9 s, shown with that run's screen (picked 3.9 s). Model: muse-ember-1.0."
     },
     {
       "step": "moment-6",
       "text": "Found people, wrote the hello; Muse Ember; 1.7 seconds",
-      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. The skit's state replayed first (the story on the demo clock; Lisa, invited by Jolyn, going and open to company). Muse suggests Jolyn and Lisa, then writes Trish's hello: the hello's runs 1.6, 1.8, 1.7 s, median 1.7 s, shown with that run's screen (Written by Muse, Live, 1.7 s). Two calls in this moment: who to go with (/api/social/events/[id]/muse, 1.5 to 1.9 s over HTTP, motion/opening/timings-people.json) and the hello. Model: muse-ember-1.0."
+      "source": "One capture pass by the deck builder on 2026-11-13 between 4:09 and 4:25 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs, driven by capture-pass.sh). Each run loads the real screen in a 390 x 797 frame, the app area the stage's phone gives an app below its status bar, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app answers once per server (re-plan, picks, hello) ran on a fresh server per run, so every stamp is a first, real call. The deck shows the median run's screen and that run's own number, so they cannot disagree. The skit's state replayed first (the story on the demo clock; Lisa, invited by Jolyn, going and open to company). Muse suggests Jolyn and Lisa, then writes Trish's hello: the hello's runs 1.6, 1.7, 3.3 s, median 1.7 s, shown with that run's screen (Written by Muse, Live, 1.7 s). Two calls in this moment: who to go with (/api/social/events/[id]/muse, 1.5 to 1.9 s over HTTP, motion/opening/timings-people.json) and the hello. Model: muse-ember-1.0."
     },
     {
       "step": "live-calls",
       "text": "Every one a live call to Meta's Muse models. A recorded answer always says so on screen.",
       "source": "Every moment above ran against the live models in this pass (seven calls across six moments; moment 6 is two). The product labels any recorded fallback on screen (SourceBadge, Recorded labels), per AGENTS.md."
+    }
+  ],
+  "next": [
+    {
+      "step": "futures",
+      "text": "What's next: Ray-Ban Display; Beyond one campus; Leftover food pings; Page from Instagram; Always opt in",
+      "source": "public/demo/deck/next/content.json. Ray-Ban Display is Aaron's (2026-11-13). The other items are DRAFTS for Aaron to replace, drawn from the team hub (kb/dry-run-script.md, what is next; kb/pitch-qa.md): not commitments. The icons are drawn line icons (shared/icons.js), not brand marks; Ray-Ban Display is named in text only."
+    },
+    {
+      "step": "thank-you",
+      "text": "Thank you. Help us reimagine Facebook Events. QR code to https://meta-miut.vercel.app",
+      "source": "The line is Aaron's draft (2026-11-13), editable in public/demo/deck/next/content.json. Facebook mark: the official asset (shared/brand/facebook-f.svg), unmodified. Generated at build time by motion/opening/tools/make-qr.mjs (npm qrcode 1.5.4, error correction H, version 4, a four-module quiet zone inside a white circle), embedded as vector (shared/qr-live.svg); nothing is fetched at runtime. Decoded from the rendered frame by motion/opening/tools/qr-check.mjs."
+    }
+  ],
+  "appendix": [
+    {
+      "step": "how-we-built-it",
+      "text": "197 commits on main; 131 pull requests merged; 64 test files; 1221 updates on the shared board; five people",
+      "source": "Counted 2026-11-13 04:17 PST. In the product repo: git fetch origin; git rev-list --count origin/main (197); gh pr list --repo aaron-sulbaran/meta-MIUT --state merged --limit 500 --json number, counted the entries (131); git ls-tree -r --name-only origin/main | grep -c '\\.test\\.ts$' (64). Hub events: the hub stores one JSON file per action under events/<date>/, so find events -type f -name '*.json' | wc -l (1221). People: five, from the hub's team list."
+    },
+    {
+      "step": "q-1",
+      "text": "Why not just build this on Instagram? The events live on Facebook: found there, RSVPs there. Instagram is one way in, like a flyer photo or a spoken line. The goal is more young adults opening Facebook, so the product has to live there.",
+      "source": "The team's own position, from the hub (kb/pitch-qa.md, kb/product-brief.md, kb/idea-review.md, kb/hacktx-meta-feedback.md, mentor notes). "
+    },
+    {
+      "step": "q-2",
+      "text": "Why would young adults use this? People our age open Facebook to get something out of it. Free food is the Events version of that. It changes daily: three picks for today, and an alert only when something free is close and you are free.",
+      "source": "The team's own position, from the hub (kb/pitch-qa.md, kb/product-brief.md, kb/idea-review.md, kb/hacktx-meta-feedback.md, mentor notes). "
+    },
+    {
+      "step": "q-3",
+      "text": "Is the AI essential or decorative? Essential. Six moments in the skit were live calls to Meta's Muse models, each timed on screen. Without them nobody types events in, so there is nothing to show.",
+      "source": "The team's own position, from the hub (kb/pitch-qa.md, kb/product-brief.md, kb/idea-review.md, kb/hacktx-meta-feedback.md, mentor notes). Times come from recap/proof.js, the same capture pass as the recap."
+    },
+    {
+      "step": "q-4",
+      "text": "What is real and what is staged in the demo? Every Muse answer is a live call, and a recorded one says so on screen. The Instagram, Reels and lock screen moments are staged, and so is the friend graph. We say which is which.",
+      "source": "The team's own position, from the hub (kb/pitch-qa.md, kb/product-brief.md, kb/idea-review.md, kb/hacktx-meta-feedback.md, mentor notes). "
+    },
+    {
+      "step": "q-5",
+      "text": "How does it get events without extra work for organizers? An organizer shares a flyer photo or says one line. Muse drafts the event, shows where each field came from, and the organizer only approves. An Instagram post can feed the same draft.",
+      "source": "The team's own position, from the hub (kb/pitch-qa.md, kb/product-brief.md, kb/idea-review.md, kb/hacktx-meta-feedback.md, mentor notes). "
+    },
+    {
+      "step": "q-6",
+      "text": "What about privacy, location and company? Both are off by default. Lisa turned on Open to company herself, and only then could Muse suggest her to someone new. Location stays opt in too. We plan per-person controls, not one rule for everyone.",
+      "source": "DRAFT answer for Aaron: the hub has no settled answer. "
+    },
+    {
+      "step": "q-7",
+      "text": "What would it take inside Facebook? Events already cross-posts from Instagram, so this extends it. It needs Muse reading the post, the Events tab ranking per student, and a nearby alert. We built each piece on the Muse API.",
+      "source": "DRAFT answer for Aaron: the hub has no settled answer. "
+    },
+    {
+      "step": "q-8",
+      "text": "Why not fine-tune a model for this? A mentor suggested it. We chose Muse for the core and added photo and voice input, visible evidence per field, and organizer approval. Fine-tuning on Facebook event posts is a good next step.",
+      "source": "DRAFT answer for Aaron: the hub has no settled answer. "
     }
   ]
 }

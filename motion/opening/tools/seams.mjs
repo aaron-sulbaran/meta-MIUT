@@ -20,7 +20,8 @@ const H = 270;
 mkdirSync(outDir, { recursive: true });
 for (const f of readdirSync(outDir)) if (f.endsWith('.png') || f.endsWith('.raw')) rmSync(path.join(outDir, f));
 
-const browser = await chromium.launch({ channel: 'chrome', args: ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist'] });
+/* Software rendering: sampling frames needs no GPU, and a shared GPU has stalled seeks here. */
+const browser = await chromium.launch({ channel: 'chrome', args: ['--disable-gpu'] });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.goto(url + (url.includes('?') ? '&' : '?') + 'render=1');
 await page.waitForFunction(() => document.documentElement.dataset.deckReady === '1', null, { timeout: 30000 });

@@ -820,3 +820,55 @@
   color: var(--gray);
   opacity: 0;
 }
+
+/* ---------- Before the pitch: the code to the live product (openingQr) ---------- */
+.s0-code,
+.s0-addr,
+.s0-say,
+.s0-arrow,
+.s0-sprout {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+}
+
+.s0-code {
+  width: 580px;
+  height: 580px;
+  filter: drop-shadow(0 34px 70px rgba(0, 0, 0, 0.55));
+  transform-origin: 50% 50%;
+}
+
+.s0-addr {
+  width: 580px;
+  text-align: center;
+  font-size: 34px;
+  letter-spacing: 0.01em;
+  color: var(--gray);
+}
+
+.s0-say {
+  transform-origin: 0% 100%;
+}
+
+.s0-say .bubble {
+  font-size: 50px;
+  font-weight: 600;
+  padding: 26px 42px 28px;
+  white-space: normal;
+  max-width: 600px;
+  text-wrap: balance;
+}
+
+.s0-arrow {
+  width: 210px;
+  height: 158px;
+}
+
+/* The product's own Sprout, at its own proportions. */
+.s0-sprout {
+  width: 230px;
+  height: 230px;
+  transform-origin: 50% 100%;
+}

@@ -36,4 +36,7 @@ The opening of the team's Meta "Closer Together" hackathon pitch (Friday Nov 13,
 
 ## Notes
 
-- Tools: `tools/frames.mjs` (exact frames by seeking the timeline), `tools/fps.mjs` (frame times while a step plays), `tools/appshots.mjs` (real app captures), `tools/cap.sh` (wrapper). Browser runs go through the machine's two-slot Playwright limit.
+- Tools: `tools/frames.mjs` (exact frames by seeking the timeline), `tools/fps.mjs` (frame times while a step plays), `tools/seams.mjs` (jumps at clicks and one-frame flashes), `tools/qr-check.mjs` (decodes a deck's QR code at 1920, 1280 and 1024), `tools/appshots.mjs` (real app captures), `tools/cap.sh` (wrapper). Browser runs go through the machine's two-slot Playwright limit, and use software rendering (`--disable-gpu`; `DECK_GPU=1` for frames.mjs to opt back in): a GPU shared with other agents' browsers stalled seeks.
+- Captures: `tools/capture-pass.sh <dir>` then `python3 tools/apply-pass.py <dir>` retakes every app screen the decks show in one pass (390 x 797, the app area below the stage phone's status bar; fresh server per run where the app answers once), and rewrites the recap's proof and facts from the same runs.
+- Closing decks (after the 2026-11-13 dry run): `next` (future applications, then the thank you with the QR code) and `appendix` (how we built it, then one slide per expected question, behind the thank you). Their words live in `content.json` beside each deck; edit there, not in the animation.
+- Opening QR: `node motion/opening/tools/opening-qr.mjs on|off` flips `openingQr` in `public/demo/deck/problem/content.json` and keeps `steps.json` in step. The code itself is `shared/qr-live.svg`, made by `tools/make-qr.mjs`.

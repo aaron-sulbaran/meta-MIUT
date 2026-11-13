@@ -1,0 +1,6 @@
+{
+  "_about": "openingQr: true opens the pitch on the code to the live product (step try-it) until the first click; false starts on the caret. Flip it with node motion/opening/tools/opening-qr.mjs on|off, which keeps steps.json in step.",
+  "openingQr": false,
+  "tryLine": "Try it yourself while we set up",
+  "address": "meta-miut.vercel.app"
+}
