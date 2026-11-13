@@ -54,8 +54,8 @@ export function OrganizerFlow({
   handoff?: OrganizerHandoff | null;
 }) {
   const fallbackOrganizer: OrganizerOption = { name: "Your club", handle: "your_club" };
-  const [organizerHandle, setOrganizerHandle] = useState(handoff?.organizer.handle ?? organizers[0]?.handle ?? fallbackOrganizer.handle);
-  const organizer = organizers.find((option) => option.handle === organizerHandle) ?? organizers[0] ?? fallbackOrganizer;
+  // The club the organizer is signed in as on Instagram; no picking other clubs.
+  const organizer = handoff?.organizer ?? organizers[0] ?? fallbackOrganizer;
 
   const [mode, setMode] = useState<InputMode>(said ? "voice" : "photo");
   const [flyer, setFlyer] = useState<FlyerImage | null>(null);
@@ -183,20 +183,20 @@ export function OrganizerFlow({
       )}
       {handoff && making && <MuseMaking flyerSrc={flyer?.previewUrl ?? handoff.flyerSrc} state={making} />}
       <section className="flex flex-col gap-[10px]" hidden={Boolean(handoff)}>
-        <label className="block text-venue text-muted">
+        <div className="text-venue text-muted">
           Posting as
-          <select
-            className={`${fieldClass} mt-[3px] font-display font-bold`}
-            value={organizer.handle}
-            onChange={(change) => setOrganizerHandle(change.target.value)}
-          >
-            {(organizers.length ? organizers : [fallbackOrganizer]).map((option) => (
-              <option key={option.handle} value={option.handle}>
-                {option.name} (@{option.handle})
-              </option>
-            ))}
-          </select>
-        </label>
+          <p className={`${fieldClass} mt-[3px] bg-wash font-display font-bold`}>
+            {organizer.name} <span className="font-sans font-semibold text-muted">@{organizer.handle}</span>
+          </p>
+          <p className="mt-[3px] text-meta text-muted">The club you are signed in as on Instagram.</p>
+        </div>
+
+        <p className="rounded-card bg-wash px-3 py-[9px] text-venue text-muted">
+          Coming soon. For now, events come from your Instagram posts and from Ask Muse.
+        </p>
+
+        {/* Placeholder: the manual inputs are shown but greyed out and disabled (Lisa). */}
+        <fieldset disabled aria-disabled className="flex flex-col gap-[10px] opacity-45 select-none">
 
         <div role="group" aria-label="How to make the event" className="flex gap-[7.6px]">
           <FilterChip active={mode === "photo"} onSelect={() => setMode("photo")}>
@@ -293,6 +293,7 @@ export function OrganizerFlow({
         <Button tone="primary" disabled={!canSend || reading} onClick={() => void draftIt()}>
           {reading ? "Muse is reading it" : "Draft it with Muse"}
         </Button>
+        </fieldset>
       </section>
 
       {reading && !handoff && (
