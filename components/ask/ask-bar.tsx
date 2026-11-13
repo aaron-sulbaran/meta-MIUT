@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { EventCard } from "@/components/events/event-card";
 import { useVoiceRecorder } from "@/components/ask/use-voice-recorder";
 import { CloseIcon, MuseMark } from "@/components/ui/icons";
@@ -26,6 +26,8 @@ type CrawlReply = { data: { stops: { eventId: string }[]; pitch: string } | null
 
 // The conversation on screen survives opening an event and coming back.
 const THREAD_KEY = "ask-muse-thread";
+// Set when the student opens an event from Muse, so Back returns to the same conversation.
+const KEEP_KEY = "ask-muse-keep";
 
 const FILTER_LABELS = { forYou: "For you", free: "Free", today: "Today", week: "This week" } as const;
 
@@ -65,7 +67,21 @@ function linked(answer: string, mentioned: CampusEvent[]): ReactNode {
   });
 }
 
-export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[]; nowIso: string; placeholder: string }) {
+/** What a "plan my night" hands over when a host (the map's Ask popup) draws the plan itself. */
+export type AskPlan = NonNullable<AskReply["plan"]>;
+
+export function AskBar({
+  events,
+  nowIso,
+  placeholder,
+  onPlan,
+}: {
+  events: CampusEvent[];
+  nowIso: string;
+  placeholder: string;
+  /** When set, plan_night goes to the host (the map draws the route) instead of a list here. */
+  onPlan?: (plan: AskPlan, question: string) => void;
+}) {
   const router = useRouter();
   const [question, setQuestion] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -73,13 +89,28 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const byVoiceRef = useRef(false);
   const restoredRef = useRef(false);
+  const mountedRef = useRef(true);
+  const freshRef = useRef(true);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
+  }, []);
+
   useEffect(() => {
     if (restoredRef.current) return;
     restoredRef.current = true;
     try {
-      const saved = window.sessionStorage.getItem(THREAD_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved) setThread(JSON.parse(saved) as Exchange[]);
+      const saved = window.sessionStorage.getItem(KEEP_KEY) ? window.sessionStorage.getItem(THREAD_KEY) : null;
+      window.sessionStorage.removeItem(KEEP_KEY);
+      if (saved) {
+        freshRef.current = false;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setThread(JSON.parse(saved) as Exchange[]);
+      }
     } catch {}
   }, []);
   useEffect(() => {
@@ -89,6 +120,14 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
     } catch {}
   }, [thread]);
   const startListeningRef = useRef<() => void>(() => {});
+  function keepConversation() {
+    try {
+      window.sessionStorage.setItem(KEEP_KEY, "1");
+    } catch {}
+  }
+  function keepIfOpeningEvent(click: MouseEvent<HTMLElement>) {
+    if ((click.target as Element).closest('a[href*="from=ask"]')) keepConversation();
+  }
   const byId = new Map(events.map((event) => [event.id, event]));
   const now = new Date(nowIso);
   const title = (id: string | null) => (id ? (byId.get(id)?.title ?? "that event") : "that event");
@@ -117,7 +156,10 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
           return { note: result.error === null ? `Marked interested in ${title(id)}` : `Couldn't save ${title(id)}` };
         }
         case "open":
-          if (id) router.push(`/events/${id}?from=ask`);
+          if (id) {
+            keepConversation();
+            router.push(`/events/${id}?from=ask`);
+          }
           return { note: id ? `Opened ${title(id)}` : null };
         case "filter":
           if (!action.filter) return { note: null };
@@ -132,6 +174,10 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
           return { note: "Drafting your event" };
         case "plan_night": {
           if (!reply.plan) return { note: null };
+          if (onPlan) {
+            onPlan(reply.plan, question);
+            return { note: "Planning it on the map" };
+          }
           try {
             const response = await fetch("/api/muse/crawl", {
               method: "POST",
@@ -149,7 +195,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [router, events],
+    [router, events, onPlan],
   );
 
   const ask = useCallback(
@@ -164,7 +210,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
         const response = await fetch("/api/muse/ask", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ question: text }),
+          body: JSON.stringify({ question: text, fresh: freshRef.current }),
         });
         const body = (await response.json()) as MuseRouteResponse<AskReply>;
         reply = body.data;
@@ -172,13 +218,15 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
       } catch {
         error = "Network error. Try again.";
       }
+      if (reply) freshRef.current = false;
       setThread((current) => [...current, { id, question: text, reply, error, done: [], planIds: [], links: [] }].slice(-4));
       setPhase("idle");
       if (!reply) return;
 
       const spoken = [reply.answer, reply.followUp].filter(Boolean).join(" ");
-      const listenAgain = reply.followUp !== null && byVoiceRef.current;
-      speak(spoken, listenAgain ? () => startListeningRef.current() : undefined);
+      const leaving = reply.actions.some((action) => action.type === "open" || action.type === "create_event");
+      const listenAgain = byVoiceRef.current && !leaving;
+      speak(spoken, listenAgain ? () => mountedRef.current && byVoiceRef.current && startListeningRef.current() : undefined);
 
       for (const action of reply.actions) {
         const outcome = await perform(action, reply, text);
@@ -225,11 +273,22 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
     [ask],
   );
 
-  const voice = useVoiceRecorder(onClip);
+  const onNoSpeech = useCallback(() => setPaused(true), []);
+  const voice = useVoiceRecorder(onClip, onNoSpeech);
   const startListening = voice.start;
-  useEffect(() => {
-    startListeningRef.current = () => void startListening();
+  const listen = useCallback(() => {
+    setPaused(false);
+    void startListening({ autoStop: true });
   }, [startListening]);
+  useEffect(() => {
+    startListeningRef.current = listen;
+  }, [listen]);
+
+  function tapMic() {
+    if (voice.recording) return voice.stop();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    listen();
+  }
   const busy = phase !== "idle";
 
   function submit(formEvent: FormEvent) {
@@ -239,14 +298,21 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
   }
 
   function close() {
+    byVoiceRef.current = false;
+    freshRef.current = true;
+    voice.cancel();
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setThread([]);
   }
 
-  const status = voice.recording ? "Listening… tap the mic when you're done" : phase === "transcribing" ? "Hearing you…" : phase === "asking" ? "Muse is on it…" : null;
+  const status = voice.recording
+    ? "Listening… pause when you're done, or tap the mic"
+    : paused
+      ? "Stopped listening. Tap the mic to talk again."
+      : phase === "transcribing" ? "Hearing you…" : phase === "asking" ? "Muse is on it…" : null;
 
   return (
-    <section aria-label="Ask Muse" className="px-3 pt-[10px]">
+    <section aria-label="Ask Muse" className="px-3 pt-[10px]" onClickCapture={keepIfOpeningEvent}>
       <form onSubmit={submit} className="flex items-center gap-2 rounded-full bg-wash py-[6px] pl-3 pr-[6px]">
         <MuseMark className="h-5 w-5 shrink-0 text-primary" />
         <label htmlFor="ask-muse-bar" className="sr-only">
@@ -264,7 +330,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
         {voice.supported && (
           <button
             type="button"
-            onClick={() => (voice.recording ? voice.stop() : void voice.start())}
+            onClick={tapMic}
             disabled={busy}
             aria-label={voice.recording ? "Stop and ask" : "Ask by voice"}
             aria-pressed={voice.recording}

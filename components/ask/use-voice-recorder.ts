@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createEndpointer } from "@/lib/audio/endpoint";
 import { encodeWav, mergeChunks, resample, TRANSCRIBE_SAMPLE_RATE } from "@/lib/audio/wav";
 
-// Tap to talk, tap again to stop (or it stops at MAX_SECONDS). Records raw mic
+// Tap to talk, tap again to stop (or it stops at MAX_SECONDS). With autoStop it
+// also stops by itself when the student pauses after speaking. Records raw mic
 // samples and hands back a 16 kHz mono WAV for Muse Voice Transcribe.
 
 export const MAX_SECONDS = 30;
@@ -14,16 +16,19 @@ const noSubscription = () => () => {};
 const canRecord = () =>
   typeof window !== "undefined" && typeof window.AudioContext === "function" && !!navigator.mediaDevices?.getUserMedia;
 
-export function useVoiceRecorder(onClip: (wav: Blob) => void) {
+export function useVoiceRecorder(onClip: (wav: Blob) => void, onNoSpeech?: () => void) {
   const supported = useSyncExternalStore(noSubscription, canRecord, () => false);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sessionRef = useRef<Session | null>(null);
+  const startingRef = useRef(false);
   const onClipRef = useRef(onClip);
+  const onNoSpeechRef = useRef(onNoSpeech);
 
   useEffect(() => {
     onClipRef.current = onClip;
-  }, [onClip]);
+    onNoSpeechRef.current = onNoSpeech;
+  }, [onClip, onNoSpeech]);
 
   const finish = useCallback((send: boolean) => {
     const session = sessionRef.current;
@@ -46,7 +51,9 @@ export function useVoiceRecorder(onClip: (wav: Blob) => void) {
 
   useEffect(() => () => finish(false), [finish]);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async ({ autoStop = false }: { autoStop?: boolean } = {}) => {
+    if (sessionRef.current || startingRef.current) return;
+    startingRef.current = true;
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -56,7 +63,17 @@ export function useVoiceRecorder(onClip: (wav: Blob) => void) {
       const source = context.createMediaStreamSource(stream);
       const processor = context.createScriptProcessor(4096, 1, 1);
       const chunks: Float32Array[] = [];
-      processor.onaudioprocess = (event) => chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      const endpoint = autoStop ? createEndpointer(context.sampleRate) : null;
+      processor.onaudioprocess = (event) => {
+        const chunk = new Float32Array(event.inputBuffer.getChannelData(0));
+        chunks.push(chunk);
+        const state = endpoint?.(chunk);
+        if (state === "done") finish(true);
+        else if (state === "no-speech") {
+          finish(false);
+          onNoSpeechRef.current?.();
+        }
+      };
       source.connect(processor);
       processor.connect(context.destination);
       const timer = window.setTimeout(() => finish(true), MAX_SECONDS * 1000);
@@ -64,10 +81,13 @@ export function useVoiceRecorder(onClip: (wav: Blob) => void) {
       setRecording(true);
     } catch {
       setError("The microphone is blocked or missing. Allow it in the browser, or type instead.");
+    } finally {
+      startingRef.current = false;
     }
   }, [finish]);
 
   const stop = useCallback(() => finish(true), [finish]);
+  const cancel = useCallback(() => finish(false), [finish]);
 
-  return { supported, recording, error, start, stop };
+  return { supported, recording, error, start, stop, cancel };
 }

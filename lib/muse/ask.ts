@@ -14,7 +14,7 @@ import { ASK_ACTIONS, FEED_FILTERS, type LikelyEvent } from "@/lib/muse/types";
 // actions to carry out for the student, an optional follow-up question, and
 // topics the request showed interest in.
 
-export const AskInputSchema = z.object({ question: z.string().trim().min(1).max(500) });
+export const AskInputSchema = z.object({ question: z.string().trim().min(1).max(500), fresh: z.boolean().optional() });
 
 export const AskActionSchema = z.object({
   type: z.enum(ASK_ACTIONS),

@@ -6,7 +6,8 @@ import { InstagramPostIcon } from "@/components/ui/icons";
 import { friendsGoingLine, sharedLine, type WhoIsGoing } from "@/lib/social/types";
 
 // The event page's Who's going section: friends going first, then students
-// going who are open to company, with Say hi. Going and Open to company are
+// going who are open to company, with Say hi. Going and Open to company (a
+// checkbox only, no note, per lisa) are
 // set here for the demo viewer. This is the page's only going button: on an
 // RSVP event it reads RSVP, then You're going (lisa). With showCompany={false}
 // the Looking for company list is left out, so the page can place it with
@@ -50,7 +51,6 @@ export function WhosGoing({
   showCompany?: boolean;
 }) {
   const [who, setWho] = useState(initial);
-  const [note, setNote] = useState(initial.viewer.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -63,8 +63,7 @@ export function WhosGoing({
   }
 
   const goingUrl = `/api/social/events/${encodeURIComponent(who.eventId)}`;
-  const setGoing = (going: boolean, open = who.viewer.open) =>
-    run(goingUrl, { going, open, ...(open && note.trim() ? { note: note.trim() } : {}) });
+  const setGoing = (going: boolean, open = who.viewer.open) => run(goingUrl, { going, open });
 
   return (
     <section aria-labelledby="whos-going-heading" className="px-3">
@@ -115,21 +114,6 @@ export function WhosGoing({
             <p className="mt-[2px] text-meta text-muted">
               Students going can see your first name and the interests you share, and say hi.
             </p>
-            {who.viewer.open && (
-              <div className="mt-[8px] flex gap-[7.6px]">
-                <input
-                  type="text"
-                  value={note}
-                  maxLength={120}
-                  placeholder="Looking for people to go with"
-                  onChange={(change) => setNote(change.target.value)}
-                  className="min-w-0 flex-1 rounded-card border border-hairline px-[10px] py-[6px] text-body"
-                />
-                <button type="button" disabled={busy} onClick={() => setGoing(true, true)} className={buttonClass("secondary")}>
-                  Save
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>
