@@ -38,6 +38,18 @@ describe("food crawl", () => {
     expect(crawlCandidates({ from, to }, all, NOW).map((e) => e.id).sort()).toEqual(["boba", "pizza", "shirts", "tacos"]);
   });
 
+  it("keeps stops inside the area of the trip, so a walk near MIT never crosses to BU", () => {
+    const bu = event("bu", 42.3505, -71.1054, { foodNote: "Pizza" });
+    expect(crawlCandidates({ from, to }, [pizza, bu], NOW, "transit").map((e) => e.id)).toEqual(["pizza"]);
+  });
+
+  it("fits the whole walk, stops included, in an hour", async () => {
+    const late = event("late", 42.3590, -71.0960, { start: at(50), end: at(120), foodNote: "Cookies" });
+    const result = await planCrawl({ from, to }, [pizza, late], NOW);
+    expect(result.data!.stops.map((s) => s.eventId)).not.toContain("late");
+    expect(Date.parse(result.data!.destination.arriveAt)).toBeLessThanOrEqual(NOW.getTime() + 60 * 60_000);
+  });
+
   it("orders stops for the shortest walk and drops one that ends before you arrive", () => {
     const soon = event("soon", 42.3570, -71.0985, { end: at(3) });
     const route = orderStops({ from, to }, [{ event: shirts, kind: "merch" }, { event: pizza, kind: "main" }, { event: soon, kind: "snack" }], NOW);
