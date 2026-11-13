@@ -7,7 +7,10 @@ import { friendsGoingLine, sharedLine, type WhoIsGoing } from "@/lib/social/type
 
 // The event page's Who's going section: friends going first, then students
 // going who are open to company, with Say hi. Going and Open to company are
-// set here for the demo viewer.
+// set here for the demo viewer. This is the page's only going button: on an
+// RSVP event it reads RSVP, then You're going (lisa). With showCompany={false}
+// the Looking for company list is left out, so the page can place it with
+// LookingForCompany further down.
 
 type Response = { data: WhoIsGoing | null; error: string | null };
 
@@ -35,7 +38,17 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-export function WhosGoing({ initial }: { initial: WhoIsGoing }) {
+export function WhosGoing({
+  initial,
+  rsvp = false,
+  capacity,
+  showCompany = true,
+}: {
+  initial: WhoIsGoing;
+  rsvp?: boolean;
+  capacity?: number;
+  showCompany?: boolean;
+}) {
   const [who, setWho] = useState(initial);
   const [note, setNote] = useState(initial.viewer.note ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -80,8 +93,13 @@ export function WhosGoing({ initial }: { initial: WhoIsGoing }) {
           onClick={() => setGoing(!who.viewer.going, false)}
           className={buttonClass(who.viewer.going ? "soft" : "primary", "w-full")}
         >
-          {who.viewer.going ? "You're going" : "I'm going"}
+          {who.viewer.going ? "You're going" : rsvp ? "RSVP" : "I'm going"}
         </button>
+        {rsvp && !who.viewer.going && (
+          <p className="mt-[6px] text-meta text-muted">
+            {capacity ? `RSVP required, ${capacity} spots.` : "RSVP required."} Your RSVP saves your spot.
+          </p>
+        )}
         {who.viewer.going && (
           <div className="mt-[10px]">
             <label className="flex items-center justify-between gap-[10px] text-body font-semibold">
@@ -116,49 +134,90 @@ export function WhosGoing({ initial }: { initial: WhoIsGoing }) {
         )}
       </div>
 
-      {who.openToCompany.length > 0 && (
-        <>
-          <h3 className="mt-[16px] font-display text-label font-bold">Looking for company</h3>
-          <p className="text-meta text-muted">Top students going by interests you share</p>
-          <ul className="mt-[8px] flex flex-col gap-[10px]">
-            {who.openToCompany.map((person) => (
-              <li key={person.id} className="flex items-start gap-[10px] rounded-card border border-hairline p-[10px]">
-                <Avatar name={person.name} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-label font-bold">{person.name}</p>
-                  <p className="text-meta font-semibold text-muted">
-                    {person.year} · {person.major}
-                  </p>
-                  <p className="mt-[2px] text-meta">{sharedLine(person.shared)}</p>
-                  {person.note && <p className="mt-[2px] text-meta text-muted">&ldquo;{person.note}&rdquo;</p>}
-                  {person.instagram && (
-                    <p className="mt-[4px] flex items-center gap-[5px] text-meta font-semibold">
-                      <InstagramPostIcon className="h-[15px] w-[15px] shrink-0" />
-                      They said yes: @{person.instagram}
-                    </p>
-                  )}
-                </div>
-                {!person.hello && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => run("/api/social/hello", { eventId: who.eventId, to: person.id })}
-                    className={buttonClass("secondary", "shrink-0")}
-                  >
-                    Say hi
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      {showCompany && <CompanyList who={who} busy={busy} run={run} />}
 
       {who.othersCount > 0 && (
         <p className="mt-[10px] text-meta text-muted">
           + {who.othersCount} more {who.othersCount === 1 ? "student" : "students"} going
         </p>
       )}
+      {error && <p className="mt-[8px] text-meta text-muted">{error}</p>}
+    </section>
+  );
+}
+
+function CompanyList({
+  who,
+  busy,
+  run,
+  heading = "h3",
+}: {
+  who: WhoIsGoing;
+  busy: boolean;
+  run: (url: string, body: unknown) => Promise<void>;
+  heading?: "h2" | "h3";
+}) {
+  if (who.openToCompany.length === 0) return null;
+  const Heading = heading;
+  return (
+    <>
+      <Heading className={heading === "h2" ? "font-display text-title font-bold" : "mt-[16px] font-display text-label font-bold"}>
+        Looking for company
+      </Heading>
+      <p className="text-meta text-muted">Top students going by interests you share</p>
+      <ul className="mt-[8px] flex flex-col gap-[10px]">
+        {who.openToCompany.map((person) => (
+          <li key={person.id} className="flex items-start gap-[10px] rounded-card border border-hairline p-[10px]">
+            <Avatar name={person.name} />
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-label font-bold">{person.name}</p>
+              <p className="text-meta font-semibold text-muted">
+                {person.year} · {person.major}
+              </p>
+              <p className="mt-[2px] text-meta">{sharedLine(person.shared)}</p>
+              {person.note && <p className="mt-[2px] text-meta text-muted">&ldquo;{person.note}&rdquo;</p>}
+              {person.instagram && (
+                <p className="mt-[4px] flex items-center gap-[5px] text-meta font-semibold">
+                  <InstagramPostIcon className="h-[15px] w-[15px] shrink-0" />
+                  They said yes: @{person.instagram}
+                </p>
+              )}
+            </div>
+            {!person.hello && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => run("/api/social/hello", { eventId: who.eventId, to: person.id })}
+                className={buttonClass("secondary", "shrink-0")}
+              >
+                Say hi
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** Looking for company as its own section, for pages that place it after Details. */
+export function LookingForCompany({ initial }: { initial: WhoIsGoing }) {
+  const [who, setWho] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(url: string, body: unknown) {
+    setBusy(true);
+    const result = await post(url, body);
+    setBusy(false);
+    setError(result.error);
+    if (result.data) setWho(result.data);
+  }
+
+  if (who.openToCompany.length === 0) return null;
+  return (
+    <section aria-label="Looking for company" className="px-3">
+      <CompanyList who={who} busy={busy} run={run} heading="h2" />
       {error && <p className="mt-[8px] text-meta text-muted">{error}</p>}
     </section>
   );
