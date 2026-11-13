@@ -3,6 +3,7 @@ import { Geologica, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { AlertListener } from "@/components/alerts/alert-listener";
 import { NearbyWatcherGate } from "@/components/demo/nearby-watcher-gate";
+import { NavTrail } from "@/components/ui/back-link";
 import { TabBar } from "@/components/ui/tab-bar";
 import { PRODUCT_NAME } from "@/lib/brand";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <TabBar />
           <AlertListener />
           <NearbyWatcherGate />
+          <NavTrail />
         </div>
       </body>
     </html>

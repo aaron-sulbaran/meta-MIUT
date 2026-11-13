@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
+import { BackLink } from "@/components/ui/back-link";
 import { ChevronLeftIcon, MenuIcon } from "@/components/ui/icons";
 
 // Three header patterns from the Facebook iOS app. Each takes an actions slot
@@ -37,7 +38,7 @@ export function SectionHeader({ title, actions }: { title: string; actions?: Rea
   );
 }
 
-/** A screen inside a section: back chevron, centered title, actions. */
+/** A screen inside a section: back chevron, centered title, actions. Back returns to the previous page; backHref is for a direct open. */
 export function SubPageHeader({
   title,
   backHref,
@@ -52,9 +53,9 @@ export function SubPageHeader({
   return (
     <header className={bar}>
       <div className="relative flex h-[52px] items-center pl-[10px] pr-[2px]">
-        <Link href={backHref} aria-label={backLabel} className="flex h-11 w-11 items-center justify-start pl-[4px] text-ink">
+        <BackLink href={backHref} label={backLabel} className="flex h-11 w-11 items-center justify-start pl-[4px] text-ink">
           <ChevronLeftIcon className="h-[18px] w-[18px]" />
-        </Link>
+        </BackLink>
         <h1 className="pointer-events-none absolute inset-x-[120px] truncate text-center font-display text-title font-bold">{title}</h1>
         <HeaderActions>{actions}</HeaderActions>
       </div>
