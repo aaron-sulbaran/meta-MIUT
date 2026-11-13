@@ -48,19 +48,29 @@ function TrailRecorder() {
     } catch {}
 
     // Back to this page puts you where you were scrolled, even once the list has loaded.
+    // Content that loads in after (comments, who's going, photos) can shift the page, so it
+    // holds the spot for a few seconds or until you scroll yourself.
     let restoring = false;
     let timer: number | undefined;
+    let resizes: ResizeObserver | undefined;
+    const stopRestoring = () => {
+      restoring = false;
+      resizes?.disconnect();
+      window.clearTimeout(timer);
+      for (const name of ["wheel", "touchstart", "keydown", "pointerdown"]) window.removeEventListener(name, stopRestoring);
+    };
     try {
       const saved = Number(sessionStorage.getItem(SCROLL + page));
       if (sessionStorage.getItem(RESTORE) === page && saved > 0) {
         restoring = true;
-        const started = Date.now();
-        const settle = () => {
-          window.scrollTo(0, saved);
-          if (Math.abs(window.scrollY - saved) > 2 && Date.now() - started < 2000) timer = window.setTimeout(settle, 50);
-          else restoring = false;
+        const hold = () => {
+          if (restoring) window.scrollTo(0, saved);
         };
-        settle();
+        hold();
+        resizes = new ResizeObserver(hold);
+        resizes.observe(document.body);
+        timer = window.setTimeout(stopRestoring, 3000);
+        for (const name of ["wheel", "touchstart", "keydown", "pointerdown"]) window.addEventListener(name, stopRestoring, { passive: true });
       }
       sessionStorage.removeItem(RESTORE);
     } catch {}
@@ -72,7 +82,7 @@ function TrailRecorder() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      window.clearTimeout(timer);
+      stopRestoring();
       window.removeEventListener("scroll", onScroll);
     };
   }, [pathname, search]);
