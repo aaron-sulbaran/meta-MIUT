@@ -471,6 +471,8 @@ export function MuseConversation({
     { released: !holdReveal, resolve: null },
   );
   const busyRef = useRef(false);
+  // How many requests (spoken or typed) this card has taken; the walk home yields to any of them.
+  const asksRef = useRef(0);
   // The kept request on screen (its words), and whether it replaced the walk home on open.
   const shownSaidRef = useRef<string | null>(null);
   const restoredRef = useRef(false);
@@ -526,6 +528,10 @@ export function MuseConversation({
 
   // The walk home, planned as the screen opens, revealed where you can see Muse work.
   const planHome = useCallback(async () => {
+    // A request asked while this walk is still held or planning (the stage's typed re-plan at U1c can
+    // arrive before the reveal) owns the card: this walk must not land over its answer afterwards.
+    const asksAtStart = asksRef.current;
+    const overtaken = () => restoredRef.current || asksRef.current !== asksAtStart;
     const call = timed<MuseRouteResponse<ApiPlan>>(() =>
       fetch("/api/muse/crawl", {
         method: "POST",
@@ -541,7 +547,7 @@ export function MuseConversation({
       }),
     );
     await released();
-    if (restoredRef.current) return;
+    if (overtaken()) return;
     const revealStart = Date.now();
     setPhase({
       kind: "working",
@@ -549,8 +555,9 @@ export function MuseConversation({
       startedAt: revealStart,
     });
     const result = await call;
-    if (restoredRef.current) return;
+    if (overtaken()) return;
     await wait(Math.max(0, MIN_REVEAL_MS - (Date.now() - revealStart)));
+    if (overtaken()) return;
     const data = result.body?.data;
     if (!data) {
       setPhase({
@@ -637,6 +644,7 @@ export function MuseConversation({
       const question = text.trim();
       if (!question || busyRef.current) return;
       busyRef.current = true;
+      asksRef.current += 1;
       stopSpeaking();
       setOpen(true);
       setSaid({ text: question, by });
