@@ -1,5 +1,6 @@
 import { z } from "zod";
 import eventsFile from "@/data/seed/events.json";
+import testEventsFile from "@/data/seed/test-events.json";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import studentFile from "@/data/seed/student.json";
 import {
@@ -57,8 +58,15 @@ function nearestCampusClock(now: Date, hhmm: string): number {
   return candidates.reduce((best, next) => (Math.abs(next - now.getTime()) < Math.abs(best - now.getTime()) ? next : best));
 }
 
+// The real MIT events, plus made-up test events nearby (Harvard, BU, Northeastern) unless
+// SEED_TEST_EVENTS=off.
 export function loadSeedEvents(now: Date): CampusEvent[] {
-  const file = SeedEventsFileSchema.parse(eventsFile);
+  const real = loadSeedFile(eventsFile, now);
+  return process.env.SEED_TEST_EVENTS === "off" ? real : [...real, ...loadSeedFile(testEventsFile, now)];
+}
+
+function loadSeedFile(raw: unknown, now: Date): CampusEvent[] {
+  const file = SeedEventsFileSchema.parse(raw);
   // Without an anchor time, offsets count from the nearest quarter hour, so times read 7:30, not 7:33.
   const anchor = file.anchorCampusTime
     ? nearestCampusClock(now, file.anchorCampusTime)

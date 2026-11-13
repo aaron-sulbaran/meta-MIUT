@@ -1,0 +1,686 @@
+{
+  "_note": "MADE-UP test events (not real) at Harvard, BU, Northeastern, Berklee and around Cambridge/Boston, for testing For you, Free, the map and the food crawl. Same format as events.json; times count from 7 PM campus time. Set SEED_TEST_EVENTS=off to leave them out.",
+  "anchorCampusTime": "19:00",
+  "events": [
+    {
+      "id": "evt-test-kendall-taco-night",
+      "title": "Free Taco Night at Kendall Square",
+      "description": "Food trucks are giving away free tacos and agua fresca to students. Bring a friend, show any student ID.",
+      "startsInMinutes": 30,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Kendall Plaza, Kendall/MIT station",
+        "lat": 42.3625,
+        "lng": -71.0862
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Tacos and agua fresca",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Kendall Square Association",
+        "handle": "kendallsq"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-kendall-taco-night.jpg"
+      }
+    },
+    {
+      "id": "evt-test-central-ice-cream",
+      "title": "Late-Night Ice Cream Social",
+      "description": "Free scoops from local creameries under the lights at Starlight Square. Dairy-free options.",
+      "startsInMinutes": 90,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Starlight Square, Central Square",
+        "lat": 42.3654,
+        "lng": -71.1037
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Ice cream, dairy-free options",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Central Square Business Association",
+        "handle": "centralsq"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-central-ice-cream.jpg"
+      }
+    },
+    {
+      "id": "evt-test-harvard-cult-classics",
+      "title": "Harvard Film Society: Cult Classics Night",
+      "description": "A double feature of cult classic films. Free popcorn and soda for students.",
+      "startsInMinutes": 180,
+      "durationMinutes": 150,
+      "place": {
+        "name": "Brattle Theatre, Harvard Square",
+        "lat": 42.3735,
+        "lng": -71.121
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Popcorn and soda",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Harvard Film Society",
+        "handle": "harvardfilm"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-harvard-cult-classics.jpg"
+      }
+    },
+    {
+      "id": "evt-test-bu-bouldering-social",
+      "title": "BU Climbing Club Bouldering Social",
+      "description": "Open bouldering for all levels with free pizza after. Shoes to borrow at the desk.",
+      "startsInMinutes": 60,
+      "durationMinutes": 120,
+      "place": {
+        "name": "BU FitRec Climbing Wall, 915 Commonwealth Ave",
+        "lat": 42.3517,
+        "lng": -71.1166
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pizza",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "BU Climbing Club",
+        "handle": "bu_climbing"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-bu-bouldering-social.jpg"
+      }
+    },
+    {
+      "id": "evt-test-neu-hack-kickoff",
+      "title": "HuskyHack Kickoff Night",
+      "description": "Team formation for this month's hackathon. Free dinner, RSVP for a headcount.",
+      "startsInMinutes": 0,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Curry Student Center, Northeastern",
+        "lat": 42.3391,
+        "lng": -71.0877
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Dinner",
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "Northeastern Hacks",
+        "handle": "neu_hacks"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-mit-kendall-coffee",
+      "title": "Free Coffee and Donuts at Kendall/MIT",
+      "description": "Morning commuters and students get free coffee and donuts at the station entrance.",
+      "startsInMinutes": 780,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Kendall/MIT station, Main St entrance",
+        "lat": 42.3624,
+        "lng": -71.0861
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Coffee and donuts",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Cambridge Coffee Collective",
+        "handle": "cambridgecoffee"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-bu-club-fair-swag",
+      "title": "BU Club Fair: Free T-shirts and Swag",
+      "description": "Over 100 clubs on Marsh Plaza. Free T-shirts, stickers, and tote bags while they last.",
+      "startsInMinutes": 1020,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Marsh Plaza, Boston University",
+        "lat": 42.3503,
+        "lng": -71.1059
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "BU Student Activities",
+        "handle": "bu_sao"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-bu-club-fair-swag.jpg"
+      }
+    },
+    {
+      "id": "evt-test-hackharvard-info",
+      "title": "HackHarvard Info Session",
+      "description": "Learn about HackHarvard, meet sponsors, grab free pizza and swag.",
+      "startsInMinutes": 1320,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Harvard Science Center, Hall C",
+        "lat": 42.3765,
+        "lng": -71.1166
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pizza",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "HackHarvard",
+        "handle": "hackharvard"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-hackharvard-info.jpg"
+      }
+    },
+    {
+      "id": "evt-test-stata-boba-break",
+      "title": "Stata Study Break: Free Boba",
+      "description": "Study break with free boba tea on the fourth floor of Stata. First come, first served.",
+      "startsInMinutes": 1290,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Stata Center, 32-G449",
+        "lat": 42.3617,
+        "lng": -71.0905
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Boba tea",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT CSAIL Student Committee",
+        "handle": "csail_students"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-mccormick-cookies",
+      "title": "Cookies and Cocoa at McCormick",
+      "description": "Warm cookies and hot cocoa in the McCormick Hall lounge, open to all MIT students.",
+      "startsInMinutes": 1500,
+      "durationMinutes": 90,
+      "place": {
+        "name": "McCormick Hall, 320 Memorial Dr",
+        "lat": 42.3574,
+        "lng": -71.0948
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Cookies and hot cocoa",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "McCormick Hall Council",
+        "handle": "mccormick_mit"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-cambridge-book-swap",
+      "title": "Free Book Swap and Giveaway",
+      "description": "Bring a book, take a book. Extra books are free giveaways at the end.",
+      "startsInMinutes": 1080,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Cambridge Public Library, 449 Broadway",
+        "lat": 42.3736,
+        "lng": -71.1102
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Cambridge Public Library",
+        "handle": "cambridgepl"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-berklee-jazz-showcase",
+      "title": "Berklee Student Jazz Showcase",
+      "description": "Student combos from Berklee's jazz program. Tickets $10, student discount at the door.",
+      "startsInMinutes": 1500,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Berklee Performance Center, 136 Massachusetts Ave",
+        "lat": 42.3466,
+        "lng": -71.0874
+      },
+      "free": false,
+      "food": false,
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "Berklee Jazz Collective",
+        "handle": "berkleejazz"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-berklee-jazz-showcase.jpg"
+      }
+    },
+    {
+      "id": "evt-test-neu-ramen-night",
+      "title": "Japanese Culture Club Ramen Night",
+      "description": "Homemade ramen and Japanese snacks. Free, limited to 60 people, RSVP required.",
+      "startsInMinutes": 1410,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Curry Student Center, Room 333, Northeastern",
+        "lat": 42.3391,
+        "lng": -71.0877
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Ramen",
+      "access": {
+        "kind": "rsvp",
+        "capacity": 60
+      },
+      "organizer": {
+        "name": "NU Japanese Culture Club",
+        "handle": "nu_jcc"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-reel-rock-film",
+      "title": "Reel Rock Climbing Film Night",
+      "description": "The new Reel Rock climbing film tour. Tickets $8.",
+      "startsInMinutes": 1530,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Harvard Science Center, Hall B",
+        "lat": 42.3765,
+        "lng": -71.1166
+      },
+      "free": false,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Harvard Mountaineering Club",
+        "handle": "harvardmc"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-kendall-startup-mixer",
+      "title": "Kendall Startup Mixer",
+      "description": "Meet founders building in Kendall. Free pizza, drinks, and startup stickers.",
+      "startsInMinutes": 1350,
+      "durationMinutes": 120,
+      "place": {
+        "name": "CIC Cambridge, One Broadway",
+        "lat": 42.3629,
+        "lng": -71.0834
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pizza and drinks",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Kendall Founders",
+        "handle": "kendallfounders"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-bu-food-festival",
+      "title": "BU International Food Festival",
+      "description": "Student groups serve food from 30 countries. Free tasting plates for students.",
+      "startsInMinutes": 2760,
+      "durationMinutes": 180,
+      "place": {
+        "name": "George Sherman Union, Boston University",
+        "lat": 42.3509,
+        "lng": -71.1087
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Tasting plates from 30 countries",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "BU International Students",
+        "handle": "bu_isso"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-bu-food-festival.jpg"
+      }
+    },
+    {
+      "id": "evt-test-esplanade-fun-run",
+      "title": "Esplanade 5K Fun Run",
+      "description": "A free 5K along the Charles. Every finisher gets a free T-shirt. RSVP for a headcount.",
+      "startsInMinutes": 2280,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Hatch Shell, Charles River Esplanade",
+        "lat": 42.357,
+        "lng": -71.0743
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "Boston Student Runners",
+        "handle": "bostonrunners"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-esplanade-fun-run.jpg"
+      }
+    },
+    {
+      "id": "evt-test-krokodiloes-concert",
+      "title": "Harvard Krokodiloes Fall Concert",
+      "description": "Harvard's oldest a cappella group. Tickets $15.",
+      "startsInMinutes": 2880,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Sanders Theatre, Harvard",
+        "lat": 42.3765,
+        "lng": -71.115
+      },
+      "free": false,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Harvard Krokodiloes",
+        "handle": "harvardkroks"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-sloan-founders-panel",
+      "title": "Sloan Founders Panel",
+      "description": "MIT alumni founders on their first year. Free, RSVP for a headcount.",
+      "startsInMinutes": 2820,
+      "durationMinutes": 90,
+      "place": {
+        "name": "MIT Sloan, E62-233",
+        "lat": 42.361,
+        "lng": -71.0835
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "rsvp"
+      },
+      "organizer": {
+        "name": "MIT Sloan Entrepreneurs",
+        "handle": "mitsloan_eclub"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-frog-pond-skate",
+      "title": "Frog Pond Student Skate Night",
+      "description": "Discounted student skating with free hot chocolate. Skate rental on site.",
+      "startsInMinutes": 4320,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Frog Pond, Boston Common",
+        "lat": 42.356,
+        "lng": -71.0657
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Hot chocolate",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Boston Common Skating",
+        "handle": "frogpond"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-frog-pond-skate.jpg"
+      }
+    },
+    {
+      "id": "evt-test-neu-game-night",
+      "title": "Board Game Night",
+      "description": "Hundreds of board games and free snacks. Drop in any time.",
+      "startsInMinutes": 4380,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Snell Library, Northeastern",
+        "lat": 42.3383,
+        "lng": -71.088
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Snacks",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "NU Tabletop Club",
+        "handle": "nu_tabletop"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-harvard-ai-hack-night",
+      "title": "Hack Night: Build with AI",
+      "description": "Build an AI project in four hours. Free dinner, 80 spots, RSVP required.",
+      "startsInMinutes": 5760,
+      "durationMinutes": 240,
+      "place": {
+        "name": "Harvard Innovation Labs, 125 Western Ave",
+        "lat": 42.3636,
+        "lng": -71.125
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Dinner",
+      "access": {
+        "kind": "rsvp",
+        "capacity": 80
+      },
+      "organizer": {
+        "name": "Harvard Computer Society",
+        "handle": "harvardhcs"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-harvard-ai-hack-night.jpg"
+      }
+    },
+    {
+      "id": "evt-test-bu-short-film-premiere",
+      "title": "BU Short Film Premiere",
+      "description": "Student filmmakers premiere their fall shorts, then a Q&A.",
+      "startsInMinutes": 5820,
+      "durationMinutes": 120,
+      "place": {
+        "name": "BU College of Communication, 640 Commonwealth Ave",
+        "lat": 42.3497,
+        "lng": -71.1045
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "BU Film Society",
+        "handle": "bu_filmsoc"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-mit-climbing-comp",
+      "title": "MIT Climbing Wall Fall Comp",
+      "description": "Bouldering competition for all levels. $5 entry, pizza for competitors.",
+      "startsInMinutes": 7200,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Z-Center Climbing Wall, MIT",
+        "lat": 42.3594,
+        "lng": -71.0953
+      },
+      "free": false,
+      "food": true,
+      "foodNote": "Pizza for competitors",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Outing Club",
+        "handle": "mit_outing"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-mit-climbing-comp.jpg"
+      }
+    },
+    {
+      "id": "evt-test-graffiti-alley-walk",
+      "title": "Graffiti Alley Art Walk",
+      "description": "A guided walk through Graffiti Alley with local artists. Free stickers and prints.",
+      "startsInMinutes": 7020,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Graffiti Alley, Central Square",
+        "lat": 42.3635,
+        "lng": -71.1002
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Central Square Arts",
+        "handle": "centralarts"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-lobby10-pie-day",
+      "title": "Lobby 10 Free Pie Day",
+      "description": "Free slices of pie in Lobby 10 between classes.",
+      "startsInMinutes": -300,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Lobby 10, Building 10",
+        "lat": 42.3594,
+        "lng": -71.0921
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pie",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Undergraduate Association",
+        "handle": "mit_ua"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-harvard-robot-lunch-talk",
+      "title": "Lunch Talk: Robots That Climb",
+      "description": "A Harvard robotics lab on climbing robots. Free lunch for attendees.",
+      "startsInMinutes": -420,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Maxwell Dworkin G115, Harvard",
+        "lat": 42.3786,
+        "lng": -71.1167
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Lunch",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Harvard SEAS",
+        "handle": "harvardseas"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    }
+  ]
+}
