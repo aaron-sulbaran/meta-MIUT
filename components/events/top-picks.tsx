@@ -6,7 +6,8 @@ import { formatDateLine } from "@/lib/events/time";
 import { MoreForYou } from "@/components/events/more-for-you";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { personalizeEvents, soonestFirst } from "@/lib/muse/rank";
-import { friendsGoingLine, whoIsGoing } from "@/lib/social/going";
+import { DEMO_USER_ID, loadInterestMemory } from "@/lib/muse/memory";
+import { friendsGoingLine, loadSocial, whoIsGoing } from "@/lib/social/going";
 import { demoViewer } from "@/lib/social/viewer";
 
 // Muse's top 3 for today (today's events only), as a sideways row of compact cards. Why each event
@@ -15,7 +16,8 @@ import { demoViewer } from "@/lib/social/viewer";
 // student is likely to care about.
 
 export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Date }) {
-  const ranking = await personalizeEvents(loadDemoStudent(), events, now);
+  const ranking = await personalizeEvents(loadDemoStudent(), events, now, await loadInterestMemory(DEMO_USER_ID, now));
+  await loadSocial(ranking.data?.picks.map((pick) => pick.eventId) ?? []);
   const eventsById = new Map(events.map((event) => [event.id, event]));
   const viewer = demoViewer();
 

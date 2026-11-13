@@ -1,8 +1,10 @@
 import "server-only";
+import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
 import { eventTopics } from "@/lib/muse/candidates";
 import { FRIENDS, OPEN_NOTES, PEOPLE } from "@/lib/social/fixtures/people";
 import type { GoingPerson, WhoIsGoing } from "@/lib/social/types";
+import { loadState, saveState } from "@/lib/store/state";
 
 export { friendsGoingLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
 
@@ -114,6 +116,30 @@ export function sayHello(event: CampusEvent, viewerId: string, toId: string): { 
   if (!entry?.open) return { error: "They are not looking for company at this event" };
   state().hellos.add(helloKey(event.id, viewerId, toId));
   return { error: null };
+}
+
+const EntriesSchema = z.array(z.tuple([z.string(), z.object({ open: z.boolean(), note: z.string().optional() })]));
+const goingName = (eventId: string) => `social-going:${eventId}`;
+const HELLOS = "social-hellos";
+
+/** Going lists for these events and accepted hellos, as last saved in the shared store (Redis). */
+export async function loadSocial(eventIds: string[]): Promise<void> {
+  const [hellos, ...lists] = await Promise.all([
+    loadState(HELLOS, z.array(z.string())),
+    ...eventIds.map((id) => loadState(goingName(id), EntriesSchema)),
+  ]);
+  if (hellos) state().hellos = new Set(hellos);
+  eventIds.forEach((id, index) => {
+    const entries = lists[index];
+    if (entries) state().going.set(id, new Map(entries));
+  });
+}
+
+export async function saveSocial(event: CampusEvent): Promise<void> {
+  await Promise.all([
+    saveState(goingName(event.id), [...goingAt(event).entries()]),
+    saveState(HELLOS, [...state().hellos]),
+  ]);
 }
 
 export function resetSocial() {

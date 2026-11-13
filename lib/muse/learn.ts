@@ -2,7 +2,7 @@ import "server-only";
 import type { CampusEvent } from "@/lib/events/schema";
 import { getEventStore, type EventStore, type StoreResult } from "@/lib/events/store";
 import { eventTopics } from "@/lib/muse/candidates";
-import { recordSignals, type EventSignalKind, type InstagramSignal, type InterestMemory } from "@/lib/muse/memory";
+import { saveSignals, type EventSignalKind, type InstagramSignal, type InterestMemory } from "@/lib/muse/memory";
 
 // Muse keeps learning from what a student does about real events: marking one
 // interested, RSVPing, going, or dismissing it with Not for me. Each action
@@ -27,5 +27,5 @@ export async function learnFromEvent(
   const event = await (options.store ?? getEventStore()).getEvent(action.eventId);
   if (!event) return { data: null, error: "Event not found" };
   const now = action.now ?? new Date();
-  return { data: recordSignals(action.userId, [eventSignal(event, action.kind, now)], now), error: null };
+  return { data: await saveSignals(action.userId, [eventSignal(event, action.kind, now)], now), error: null };
 }
