@@ -182,6 +182,50 @@ describe("forYouFeed, the order the list and the map share", () => {
   });
 });
 
+describe("Muse weighs every upcoming event", () => {
+  afterEach(() => {
+    delete (globalThis as { __musePicks?: unknown }).__musePicks;
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    resetInterestMemory();
+  });
+
+  const answerWith = (answer: unknown) =>
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify(answer) }, finish_reason: "stop" }] })),
+    );
+  const upcoming = () => events.filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime());
+
+  it("orders For you within a day by Muse's ratings, not the code score", () => {
+    const today = upcoming().filter((event) => isInWindow(event, "today", now));
+    expect(today.length).toBeGreaterThan(2);
+    const ratings = Object.fromEntries(today.map((event, index) => [event.id, index]));
+    const order = forYouOrder([], today, now, new Set(), ratings).filter((event) => Date.parse(event.start) > now.getTime());
+    const rated = order.map((event) => ratings[event.id]!);
+    expect(rated).toEqual([...rated].sort((a, b) => b - a));
+  });
+
+  it("returns Muse's ratings and takes a Top 3 pick from outside the code-scored pool", async () => {
+    vi.stubEnv("MUSE_API_KEY", "test-key-not-real");
+    const today = upcoming().filter((event) => isInWindow(event, "today", now));
+    const pick = today.at(-1)!;
+    answerWith({ ratings: [{ eventId: pick.id, relevance: 97 }], picks: [{ eventId: pick.id, reason: "You love this." }] });
+    const result = await personalizeEvents(student, events, now, getInterestMemory("demo", now));
+    expect(result.source).toBe("muse");
+    expect(result.data!.picks[0]?.eventId).toBe(pick.id);
+    expect(result.data!.ratings[pick.id]).toBe(97);
+  });
+
+  it("falls back when Muse picks an event that is not on today", async () => {
+    vi.stubEnv("MUSE_API_KEY", "test-key-not-real");
+    const later = upcoming().find((event) => !isInWindow(event, "today", now))!;
+    answerWith({ ratings: [], picks: [{ eventId: later.id, reason: "Soon." }] });
+    const result = await personalizeEvents(student, events, now, getInterestMemory("demo", now));
+    expect(result.source).toBe("fixture");
+  });
+});
+
 describe("soonestFirst", () => {
   it("puts what is on now first, then day by day with the best match first", () => {
     const likely = compileCandidates(loadSeedStudent(), getInterestMemory(undefined, now), events, now);

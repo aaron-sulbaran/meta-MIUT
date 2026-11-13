@@ -1,0 +1,301 @@
+{
+  "_note": "MADE-UP test events (not real), timed from when the server loads the seed so some are always on right now for testing. Same format as events.json. Set SEED_TEST_EVENTS=off to leave them out.",
+  "events": [
+    {
+      "id": "evt-test-now-stata-dumplings",
+      "title": "Free Dumplings in the Stata Student Street",
+      "description": "Made-up test event. Leftover dumplings from a club dinner, free for anyone who stops by.",
+      "startsInMinutes": -30,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Stata Center Student Street, MIT",
+        "lat": 42.3617,
+        "lng": -71.0906
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pork and veggie dumplings",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Chinese Students Club",
+        "handle": "mit_cis"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-lobby10-swag",
+      "title": "Lobby 10 Sticker and Swag Table",
+      "description": "Made-up test event. Stickers, tote bags and water bottles from student groups. Take what you like.",
+      "startsInMinutes": -45,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Lobby 10, MIT",
+        "lat": 42.3594,
+        "lng": -71.0921
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Student Activities",
+        "handle": "mit_tsmit"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-z-center-climb",
+      "title": "Open Bouldering at the Z Center Wall",
+      "description": "Made-up test event. Drop-in climbing with free shoe rental. Beginners welcome, staff on the wall.",
+      "startsInMinutes": -15,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Zesiger Center Climbing Wall, MIT",
+        "lat": 42.3584,
+        "lng": -71.0951
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Outing Club",
+        "handle": "mit_mountaineering"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-kendall-coffee",
+      "title": "Free Coffee and Bagels at Kendall",
+      "description": "Made-up test event. A startup is handing out coffee and bagels outside the station while they last.",
+      "startsInMinutes": 0,
+      "durationMinutes": 60,
+      "place": {
+        "name": "Kendall/MIT station plaza",
+        "lat": 42.3624,
+        "lng": -71.086
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Coffee and bagels",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Kendall Square Association",
+        "handle": "kendallsq"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-sidney-film",
+      "title": "Short Film Night in the Sidney-Pacific Lounge",
+      "description": "Made-up test event. Student shorts on the big screen, popcorn included.",
+      "startsInMinutes": 30,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Sidney-Pacific Lounge, MIT",
+        "lat": 42.357,
+        "lng": -71.1011
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Popcorn and soda",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Film Society",
+        "handle": "mit_film"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-w20-hack",
+      "title": "Late Hack Hours in W20",
+      "description": "Made-up test event. Bring a project, get help from mentors, and grab pizza at the halfway point.",
+      "startsInMinutes": 15,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Stratton Student Center (W20), MIT",
+        "lat": 42.3591,
+        "lng": -71.0947
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pizza at the halfway point",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "HackMIT",
+        "handle": "hackmit"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-killian-giveaway",
+      "title": "Glow Stick Giveaway on Killian Court",
+      "description": "Made-up test event. Free glow sticks and hand warmers for the walk home.",
+      "startsInMinutes": -20,
+      "durationMinutes": 60,
+      "place": {
+        "name": "Killian Court, MIT",
+        "lat": 42.3591,
+        "lng": -71.0918
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Class Councils",
+        "handle": "mit_classcouncil"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-maseeh-cookies",
+      "title": "Warm Cookies at Maseeh Hall",
+      "description": "Made-up test event. The house team baked too many cookies. Come take some.",
+      "startsInMinutes": 45,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Maseeh Hall, MIT",
+        "lat": 42.3576,
+        "lng": -71.0934
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Chocolate chip cookies",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Maseeh Hall",
+        "handle": "mit_maseeh"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-central-noodles",
+      "title": "Free Noodle Bowls in Central Square",
+      "description": "Made-up test event. A new noodle shop is giving out free bowls to students tonight.",
+      "startsInMinutes": 60,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Mass Ave at Central Square",
+        "lat": 42.3655,
+        "lng": -71.104
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Noodle bowls",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Central Square Business Association",
+        "handle": "centralsq"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-media-lab-demo",
+      "title": "Media Lab Open Demos",
+      "description": "Made-up test event. Walk through student project demos, with snacks by the door.",
+      "startsInMinutes": 90,
+      "durationMinutes": 120,
+      "place": {
+        "name": "MIT Media Lab, E14",
+        "lat": 42.3605,
+        "lng": -71.0872
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Snacks",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Media Lab",
+        "handle": "mit_medialab"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-harvard-tshirts",
+      "title": "Harvard Yard T-shirt Toss",
+      "description": "Made-up test event. Free shirts for anyone who stops by the table in the Yard.",
+      "startsInMinutes": 30,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Harvard Yard, Cambridge",
+        "lat": 42.3744,
+        "lng": -71.1169
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Harvard Undergraduate Council",
+        "handle": "harvard_ug"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-now-walker-boardgames",
+      "title": "Board Games and Tea at Walker",
+      "description": "Made-up test event. Drop-in board games, free tea and snacks.",
+      "startsInMinutes": -60,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Walker Memorial, MIT",
+        "lat": 42.3596,
+        "lng": -71.089
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Tea and snacks",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Games Club",
+        "handle": "mit_games"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    }
+  ]
+}

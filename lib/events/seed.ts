@@ -2,6 +2,7 @@ import { z } from "zod";
 import eventsFile from "@/data/seed/events.json";
 import testEventsFile from "@/data/seed/test-events.json";
 import demoDayEventsFile from "@/data/seed/demo-day-events.json";
+import nowEventsFile from "@/data/seed/now-events.json";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import studentFile from "@/data/seed/student.json";
 import {
@@ -60,11 +61,15 @@ function nearestCampusClock(now: Date, hhmm: string): number {
 }
 
 // The real MIT events, plus made-up test events nearby (Harvard, BU, Northeastern) and around
-// the demo day unless SEED_TEST_EVENTS=off.
+// the demo day, and some on right now, unless SEED_TEST_EVENTS=off.
 export function loadSeedEvents(now: Date): CampusEvent[] {
   const real = loadSeedFile(eventsFile, now);
   if (process.env.SEED_TEST_EVENTS === "off") return real;
-  return [...real, ...loadSeedFile(testEventsFile, now), ...loadSeedFile(demoDayEventsFile, now)];
+  return [
+    ...real,
+    ...loadSeedFile(testEventsFile, now), ...loadSeedFile(demoDayEventsFile, now),
+    ...loadSeedFile(nowEventsFile, now),
+  ];
 }
 
 function loadSeedFile(raw: unknown, now: Date): CampusEvent[] {

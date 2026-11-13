@@ -8,7 +8,7 @@ import { PHONE_OUTER_HEIGHT, PHONE_OUTER_WIDTH, PhoneFrame } from "@/components/
 import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
-import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type CastId } from "@/lib/demo/beats";
+import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
 import { beatCast, beatScreen, inFrameMessage } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
 import { phoneChromeFor } from "@/lib/demo/phone-chrome";
@@ -137,6 +137,11 @@ function withFrameOnTop(current: Frame[], frame: Omit<Frame, "z">, z: number): F
 
 const prefetchKey = (src: string) => `next:${src}`;
 
+/** The screen a beat loads ahead: its held path when it has one, else its own screen. */
+function aheadPath(beat: Beat, context: BeatContext): string | null {
+  return beat.prefetchPath?.(context) ?? beatScreen(beat, context);
+}
+
 /** A film's cue points (public/demo/films/<film>.cues.json), or none when the file is missing. */
 function useCues(path: string | null): number[] | undefined {
   const [known, setKnown] = useState<Record<string, number[]>>({});
@@ -185,6 +190,8 @@ export function Stage() {
   const [enteredBack, setEnteredBack] = useState(false);
   // The phone's newest screen, for a beat that continues inside it.
   const lastFrameRef = useRef<HTMLIFrameElement | null>(null);
+  // A held screen (Beat.prefetchPath) waiting for "reveal" once it is on top.
+  const revealKeyRef = useRef<string | null>(null);
   // The newest phone signal already passed into the stage's phone.
   const lastSignalRef = useRef<string | null>(null);
   const zRef = useRef(0);
@@ -335,20 +342,32 @@ export function Stage() {
       zRef.current += 1;
       const z = zRef.current;
       // Loaded ahead (U1b during U1a): take over that screen in place, with the same key,
-      // so React keeps its iframe instead of loading it again.
-      const prefetched = document.querySelector<HTMLIFrameElement>("iframe[data-prefetch]")?.getAttribute("src") === beatSrc;
-      const key = prefetched ? prefetchKey(beatSrc) : String(Date.now());
-      const loaded = prefetched && loadedAhead.includes(beatSrc);
-      setFrames((current) => withFrameOnTop(current, { src: beatSrc, key, loaded }, z));
+      // so React keeps its iframe instead of loading it again. A held screen gets "reveal"
+      // as it appears, so Muse shows its work in view.
+      const ahead = aheadPath(beat, { storyEventId, now: runStartedAt });
+      const prefetched = ahead !== null && document.querySelector<HTMLIFrameElement>("iframe[data-prefetch]")?.getAttribute("src") === ahead;
+      const src = prefetched ? ahead : beatSrc;
+      const key = prefetched ? prefetchKey(ahead) : String(Date.now());
+      const loaded = prefetched && loadedAhead.includes(ahead);
+      if (prefetched && beat.prefetchPath) revealKeyRef.current = key;
+      setFrames((current) => withFrameOnTop(current, { src, key, loaded }, z));
       if (loaded) frameLoaded(key);
     }
   }, [beat, beatSrc, storyEventId, runStartedAt, frameLoaded, loadedAhead]);
+
+  // A held screen taken over from loading ahead: tell it to show its work once it is on top and loaded.
+  const topForReveal = topFrame(frames);
+  useEffect(() => {
+    if (!topForReveal || topForReveal.key !== revealKeyRef.current || !topForReveal.loaded) return;
+    revealKeyRef.current = null;
+    lastFrameRef.current?.contentWindow?.postMessage({ source: "demo-stage", type: "reveal" }, window.location.origin);
+  }, [topForReveal]);
 
   // Load the next beat's screen hidden, when it asks for that and the same person plays it.
   const nextBeat = BEATS[index + 1];
   const prefetchSrc =
     nextBeat?.prefetch && beat.kind !== "slide" && beat.kind !== "film" && beat.kind !== "deck" && castOf(nextBeat.persona) === castOf(beat.persona)
-      ? (nextBeat.path?.({ storyEventId, now: runStartedAt }) ?? null)
+      ? aheadPath(nextBeat, { storyEventId, now: runStartedAt })
       : null;
 
 
@@ -467,7 +486,8 @@ export function Stage() {
   const topScreen = topFrame(frames);
   // The next beat's screen, loading hidden under this one (see Beat.prefetch).
   // A prefetching beat's own screen stays rendered under that key until the beat takes it over.
-  const aheadSrcs = [prefetchSrc, beat.prefetch && beatSrc && handedOffTo !== beatSrc ? beatSrc : null].filter(
+  const ownAhead = beat.prefetch && beatSrc && handedOffTo !== beatSrc ? aheadPath(beat, { storyEventId, now: runStartedAt }) : null;
+  const aheadSrcs = [prefetchSrc, ownAhead].filter(
     (src): src is string => src !== null && !frames.some((frame) => frame.src === src || frame.key === prefetchKey(src)),
   );
   const shownFrames: Frame[] = [...frames, ...aheadSrcs.map((src) => ({ src, key: prefetchKey(src), loaded: false, z: 0, prefetch: true }))];
