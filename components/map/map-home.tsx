@@ -90,6 +90,7 @@ export async function MapHome({
       planAt={planAt}
       askPlan={askPlan}
       startLabel={lastClass ? `Out of ${lastClass}` : null}
+      schedule={student.schedule}
       autoAsk={autoAsk}
       holdReveal={holdReveal}
     />

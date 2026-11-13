@@ -16,7 +16,7 @@ import { MuseMenu } from "@/components/map/muse-menu";
 import type { FriendSpot } from "@/lib/map/friend-spots";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
 import { travel } from "@/lib/crawl/order";
-import type { CampusEvent } from "@/lib/events/schema";
+import type { CampusEvent, ScheduleBlock } from "@/lib/events/schema";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 import type { Route } from "@/lib/map/crawl-route";
@@ -369,16 +369,19 @@ function routeLine(route: Route) {
   };
 }
 
-// The walk's end: a house, or a person when it ends where a friend is.
+// The walk's end: a house only when it ends at home, a person when it ends
+// where a friend is, and a pin for any other place, like the MIT Museum (Lisa).
 const END_GLYPHS = {
   home: "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10",
   friend: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0",
+  place: "M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21ZM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
 };
+type EndGlyph = keyof typeof END_GLYPHS;
 
 // A stop's number is a button (tap it for the stop popup, StopPeek); the end
 // marker is not. MapLibre positions the wrapper by its transform, so the styled
 // circle sits inside and only the circle scales when its stop is selected.
-function routeMarkerElement(label: string, home: boolean, friend = false, onTap?: () => void, title?: string): HTMLDivElement {
+function routeMarkerElement(label: string, home: boolean, glyph: EndGlyph = "home", onTap?: () => void, title?: string): HTMLDivElement {
   const wrapper = document.createElement("div");
   const element = document.createElement(onTap ? "button" : "div");
   if (onTap) {
@@ -392,7 +395,7 @@ function routeMarkerElement(label: string, home: boolean, friend = false, onTap?
   }
   element.textContent = home ? "" : label;
   if (home) {
-    element.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${friend ? END_GLYPHS.friend : END_GLYPHS.home}"/></svg>`;
+    element.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${END_GLYPHS[glyph]}"/></svg>`;
   }
   element.setAttribute("aria-label", home ? "Where the walk ends" : `Stop ${label}${title ? `: ${title}` : ""}, show details`);
   wrapper.appendChild(element);
@@ -411,6 +414,40 @@ function routeMarkerElement(label: string, home: boolean, friend = false, onTap?
     padding: "0",
   });
   return wrapper;
+}
+
+/** The route's start: a small blue "You" tag, the color of the student's dot. */
+function startTagElement(): HTMLDivElement {
+  const wrapper = document.createElement("div");
+  wrapper.style.zIndex = "5";
+  const tag = document.createElement("div");
+  tag.textContent = "You";
+  tag.setAttribute("aria-label", "Your location, where the walk starts");
+  Object.assign(tag.style, {
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "3px 8px 3px 6px",
+    borderRadius: "9999px",
+    background: "#0866ff",
+    color: "#ffffff",
+    border: "2px solid #ffffff",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+    font: "700 11.5px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+    whiteSpace: "nowrap",
+  });
+  const dot = document.createElement("span");
+  Object.assign(dot.style, { width: "6px", height: "6px", borderRadius: "9999px", background: "#ffffff", display: "block" });
+  tag.prepend(dot);
+  wrapper.appendChild(tag);
+  return wrapper;
+}
+
+/** The end marker's glyph: from the ending's kind, else a friend by name, else a pin. */
+function endGlyph(end: Route["destination"]): EndGlyph {
+  if (end.kind === "home") return "home";
+  if (end.kind === "friend" || friendNamedIn(end.name) !== null) return "friend";
+  return "place";
 }
 
 /** The selected stop's number grows and gets a green halo. */
@@ -517,6 +554,7 @@ export function EventsMap({
   askPlan = null,
   planAt = null,
   startLabel = null,
+  schedule = [],
   autoAsk = null,
   holdReveal = false,
 }: {
@@ -532,6 +570,8 @@ export function EventsMap({
   planAt?: string | null;
   /** How the walk's start reads, like "Out of Data Structures". */
   startLabel?: string | null;
+  /** The student's classes, for the crawl sheet's headline. */
+  schedule?: ScheduleBlock[];
   /** Demo hook (?auto=1): once the walk is up, open Ask Muse and ask this. */
   autoAsk?: string | null;
   /** The alert path loaded ahead by the /demo stage (?reveal=wait): Muse's plan waits for the stage's reveal. */
@@ -755,17 +795,22 @@ export function EventsMap({
     }
     stopWrappersRef.current = [];
     route.stops.forEach((stop, index) => {
-      const element = routeMarkerElement(String(index + 1), false, false, () =>
+      const element = routeMarkerElement(String(index + 1), false, "home", () =>
         setPeek((current) => (current && current.route === route && current.index === index ? null : { route, index })),
         stop.title,
       );
       stopWrappersRef.current.push(element);
       routeMarkersRef.current.push(new MarkerClass({ element }).setLngLat([stop.lng, stop.lat]).addTo(map));
     });
+    // The walk starts with the student: a blue "You" tag just left of their
+    // spot, so the start reads even when the first stop is where they stand (Lisa).
+    routeMarkersRef.current.push(
+      new MarkerClass({ element: startTagElement(), anchor: "right", offset: [-19, 0] }).setLngLat([route.from.lng, route.from.lat]).addTo(map),
+    );
     const sameAsStart = route.destination.lat === route.from.lat && route.destination.lng === route.from.lng;
     if (!sameAsStart) {
       routeMarkersRef.current.push(
-        new MarkerClass({ element: routeMarkerElement("", true, friendNamedIn(route.destination.name) !== null) })
+        new MarkerClass({ element: routeMarkerElement("", true, endGlyph(route.destination)) })
           .setLngLat([route.destination.lng, route.destination.lat])
           .addTo(map),
       );
@@ -778,7 +823,7 @@ export function EventsMap({
         [Math.min(...lngs), Math.min(...lats)],
         [Math.max(...lngs), Math.max(...lats)],
       ],
-      { padding: { top: 70, bottom: 420, left: 50, right: 50 }, maxZoom: 16.5, duration: 700 },
+      { padding: { top: 70, bottom: 420, left: 100, right: 50 }, maxZoom: 16.5, duration: 700 },
     );
   }, [mapReady, route]);
 
@@ -787,7 +832,7 @@ export function EventsMap({
     const map = mapRef.current;
     const MarkerClass = markerClassRef.current;
     if (!mapReady || !map || !MarkerClass || !previewSpot) return;
-    const marker = new MarkerClass({ element: routeMarkerElement("", true, true) }).setLngLat([previewSpot.lng, previewSpot.lat]).addTo(map);
+    const marker = new MarkerClass({ element: routeMarkerElement("", true, "friend") }).setLngLat([previewSpot.lng, previewSpot.lat]).addTo(map);
     const points = [studentSpot, previewSpot];
     map.fitBounds(
       [
@@ -1019,7 +1064,7 @@ export function EventsMap({
           dismissed={dismissed}
           start={crawlStart?.start}
           at={planAt}
-          fromLabel={startLabel}
+          schedule={schedule}
           onRoute={setRoute}
           onClose={() => {
             setRoute(null);

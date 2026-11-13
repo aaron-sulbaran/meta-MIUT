@@ -178,15 +178,15 @@ function Photos({ photos }: { photos: string[] }) {
   if (!first) return null;
   if (rest.length === 0) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={first} alt="" className="mt-[10px] block max-h-[480px] w-full object-cover" />;
+    return <img loading="lazy" decoding="async" src={first} alt="" className="mt-[10px] block max-h-[480px] w-full object-cover" />;
   }
   return (
     <div className="mt-[10px] grid grid-cols-2 gap-[3px]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={first} alt="" className="col-span-2 block aspect-[3/2] w-full object-cover" />
+      <img loading="lazy" decoding="async" src={first} alt="" className="col-span-2 block aspect-[3/2] w-full object-cover" />
       {rest.map((src) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={src} src={src} alt="" className="block aspect-square w-full object-cover" />
+        <img loading="lazy" decoding="async" key={src} src={src} alt="" className="block aspect-square w-full object-cover" />
       ))}
     </div>
   );
