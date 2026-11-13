@@ -6,6 +6,8 @@ import { formatDateLine } from "@/lib/events/time";
 import { MoreForYou } from "@/components/events/more-for-you";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { personalizeEvents } from "@/lib/muse/rank";
+import { friendsGoingLine, whoIsGoing } from "@/lib/social/going";
+import { demoViewer } from "@/lib/social/viewer";
 
 // Muse's top 3 for today, as a sideways row of compact cards. Why each event
 // was picked stays inside the agent and is not shown. Who picked them
@@ -15,6 +17,7 @@ import { personalizeEvents } from "@/lib/muse/rank";
 export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Date }) {
   const ranking = await personalizeEvents(loadDemoStudent(), events, now);
   const eventsById = new Map(events.map((event) => [event.id, event]));
+  const viewer = demoViewer();
 
   const pickedIds = new Set(ranking.data?.picks.map((pick) => pick.eventId));
   const more = ranking.data?.likely.filter((candidate) => !pickedIds.has(candidate.eventId)) ?? [];
@@ -30,6 +33,7 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
             {ranking.data.picks.map((pick) => {
               const event = eventsById.get(pick.eventId);
               if (!event) return null;
+              const friendsGoing = friendsGoingLine(whoIsGoing(event, viewer.id, viewer.interests).friends);
               return (
                 <li key={pick.eventId} className="w-[236px] shrink-0 snap-start">
                   <Link
@@ -43,6 +47,7 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
                       <p className="mt-[1px] text-meta font-semibold text-muted">
                         {pick.walkMinutes} min walk · {event.free ? "Free" : "Paid entry"}
                       </p>
+                      {friendsGoing && <p className="mt-[3px] truncate text-meta font-semibold">{friendsGoing}</p>}
                     </div>
                   </Link>
                 </li>
