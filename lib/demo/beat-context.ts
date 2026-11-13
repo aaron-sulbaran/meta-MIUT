@@ -124,3 +124,13 @@ export function decidePhoneMove(current: number, move: PhoneMove, beats: Beat[] 
   if (current === 0 || beatCast(beats[current - 1]) !== move.from) return { ok: false, reason: "This is your first beat" };
   return { ok: true, index: current - 1 };
 }
+
+/**
+ * What a stage that has just loaded does with the shared record: join the show
+ * where it is, or, when there is no record yet, claim it for its own beat. A
+ * load never writes over a running show; only an explicit reset sends it back
+ * to the start.
+ */
+export function stageOnLoad(stored: { index: number } | null): { kind: "join"; index: number } | { kind: "claim" } {
+  return stored === null ? { kind: "claim" } : { kind: "join", index: stored.index };
+}

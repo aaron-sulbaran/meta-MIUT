@@ -9,7 +9,7 @@ import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
-import { beatCast, beatScreen, inFrameMessage, nextActStart } from "@/lib/demo/beat-context";
+import { beatCast, beatScreen, inFrameMessage, stageOnLoad, nextActStart } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
 import { phoneChromeFor } from "@/lib/demo/phone-chrome";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
@@ -284,13 +284,25 @@ export function Stage() {
   }, [personCard, showPersonCard]);
 
   // A phone remote moves the show through the store: follow any move newer than
-  // the last one seen. On load the stage first claims the record for its own beat.
+  // the last one seen. On load the stage picks up the show where the store has it, so a
+  // reloaded or second stage tab never sends everyone back to the opening; with no record
+  // yet it claims the record for its own beat.
   // Polls on lib/demo/stage-poll.ts's schedule: fast while the skit moves, slow when quiet, never when hidden.
   useEffect(() => {
     let stopped = false;
     let poll: StagePoll | undefined;
-    void writePosition(indexRef.current).then((position) => {
+    const start = async () => {
+      const stored = await readPosition();
+      const onLoad = stageOnLoad(stored);
+      if (stored && onLoad.kind === "join") {
+        lastSeqRef.current = Math.max(lastSeqRef.current, stored.seq);
+        if (!stopped && onLoad.index !== indexRef.current) goTo(onLoad.index, "remote");
+        return;
+      }
+      const position = await writePosition(indexRef.current);
       if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
+    };
+    void start().then(() => {
       if (stopped) return;
       poll = startStagePoll(async () => {
         const position = await readPosition();
