@@ -1,5 +1,7 @@
 // PLACEHOLDER: invented students and a friends list for the demo. There are
-// no accounts yet; the demo viewer is the sample student.
+// no accounts yet. The demo viewer is the sample student, who plays Aaron
+// (User 1 in the demo script); the `demo-persona` cookie switches a phone to
+// Lisa or User 3 (lib/social/viewer.ts).
 
 export type Person = {
   id: string;
@@ -28,9 +30,32 @@ export const PEOPLE: Person[] = [
   { id: "nina", name: "Nina", year: "Third-year", major: "Brain and Cognitive Sciences", interests: ["wellness", "music", "free food"], instagram: "sample_nina" },
 ];
 
+// The demo's people. They are never seeded as going: they show up only once
+// they mark going themselves (Aaron from the map or Ask Muse, Lisa from the
+// invite), so User 3 sees them appear.
+export const PERSONAS: Person[] = [
+  { id: "sample-student", name: "Aaron", year: "Second-year", major: "Computer Science", interests: ["rock climbing", "free food", "hackathons", "film"], instagram: "sample_aaron" },
+  { id: "lisa", name: "Lisa", year: "Second-year", major: "Comparative Media Studies", interests: ["film", "free food", "music"], instagram: "sample_lisa" },
+  { id: "user3", name: "Jordan", year: "First-year", major: "Undeclared", interests: ["free food", "film", "hackathons"], instagram: "sample_jordan" },
+];
+
+export const PERSONA_IDS = new Set(PERSONAS.map((person) => person.id));
+
+/** Everyone the going lists can name: the invented students and the demo's people. */
+export const EVERYONE: Person[] = [...PEOPLE, ...PERSONAS];
+
 export const FRIENDS: Record<string, string[]> = {
-  "sample-student": ["maya", "leo", "priya", "sam"],
+  "sample-student": ["maya", "leo", "priya", "sam", "lisa"],
+  lisa: ["sample-student", "leo", "jade"],
+  user3: ["sample-student", "lisa", "ava"],
 };
+
+/** Friends both people have, by name: "mutual friends" for someone who is not a friend yet. */
+export function mutualFriends(viewerId: string, personId: string): string[] {
+  const mine = new Set(FRIENDS[viewerId] ?? []);
+  const theirs = new Set([...(FRIENDS[personId] ?? []), ...Object.entries(FRIENDS).filter(([, list]) => list.includes(personId)).map(([id]) => id)]);
+  return EVERYONE.filter((person) => mine.has(person.id) && theirs.has(person.id) && person.id !== personId).map((person) => person.name);
+}
 
 // What fixture students going alone say about it.
 export const OPEN_NOTES = [

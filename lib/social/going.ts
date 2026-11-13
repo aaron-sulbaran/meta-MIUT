@@ -2,11 +2,11 @@ import "server-only";
 import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
 import { eventTopics } from "@/lib/muse/candidates";
-import { FRIENDS, OPEN_NOTES, PEOPLE } from "@/lib/social/fixtures/people";
+import { EVERYONE, FRIENDS, OPEN_NOTES, PEOPLE, mutualFriends } from "@/lib/social/fixtures/people";
 import type { GoingPerson, WhoIsGoing } from "@/lib/social/types";
 import { loadState, saveState } from "@/lib/store/state";
 
-export { friendsGoingLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
+export { friendsGoingLine, friendsNamesLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
 
 export const COMPANY_LIMIT = 5;
 
@@ -32,7 +32,7 @@ function hash(text: string): number {
   return value;
 }
 
-/** Fixture students go to events that match their interests, picked by a stable hash. */
+/** Fixture students go to events that match their interests, picked by a stable hash. The demo's own people never are. */
 function seedGoing(event: CampusEvent): Map<string, GoingEntry> {
   const topics = new Set(eventTopics(event));
   const going = new Map<string, GoingEntry>();
@@ -68,7 +68,7 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
 
   for (const [personId, entry] of going) {
     if (personId === viewerId) continue;
-    const person = PEOPLE.find((candidate) => candidate.id === personId);
+    const person = EVERYONE.find((candidate) => candidate.id === personId);
     if (!person) {
       othersCount += 1;
       continue;
@@ -79,8 +79,10 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
       friends.push({ ...base, instagram: person.instagram });
     } else if (entry.open && shared.length > 0) {
       const accepted = state().hellos.has(helloKey(event.id, viewerId, personId));
+      const mutual = mutualFriends(viewerId, personId);
       openToCompany.push({
         ...base,
+        ...(mutual.length > 0 ? { mutual } : {}),
         note: entry.note,
         ...(accepted ? { instagram: person.instagram, hello: "accepted" as const } : {}),
       });
@@ -92,11 +94,13 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
   openToCompany.sort((a, b) => b.shared.length - a.shared.length || a.name.localeCompare(b.name));
   othersCount += Math.max(0, openToCompany.length - COMPANY_LIMIT);
   const self = going.get(viewerId);
+  const shownCompany = openToCompany.slice(0, COMPANY_LIMIT);
   return {
     eventId: event.id,
     friends,
-    openToCompany: openToCompany.slice(0, COMPANY_LIMIT),
+    openToCompany: shownCompany,
     othersCount,
+    goingCount: friends.length + shownCompany.length + othersCount + (self ? 1 : 0),
     viewer: { going: self !== undefined, open: self?.open ?? false, ...(self?.note ? { note: self.note } : {}) },
   };
 }
