@@ -117,6 +117,7 @@ export function compileCandidates(
   // Self-declared only: a community or language counts when the event names it.
   const affinities = [...(profile.communities ?? []), ...(profile.languages ?? [])].map((item) => item.toLowerCase());
   const diets = (profile.dietary ?? []).map((item) => item.toLowerCase());
+  const avoided = new Set(memory.avoided ?? []);
   const from = origin(profile);
 
   return events
@@ -132,7 +133,8 @@ export function compileCandidates(
       let hook: string | null = null;
       let strongest = 0;
       let foodHook: string | null = null;
-      for (const topic of eventTopics(event)) {
+      const topics = eventTopics(event);
+      for (const topic of topics) {
         const memo = remembered.get(topic);
         const score = (memo?.score ?? 0) + (stated.has(topic) ? 0.5 : 0) + (fromStudies.has(topic) ? 0.3 : 0);
         if (score <= 0) continue;
@@ -144,6 +146,8 @@ export function compileCandidates(
           hook = memo.hook;
         }
       }
+      // Something they skip, with nothing they like about it: leave it out.
+      if (interest <= 0 && topics.some((topic) => avoided.has(topic) && !stated.has(topic))) return [];
       for (const affinity of affinities) {
         if (!text.includes(affinity)) continue;
         matched.push(affinity);
