@@ -19,7 +19,9 @@ export const APP_SWITCH_MS = 1_200;
 
 const KEYFRAMES =
   // An app opening: the launch screen grows out of where the icon was, holds, then lifts.
-  "@keyframes as-open{0%{opacity:0;transform:scale(.18);border-radius:48px}30%{opacity:1;transform:none;border-radius:0}83%{opacity:1}100%{opacity:0}}" +
+  "@keyframes as-open{0%{opacity:1;transform:scale(.18);border-radius:48px}30%{opacity:1;transform:none;border-radius:0}83%{opacity:1}100%{opacity:0}}" +
+  // The page waits under the launch screen until it covers the phone, so it never shows first and then hides.
+  "@keyframes as-under{0%,29%{visibility:hidden}30%,100%{visibility:visible}}" +
   "@keyframes as-logo{0%,12%{opacity:0;transform:scale(.6)}34%{opacity:1;transform:scale(1.06)}44%,100%{opacity:1;transform:none}}" +
   "@keyframes as-still{0%,80%{opacity:1}100%{opacity:0}}" +
   "@keyframes as-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}";
@@ -36,7 +38,8 @@ export function AppSwitch({ from, children }: { from: string | string[] | undefi
 
   return (
     <>
-      {children}
+      {/* Always the same wrapper (display: contents), so the page never remounts when the switch ends. */}
+      <div className={playing ? "contents motion-safe:animate-[as-under_1200ms_step-end_both]" : "contents"}>{children}</div>
       {playing && (
         <div
           role="status"

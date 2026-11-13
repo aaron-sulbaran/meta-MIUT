@@ -25,7 +25,9 @@ export type InFrameMessage =
   | { type: "demo-ask"; line: string }
   | { type: "demo-reel"; reel: number; sheet?: boolean }
   // U3e: the event page says hi for Trish when her phone has not.
-  | { type: "demo-say-hi" };
+  | { type: "demo-say-hi" }
+  // U2c to U2f: Lisa's invite landing moves to its next step in place, no reload.
+  | { type: "demo-step"; step: "account" | "ready" | "event" | "joined" };
 
 // now is the run's clock: stamped when the first live beat opens, so every
 // screen (the flyer, the organizer's draft, the walk home) shows the same
@@ -322,6 +324,7 @@ export const BEATS: Beat[] = [
     caption: "She has Instagram, so she already has a Meta account.",
     note: "Lisa: Meta already knows me from Instagram. Tap Continue.",
     path: lisaStepPath("account"),
+    inFrame: { from: "U2b", message: { type: "demo-step", step: "account" } },
   },
   {
     id: "U2d",
@@ -332,6 +335,7 @@ export const BEATS: Beat[] = [
     caption: "Her name and photo came over from Instagram. No form, no password.",
     note: "Lisa: that's it, I have a Facebook account. Tap See the event.",
     path: lisaStepPath("ready"),
+    inFrame: { from: "U2c", message: { type: "demo-step", step: "ready" } },
   },
   {
     id: "U2e",
@@ -342,6 +346,7 @@ export const BEATS: Beat[] = [
     caption: "The time, the place, who's going. She decides.",
     note: "Lisa: now I can see when and where. Tap I'm going.",
     path: lisaStepPath("event"),
+    inFrame: { from: "U2d", message: { type: "demo-step", step: "event" } },
   },
   {
     id: "U2f",
@@ -353,6 +358,7 @@ export const BEATS: Beat[] = [
     note: "Lisa: I'm going, and Jolyn knows. Turn on Open to company: that hands over to Trish.",
     // Her landing already joined, so the beat rests on the event even if the steps before were skipped.
     path: lisaJoinedPath,
+    inFrame: { from: "U2e", message: { type: "demo-step", step: "joined" } },
   },
   // Trish scrolls Reels on her own phone: each swipe is a beat, so the stage follows her
   // reel by reel without reloading (inFrame). The prompt comes only on the third reel.
