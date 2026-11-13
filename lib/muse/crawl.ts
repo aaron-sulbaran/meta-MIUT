@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { isOpenFree } from "@/lib/events/time";
-import { walkMinutes } from "@/lib/geo";
+import { distanceMeters, walkMinutes } from "@/lib/geo";
 import { CRAWL_PLACES, type CrawlPlace } from "@/lib/muse/crawl-places";
 import { crawlFixture, itineraryFixture } from "@/lib/muse/fixtures/crawl";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
@@ -22,12 +22,24 @@ export const CrawlInputSchema = z.object({
   note: z.string().trim().max(300).optional(),
   // When the walk starts, for planning ahead ("after my 5 PM class"). Defaults to now.
   at: z.iso.datetime({ offset: true }).optional(),
+  // How to get between places. auto walks short hops and takes the T past a 20 minute walk.
+  mode: z.enum(["auto", "walk", "transit", "drive"]).optional(),
 });
 export type CrawlInput = z.infer<typeof CrawlInputSchema>;
 
 export const STOP_KINDS = ["main", "dessert", "drinks", "snack", "merch", "event"] as const;
 export const MAX_STOPS = 4;
 export const MAX_DETOUR_MINUTES = 20;
+export const TRAVEL_MODES = ["walk", "transit", "drive"] as const;
+export type TravelMode = (typeof TRAVEL_MODES)[number];
+type CrawlMode = TravelMode | "auto";
+// Rough door-to-door speeds, not live schedules: the T or a bus with the walk to the stop and
+// the wait, and a city drive with parking.
+const AUTO_WALK_LIMIT_MINUTES = 20;
+const TRANSIT_METERS_PER_MINUTE = 250;
+const TRANSIT_OVERHEAD_MINUTES = 10;
+const DRIVE_METERS_PER_MINUTE = 300;
+const DRIVE_OVERHEAD_MINUTES = 8;
 const LOOKAHEAD_MINUTES = 180;
 const STOP_MINUTES = 15;
 const PREFERRED_ORDER_SLACK_MINUTES = 5;
@@ -50,12 +62,15 @@ export type CrawlStop = {
   lat: number;
   lng: number;
   arriveAt: string;
+  // Minutes to get here from the previous point, and how.
   walkMinutes: number;
+  mode: TravelMode;
 };
 export type CrawlPlan = {
   // Free stops and the places the student named, in walking order. The walk ends at destination.
   stops: CrawlStop[];
-  destination: { name: string; lat: number; lng: number; arriveAt: string };
+  destination: { name: string; lat: number; lng: number; arriveAt: string; walkMinutes: number; mode: TravelMode };
+  // Minutes on the move, any mode.
   totalWalkMinutes: number;
   pitch: string;
   // Muse prepares it; the student taps share (WhatsApp, Instagram, text). path opens the event in the app.
@@ -66,14 +81,33 @@ export const CRAWL_STRUCTURED_OUTPUT = museStructuredOutput("food_crawl", CrawlP
 const CrawlWordsSchema = CrawlPickSchema.omit({ stops: true });
 const CRAWL_WORDS_STRUCTURED_OUTPUT = museStructuredOutput("food_crawl_words", CrawlWordsSchema);
 
-// Free events on now or soon whose detour off the straight walk is small, closest first.
-export function crawlCandidates(input: { from: Point; to: Point }, events: CampusEvent[], now: Date): CampusEvent[] {
-  const direct = walkMinutes(input.from, input.to);
+// Minutes from one point to the next. Short hops are walked whatever the mode.
+export function travel(from: Point, to: Point, mode: CrawlMode = "walk"): { mode: TravelMode; minutes: number } {
+  const walk = walkMinutes(from, to);
+  const meters = distanceMeters(from, to);
+  const transit = Math.round(meters / TRANSIT_METERS_PER_MINUTE) + TRANSIT_OVERHEAD_MINUTES;
+  const drive = Math.round(meters / DRIVE_METERS_PER_MINUTE) + DRIVE_OVERHEAD_MINUTES;
+  if (mode === "drive" && drive < walk) return { mode: "drive", minutes: drive };
+  if ((mode === "transit" || (mode === "auto" && walk > AUTO_WALK_LIMIT_MINUTES)) && transit < walk) {
+    return { mode: "transit", minutes: transit };
+  }
+  return { mode: "walk", minutes: walk };
+}
+
+// Free events on now or soon whose detour off the straight trip is small, closest first.
+export function crawlCandidates(
+  input: { from: Point; to: Point },
+  events: CampusEvent[],
+  now: Date,
+  mode: CrawlMode = "walk",
+): CampusEvent[] {
+  const minutes = (a: Point, b: Point) => travel(a, b, mode).minutes;
+  const direct = minutes(input.from, input.to);
   return events
     .filter((event) => event.status === "published" && isOpenFree(event))
     .filter((event) => Date.parse(event.end) > now.getTime() + 10 * MINUTE)
     .filter((event) => Date.parse(event.start) <= now.getTime() + LOOKAHEAD_MINUTES * MINUTE)
-    .map((event) => ({ event, detour: walkMinutes(input.from, event.place) + walkMinutes(event.place, input.to) - direct }))
+    .map((event) => ({ event, detour: minutes(input.from, event.place) + minutes(event.place, input.to) - direct }))
     .filter(({ detour }) => detour <= MAX_DETOUR_MINUTES)
     .sort((a, b) => a.detour - b.detour)
     .slice(0, 12)
@@ -98,10 +132,12 @@ export function orderLeg(
   picks: Pick[],
   startMs: number,
   deadlineMs: number | null = null,
-): { stops: CrawlStop[]; walkMinutes: number; arriveMs: number } {
+  mode: CrawlMode = "walk",
+): { stops: CrawlStop[]; walkMinutes: number; arriveMs: number; lastMode: TravelMode } {
   for (let size = picks.length; size >= 0; size--) {
-    let best: { stops: CrawlStop[]; walk: number; arrive: number } | null = null;
-    let given: { stops: CrawlStop[]; walk: number; arrive: number } | null = null;
+    type Route = { stops: CrawlStop[]; walk: number; arrive: number; lastMode: TravelMode };
+    let best: Route | null = null;
+    let given: Route | null = null;
     for (const subset of combinations(picks, size)) {
       for (const [index, order] of permutations(subset).entries()) {
         let at = startMs;
@@ -110,30 +146,32 @@ export function orderLeg(
         const stops: CrawlStop[] = [];
         let ok = true;
         for (const { event, kind } of order) {
-          const minutes = walkMinutes(here, event.place);
+          const step = travel(here, event.place, mode);
+          const minutes = step.minutes;
           walk += minutes;
           at = Math.max(at + minutes * MINUTE, Date.parse(event.start));
           if (at > Date.parse(event.end) - 5 * MINUTE) {
             ok = false;
             break;
           }
-          stops.push({ eventId: event.id, title: event.title, kind, placeName: event.place.name, lat: event.place.lat, lng: event.place.lng, arriveAt: new Date(at).toISOString(), walkMinutes: minutes });
+          stops.push({ eventId: event.id, title: event.title, kind, placeName: event.place.name, lat: event.place.lat, lng: event.place.lng, arriveAt: new Date(at).toISOString(), walkMinutes: minutes, mode: step.mode });
           at += STOP_MINUTES * MINUTE;
           here = event.place;
         }
-        const last = walkMinutes(here, to);
+        const end = travel(here, to, mode);
+        const last = end.minutes;
         const arrive = at + last * MINUTE;
         if (!ok || (deadlineMs !== null && size > 0 && arrive > deadlineMs)) continue;
-        if (size === picks.length && index === 0) given = { stops, walk: walk + last, arrive };
-        if (!best || walk + last < best.walk) best = { stops, walk: walk + last, arrive };
+        if (size === picks.length && index === 0) given = { stops, walk: walk + last, arrive, lastMode: end.mode };
+        if (!best || walk + last < best.walk) best = { stops, walk: walk + last, arrive, lastMode: end.mode };
       }
     }
     // Keep Muse's order (the pitch names stops in it) unless another is clearly shorter.
     if (given && best && given.walk <= best.walk + PREFERRED_ORDER_SLACK_MINUTES) best = given;
-    if (best) return { stops: best.stops, walkMinutes: best.walk, arriveMs: best.arrive };
+    if (best) return { stops: best.stops, walkMinutes: best.walk, arriveMs: best.arrive, lastMode: best.lastMode };
   }
-  const walk = walkMinutes(from, to);
-  return { stops: [], walkMinutes: walk, arriveMs: startMs + walk * MINUTE };
+  const direct = travel(from, to, mode);
+  return { stops: [], walkMinutes: direct.minutes, arriveMs: startMs + direct.minutes * MINUTE, lastMode: direct.mode };
 }
 
 export function orderStops(input: CrawlInput, picks: Pick[], now: Date): { stops: CrawlStop[]; totalWalkMinutes: number } {
@@ -154,6 +192,8 @@ export const ItinerarySchema = z.object({
   places: z
     .array(z.object({ name: z.string().min(1), arriveBy: z.string().regex(/^\d{2}:\d{2}$/).nullable() }))
     .max(3),
+  // How they said they will get around, or null.
+  mode: z.enum(TRAVEL_MODES).nullable(),
 });
 export type Itinerary = z.infer<typeof ItinerarySchema>;
 export const ITINERARY_STRUCTURED_OUTPUT = museStructuredOutput("crawl_itinerary", ItinerarySchema);
@@ -189,7 +229,8 @@ async function readItinerary(input: CrawlInput, places: CrawlPlace[], now: Date)
         "A student is planning a walk after class and told you where they are going.",
         "List the places they will go, in order, using only names from the list. End with the last place they mention.",
         "Only add their original destination if they say they go back there. arriveBy is a 24-hour campus time like 19:00 if they say one, else null.",
-        'Return JSON only: {"places":[{"name","arriveBy"}]}. Return an empty list if they name no place.',
+        'mode: "transit" if they say the T, subway, bus, or train; "drive" if they drive or take a car, Uber, or Lyft; "walk" if they want to walk; else null.',
+        'Return JSON only: {"places":[{"name","arriveBy"}],"mode"}. Return an empty list if they name no place.',
       ].join(" "),
       prompt: `Now: ${campusClock(now.toISOString())}\nOriginal destination: ${input.toLabel ?? "home"}\nStudent said: ${input.note}\nPlaces: ${JSON.stringify(places.map((place) => place.name))}`,
       structuredOutput: ITINERARY_STRUCTURED_OUTPUT,
@@ -211,13 +252,14 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
     if (deadline !== null && deadline < now.getTime()) deadline += 12 * 60 * MINUTE;
     return [{ name: place.name, lat: place.lat, lng: place.lng, deadline }];
   });
+  const mode: CrawlMode = input.mode ?? itinerary?.data?.mode ?? "auto";
   const ends: { name: string; lat: number; lng: number; deadline: number | null }[] =
     named.length > 0 ? named : [{ name: input.toLabel ?? "Home", ...input.to, deadline: null }];
   // A later "by 7" also bounds the legs before it, leaving time to walk on.
   for (let leg = ends.length - 2; leg >= 0; leg--) {
     const next = ends[leg + 1]!;
     if (next.deadline === null) continue;
-    const latest = next.deadline - walkMinutes(ends[leg]!, next) * MINUTE;
+    const latest = next.deadline - travel(ends[leg]!, next, mode).minutes * MINUTE;
     const own = ends[leg]!.deadline;
     ends[leg]!.deadline = own === null ? latest : Math.min(own, latest);
   }
@@ -228,13 +270,13 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
   // The earliest each leg can start, to skip stops that could never fit before a "by" time.
   let earliest = now.getTime();
   ends.forEach((end, leg) => {
-    for (const event of crawlCandidates({ from: legStart, to: end }, events, now)) {
+    for (const event of crawlCandidates({ from: legStart, to: end }, events, now, mode)) {
       if (legOf.has(event.id)) continue;
-      if (orderLeg(legStart, end, [{ event, kind: "event" }], earliest, end.deadline).stops.length === 0) continue;
+      if (orderLeg(legStart, end, [{ event, kind: "event" }], earliest, end.deadline, mode).stops.length === 0) continue;
       legOf.set(event.id, leg);
       candidates.push(event);
     }
-    earliest += walkMinutes(legStart, end) * MINUTE;
+    earliest += travel(legStart, end, mode).minutes * MINUTE;
     legStart = end;
   });
   const byId = new Map(candidates.map((event) => [event.id, event]));
@@ -250,7 +292,12 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
     place: event.place.name,
     onTheWayTo: ends[legOf.get(event.id) ?? 0]?.name,
   }));
-  const route = ends.map((end) => end.name + (end.deadline ? ` (by ${campusClock(new Date(end.deadline).toISOString())})` : "")).join(", then ");
+  const route = ends
+    .map((end, leg) => {
+      const by = travel(leg === 0 ? input.from : ends[leg - 1]!, end, mode).mode;
+      return `${end.name} (${by}${end.deadline ? `, by ${campusClock(new Date(end.deadline).toISOString())}` : ""})`;
+    })
+    .join(", then ");
   const result = await runMuseJob({
     request: {
       system: [
@@ -278,6 +325,7 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
   if (result.data === null) return result;
 
   const stops: CrawlStop[] = [];
+  let finalLeg = { minutes: 0, mode: "walk" as TravelMode };
   let walk = 0;
   let at = now.getTime();
   let here: Point = input.from;
@@ -286,16 +334,17 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
       const event = byId.get(stop.eventId);
       return event && legOf.get(event.id) === leg ? [{ event, kind: stop.kind }] : [];
     });
-    const ordered = orderLeg(here, end, picks, at, end.deadline);
+    const ordered = orderLeg(here, end, picks, at, end.deadline, mode);
     stops.push(...ordered.stops);
     walk += ordered.walkMinutes;
     const fromLast = ordered.stops.at(-1) ?? null;
+    finalLeg = { minutes: travel(fromLast ?? here, end, mode).minutes, mode: ordered.lastMode };
     at = ordered.arriveMs;
     if (leg < ends.length - 1) {
-      stops.push({ eventId: null, title: end.name, kind: "plan", placeName: end.name, lat: end.lat, lng: end.lng, arriveAt: new Date(at).toISOString(), walkMinutes: walkMinutes(fromLast ?? here, end) });
+      stops.push({ eventId: null, title: end.name, kind: "plan", placeName: end.name, lat: end.lat, lng: end.lng, arriveAt: new Date(at).toISOString(), walkMinutes: travel(fromLast ?? here, end, mode).minutes, mode: ordered.lastMode });
       // Stay a while, but leave in time for the next place's "by" time.
       const next = ends[leg + 1]!;
-      const leaveBy = next.deadline === null ? Infinity : next.deadline - walkMinutes(end, next) * MINUTE;
+      const leaveBy = next.deadline === null ? Infinity : next.deadline - travel(end, next, mode).minutes * MINUTE;
       at = Math.max(at, Math.min(at + WAYPOINT_MINUTES * MINUTE, leaveBy));
     }
     here = end;
@@ -308,7 +357,7 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
     ...result,
     data: {
       stops,
-      destination: { name: last.name, lat: last.lat, lng: last.lng, arriveAt: new Date(at).toISOString() },
+      destination: { name: last.name, lat: last.lat, lng: last.lng, arriveAt: new Date(at).toISOString(), walkMinutes: finalLeg.minutes, mode: finalLeg.mode },
       totalWalkMinutes: walk,
       pitch: words.pitch,
       invite: { eventId: inviteId, message: words.invite.message, path: inviteId ? `/events/${encodeURIComponent(inviteId)}` : null },
@@ -341,7 +390,7 @@ async function wordCrawl(
         "Use only ids from the list. If the student mentions a friend, write the invite to that friend. Plain words, no emoji.",
       ].join(" "),
       prompt: `Route: ${route}\nStudent said: ${input.note ?? "nothing"}\nStops in walking order: ${JSON.stringify(
-        stops.map((stop) => ({ id: stop.eventId, title: stop.title, kind: stop.kind, at: campusClock(stop.arriveAt) })),
+        stops.map((stop) => ({ id: stop.eventId, title: stop.title, kind: stop.kind, at: campusClock(stop.arriveAt), by: stop.mode })),
       )}`,
       structuredOutput: CRAWL_WORDS_STRUCTURED_OUTPUT,
     },

@@ -59,5 +59,12 @@ export function itineraryFixture(note: string, places: CrawlPlace[]): Itinerary 
       if (time[3] === "am" && Number(time[1]) === 12) hour = 0;
       return { name: place.name, arriveBy: `${String(hour).padStart(2, "0")}:${time[2] ?? "00"}` };
     }),
+    mode: /\b(drive|driving|car|uber|lyft)\b/.test(text)
+      ? "drive"
+      : /\b(the t|subway|bus|train|red line|transit)\b/.test(text)
+        ? "transit"
+        : /\b(walk|walking)\b/.test(text)
+          ? "walk"
+          : null,
   };
 }

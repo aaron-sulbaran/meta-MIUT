@@ -110,3 +110,24 @@ describe("food crawl stops that cannot fit", () => {
     expect(result.data!.stops.some((stop) => stop.eventId === "late")).toBe(false);
   });
 });
+
+describe("food crawl travel modes", () => {
+  beforeEach(() => vi.stubEnv("MUSE_API_KEY", ""));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("walks short hops and takes the T for a long one", async () => {
+    const { travel } = await import("@/lib/muse/crawl");
+    const stata = { lat: 42.3616, lng: -71.0906 };
+    expect(travel(stata, { lat: 42.3597, lng: -71.0921 }, "auto").mode).toBe("walk");
+    const harvard = travel(stata, { lat: 42.3734, lng: -71.1189 }, "auto");
+    expect(harvard.mode).toBe("transit");
+    expect(harvard.minutes).toBeLessThan(travel(stata, { lat: 42.3734, lng: -71.1189 }, "walk").minutes);
+  });
+
+  it("reads 'I'll drive' from what the student said", async () => {
+    const result = await planCrawl({ from, to, note: "I'll drive to Harvard Square" }, all, NOW);
+    const plan = result.data!;
+    expect(plan.destination.name).toBe("Harvard Square");
+    expect([...plan.stops, plan.destination].some((leg) => leg.mode === "drive")).toBe(true);
+  });
+});
