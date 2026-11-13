@@ -6,6 +6,59 @@
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
+  /* ---------- Before the pitch: the code to the live product ---------- */
+  /* Only with openingQr in content.json: what the room sees while the laptop is plugged in. */
+  let CONTENT = { openingQr: false, tryLine: "", address: "" };
+  const S0 = { code: { x: 900, y: 210, size: 580 }, sprout: { x: 430, y: 560 }, say: { x: 390, y: 350 }, arrow: { x: 700, y: 540 } };
+
+  function prepareScene0() {
+    $("#s0-line").textContent = CONTENT.tryLine || "";
+    $("#s0-addr").textContent = CONTENT.address || "";
+    /* A wrapped bubble hugs its longest line, the way a real message bubble does. */
+    const bubble = $("#s0-line");
+    const range = document.createRange();
+    range.selectNodeContents(bubble);
+    const rects = Array.from(range.getClientRects());
+    if (rects.length) {
+      /* Client rects are in screen pixels: undo the deck's fit scale to get frame pixels. */
+      const scale = bubble.getBoundingClientRect().width / bubble.offsetWidth || 1;
+      const widest = Math.max(...rects.map((r) => r.width)) / scale;
+      const style = getComputedStyle(bubble);
+      bubble.style.width = `${Math.ceil(widest + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)) + 2}px`;
+    }
+    gsap.set("#s0-code", { x: S0.code.x, y: S0.code.y });
+    gsap.set("#s0-addr", { x: S0.code.x, y: S0.code.y + S0.code.size + 30 });
+    gsap.set("#s0-sprout", { x: S0.sprout.x, y: S0.sprout.y });
+    gsap.set("#s0-arrow", { x: S0.arrow.x, y: S0.arrow.y });
+    const sayH = $("#s0-say").offsetHeight;
+    gsap.set("#s0-say", { x: S0.say.x, y: S0.sprout.y - 34 - sayH });
+  }
+
+  const TRY_IT = {
+    id: "try-it",
+    title: "Try it yourself while we set up",
+    lead: "screen",
+    notes: "Leave this up while we plug in. Click when ready.",
+    build(seg, ctx) {
+      ctx.show(seg, "s0");
+      ctx.ft(seg, "#s0-code", { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }, 0.1);
+      ctx.ft(seg, "#s0-addr", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0.6);
+      ctx.ft(seg, "#s0-sprout", { opacity: 0, y: S0.sprout.y + 60 }, { opacity: 1, y: S0.sprout.y, duration: 0.8, ease: "back.out(1.6)" }, 0.45);
+      ctx.ft(seg, "#s0-say", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)" }, 0.95);
+      const path = $("#s0-arrow-path");
+      const len = path.getTotalLength();
+      path.style.strokeDasharray = `${len}`;
+      ctx.ft(seg, "#s0-arrow", { opacity: 0 }, { opacity: 1, duration: 0.1 }, 1.25);
+      ctx.ft(seg, path, { strokeDashoffset: len }, { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, 1.25);
+      ctx.ft(seg, "#s0-arrow-head", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 1.65);
+    },
+    idle(api) {
+      /* Sprout moves a little; the code itself never moves, so it scans. */
+      api.loop("#s0-sprout", { y: S0.sprout.y - 10, rotation: 2, duration: 1.8 });
+      api.loop("#s0-arrow", { x: S0.arrow.x + 10, y: S0.arrow.y - 6, duration: 0.9 });
+    },
+  };
+
   /* ---------- Scene 1: the hook ---------- */
   const S1 = {
     chars: [],
@@ -98,15 +151,21 @@
     }
   }
 
-  /* Quote layout, left and top of each bubble's box, in the 1920 x 1080 frame. */
+  /* Quote layout, left and top of each bubble's box, in the 1920 x 1080 frame. Six real
+     replies (facts.json): five ordinary bubbles, and the standout centered in placeQuotes. */
   const QUOTE_POS = {
     "#s1-r1": { x: 190, y: 372 },
     "#s1-r2": { x: 1120, y: 262 },
-    "#s1-r3": { x: 270, y: 836 },
-    "#s1-r4": { x: 350, y: 486 },
+    "#s1-r3t": { x: 230, y: 700 },
+    "#s1-r3": { x: 230, y: 640 },
+    "#s1-r5": { x: 1110, y: 478 },
+    "#s1-r6": { x: 1010, y: 790 },
+    "#s1-r4": { x: 0, y: 0 },
   };
 
   function placeQuotes() {
+    const big = $("#s1-r4");
+    QUOTE_POS["#s1-r4"] = { x: Math.round((1920 - big.offsetWidth) / 2), y: Math.round((1080 - big.offsetHeight) / 2) - 10 };
     Object.entries(QUOTE_POS).forEach(([sel, p]) => {
       gsap.set(sel, { x: p.x, y: p.y });
     });
@@ -139,8 +198,6 @@
     return t;
   }
 
-  const DIM = 0.36;
-
   const SCENE1 = [
     {
       id: "hook-caret",
@@ -149,6 +206,12 @@
       notes: "We asked 50 Gen Z students one question.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
+        if (CONTENT.openingQr) {
+          /* The code, Sprout and the line clear, and the hook begins as it always has. */
+          seg.set("#s0", { autoAlpha: 1 }, 0);
+          ctx.ft(seg, "#s0", { opacity: 1 }, { opacity: 0, duration: 0.45, ease: "power2.in" }, 0);
+          seg.set("#s0", { autoAlpha: 0 }, 0.5);
+        }
         seg.set("#s1-caret", { x: S1.caret.centerX, y: S1.caret.y1 }, 0);
         ctx.ft(seg, "#s1-caret", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power1.inOut" }, 0.1);
       },
@@ -187,48 +250,34 @@
         ctx.sfx(seg, "ding", { f: 1175 }, 0.85);
         popIn(seg, ctx, "#s1-r2", 1.95, { x: 48 });
         ctx.sfx(seg, "ding", { f: 1319 }, 1.95);
-        popIn(seg, ctx, "#s1-r3", 2.85, { x: -30, y: 30 });
+        /* Someone is typing, and then the laugh: the dots become the reply in the same spot. */
+        popIn(seg, ctx, "#s1-r3t", 2.85, { x: -30, y: 30 });
         ctx.sfx(seg, "pop", { f: 600, level: 0.18 }, 2.85);
+        $$("#s1-r3t .typing i").forEach((dot, k) => {
+          ctx.ft(seg, dot, { y: 0, opacity: 1 }, { y: -9, opacity: 0.55, duration: 0.2, ease: "sine.inOut", repeat: 3, yoyo: true }, 3.0 + k * 0.12);
+        });
+        ctx.ft(seg, "#s1-r3t", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.86, duration: 0.14, ease: "power2.in" }, 3.95);
+        popIn(seg, ctx, "#s1-r3", 4.05, { y: 20 });
+        ctx.sfx(seg, "ding", { f: 880, decay: 0.7, level: 0.24 }, 4.05);
       },
       idle(api) {
-        $$("#s1-r3 .typing i").forEach((dot, k) => api.loop(dot, { y: -9, opacity: 0.55, duration: 0.42, delay: k * 0.15 }));
         api.loop("#s1-r1 .bob", { y: -5, duration: 2.7 });
         api.loop("#s1-r2 .bob", { y: 5, duration: 3.2 });
-      },
-    },
-    {
-      id: "hook-love",
-      title: "If the love of my life was only on Facebook",
-      lead: "screen",
-      notes: "Quiet. Let the laugh land.",
-      build(seg, ctx) {
-        ctx.show(seg, "s1");
-        ["#s1-r1", "#s1-r2", "#s1-r3"].forEach((sel) => {
-          ctx.ft(seg, sel, { opacity: 1 }, { opacity: DIM, duration: 0.5, ease: "power2.out" }, 0);
-        });
-        ctx.ft(seg, "#s1-head", { opacity: 1 }, { opacity: 0.5, duration: 0.5 }, 0);
-        const p = QUOTE_POS["#s1-r4"];
-        ctx.ft(seg, "#s1-r4", { opacity: 0 }, { opacity: 1, duration: 0.18 }, 0.22);
-        ctx.ft(seg, "#s1-r4", { x: p.x, y: p.y + 40, scale: 0.8 }, { y: p.y, scale: 1.03, duration: 0.32, ease: "power3.out" }, 0.22);
-        seg.to("#s1-r4", { scale: 1, duration: 0.3, ease: "power1.inOut" }, 0.54);
-        ctx.sfx(seg, "ding", { f: 880, decay: 0.7, level: 0.26 }, 0.22);
-      },
-      idle(api) {
-        $$("#s1-r3 .typing i").forEach((dot, k) => api.loop(dot, { y: -9, opacity: 0.55, duration: 0.42, delay: k * 0.15 }));
-        api.loop("#s1-r4 .bob", { y: -6, duration: 3.4 });
+        api.loop("#s1-r3 .bob", { y: -5, duration: 3.5 });
       },
     },
     {
       id: "hook-avalanche",
       title: "The replies pile up",
       lead: "screen",
-      notes: "Quiet while it fills. Click for the cut to black.",
+      notes: "Quiet while it fills.",
       build(seg, ctx) {
         ctx.show(seg, "s1");
-        /* The real replies come back up and stay on top until the cut. */
-        ["#s1-r1", "#s1-r2", "#s1-r3"].forEach((sel) => {
-          ctx.ft(seg, sel, { opacity: DIM }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0.1);
-        });
+        /* Two more real replies land early, while there is still room to read them. */
+        popIn(seg, ctx, "#s1-r5", 0.95, { x: 48 });
+        ctx.sfx(seg, "ding", { f: 1245, level: 0.2 }, 0.95);
+        popIn(seg, ctx, "#s1-r6", 2.05, { x: 40, y: 30 });
+        ctx.sfx(seg, "ding", { f: 1397, level: 0.2 }, 2.05);
         let lastSound = -1;
         S1.cascade.forEach((b) => {
           const at = 0.25 + b.t;
@@ -242,11 +291,31 @@
           }
         });
         const end = 0.25 + S1.cascade[S1.cascade.length - 1].t;
-        ctx.ft(seg, "#s1-head", { opacity: 0.5 }, { opacity: 0.22, duration: 1.2, ease: "power1.inOut" }, 0.4);
+        ctx.ft(seg, "#s1-head", { opacity: 1 }, { opacity: 0.22, duration: 1.6, ease: "power1.inOut" }, 0.4);
         ctx.ft(seg, "#s1-shot", { scale: 1 }, { scale: 1.08, duration: 2.0, ease: "power2.inOut" }, end - 1.5);
       },
+    },
+    {
+      id: "hook-standout",
+      title: "If it helped me get more things done",
+      lead: "screen",
+      notes: "Quiet. Let them read the reply that led us here.",
+      build(seg, ctx) {
+        ctx.show(seg, "s1");
+        /* Every other reply steps back; the one that led to the idea comes forward. */
+        ctx.ft(seg, "#s1-veil", { opacity: 0 }, { opacity: 0.9, duration: 0.7, ease: "power2.inOut" }, 0);
+        ctx.ft(seg, "#s1-shot", { scale: 1.08 }, { scale: 1.11, duration: 1.6, ease: "power2.out" }, 0);
+        const p = QUOTE_POS["#s1-r4"];
+        ctx.ft(seg, "#s1-r4", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.35);
+        ctx.ft(seg, "#s1-r4", { x: p.x, y: p.y + 44, scale: 0.86 }, { y: p.y, scale: 1.03, duration: 0.36, ease: "power3.out" }, 0.35);
+        seg.to("#s1-r4", { scale: 1, duration: 0.3, ease: "power1.inOut" }, 0.71);
+        ctx.sfx(seg, "ding", { f: 988, decay: 0.7, level: 0.26 }, 0.35);
+        /* The words Marketplace answers next, underlined the way "DO." will be. */
+        ctx.ft(seg, "#s1-underline", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.inOut" }, 1.3);
+        ctx.sfx(seg, "whoosh", { dur: 0.35, level: 0.06, from: 900, to: 3200 }, 1.3);
+      },
       idle(api) {
-        $$("#s1-r3 .typing i").forEach((dot, k) => api.loop(dot, { y: -9, opacity: 0.55, duration: 0.42, delay: k * 0.15 }));
+        api.loop("#s1-r4 .bob", { y: -6, duration: 3.4 });
       },
     },
   ];
@@ -318,12 +387,18 @@
   const SCENE2 = [
     {
       id: "exception",
-      title: "Hard cut: But there was one exception",
+      title: "But there was one exception",
       lead: "speaker",
       notes: "But there was one exception.",
       build(seg, ctx) {
         ctx.show(seg, "s2");
+        /* The hand-off: the noise cuts to black, the standout holds alone for a beat, then
+           lifts away as the exception arrives in its place. */
+        seg.set("#s1", { autoAlpha: 1 }, 0);
         ctx.hush(seg, 0.01);
+        ctx.ft(seg, "#s1-veil", { opacity: 0.9 }, { opacity: 1, duration: 0.12, ease: "none" }, 0);
+        ctx.ft(seg, "#s1-r4", { opacity: 1, y: QUOTE_POS["#s1-r4"].y }, { opacity: 0, y: QUOTE_POS["#s1-r4"].y - 60, duration: 0.55, ease: "power2.in" }, 0.6);
+        seg.set("#s1", { autoAlpha: 0 }, 1.2);
         ctx.ft(seg, "#s2-line", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 1.5, ease: "power2.out" }, 1.0);
       },
     },
@@ -526,6 +601,7 @@
       notes: "Every day, clubs host events and give away free food. But it's scattered.",
       build(seg, ctx) {
         ctx.show(seg, "s3");
+        ctx.leave(seg, "s2");
         const enter = (f, at, from, dur, ease) => {
           ctx.ft(seg, f.el, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, at);
           ctx.ft(
@@ -632,6 +708,7 @@
       notes: "Quiet. Then: 'Marketplace made Facebook useful for finding things.'",
       build(seg, ctx) {
         ctx.show(seg, "s4");
+        ctx.leave(seg, "s3");
         ctx.hush(seg, 0.01);
         revealLine(seg, ctx, "#s4-a", 0.55);
         revealLine(seg, ctx, "#s4-b", 1.45);
@@ -641,110 +718,67 @@
   ];
 
   /* ---------- Scene 5: the solution ---------- */
-  /* The three flyers Muse reads. Boxes are where each field sits on the flyer (640 px art);
-     the extracted lines repeat what the flyer itself says. */
-  const READ = [
-    {
-      key: "hack",
-      file: "evt-test-demo-stata-hack-info",
-      cx: 520,
-      boxes: [[125, 165, 515, 325], [277, 340, 363, 374], [210, 380, 430, 410], [222, 425, 418, 473]],
-      title: "Spring Hackathon Info Session",
-      meta: "3 PM · Stata Center, 32-155",
-      tag: "Free food",
-      /* Lands where it really shows up: the third tile of the feed's Top 3. */
-      to: [840, 372],
-    },
-    {
-      key: "boulder",
-      file: "evt-test-demo-z-center-bouldering",
-      cx: 960,
-      boxes: [[185, 193, 455, 295], [257, 315, 383, 345], [180, 355, 460, 380], [223, 398, 417, 446]],
-      title: "Intro to Bouldering",
-      meta: "3:30 PM · Z-Center Climbing Wall",
-      tag: "Free swag",
-      /* The middle tile of the same Top 3. */
-      to: [716, 372],
-    },
-    {
-      key: "pizza",
-      file: "evt-test-demo-stata-pizza",
-      cx: 1400,
-      boxes: [[135, 190, 505, 295], [275, 312, 365, 345], [150, 352, 490, 382], [222, 398, 418, 446]],
-      title: "Pizza Study Break at Stata",
-      meta: "2 PM · Stata Center lobby",
-      tag: "Free food",
-      /* The map's walk home: Muse's first stop. */
-      to: [1130, 679],
-    },
+  /* Three posts clubs already put on Instagram (seeded events, their organizers' real seed
+     handles), and where each shows up in Facebook Events: a point in the List view capture
+     (390 x 797), the tile or row that event really has. */
+  const POSTS = [
+    { key: "boulder", file: "evt-test-demo-z-center-bouldering", handle: "mit_outing", initials: "MO", color: "#2e7d4f", to: [195, 256] },
+    { key: "hack", file: "evt-test-demo-stata-hack-info", handle: "mit_hacks", initials: "MH", color: "#1f3a68", to: [319, 256] },
+    { key: "pizza", file: "evt-test-demo-stata-pizza", handle: "mit_eecs", initials: "EE", color: "#a3361f", to: [195, 522] },
   ];
-  const ROW = { size: 380, top: 200 };
-  /* Scattered first: the same flyers and notifications from before, then the noise drifts away. */
-  const NOISE = [
-    { kind: "flyer", file: "evt-test-demo-central-tacos", x: 90, y: 620, w: 300, r: -8 },
-    { kind: "flyer", file: "evt-mad-tea-party", x: 1430, y: 690, w: 420, r: 6, ratio: 427 / 640 },
-    { kind: "flyer", file: "evt-test-night-w20-midnight-pizza", x: 1560, y: 70, w: 290, r: 7 },
-    { kind: "email", x: 60, y: 90, w: 560, r: -3 },
-    { kind: "ig", x: 1080, y: 560, w: 320, r: 4 },
-    { kind: "chat", x: 520, y: 760, w: 420, r: -2 },
+  const CARD = { w: 360, h: 58 + 360 + 54, img: 58 };
+  const ROW = { x: (1920 - (3 * 360 + 2 * 56)) / 2, y: 304, step: 360 + 56 };
+  const COL = { x: 150, y: 150, s: 0.5, step: 472 * 0.5 + 26 };
+  /* The phones: at 90 percent beside the posts, then centered at full size. */
+  const PH = { s: 0.9, feedX: 930, mapX: 1384, y: 106, endFeedX: 960 - 414 - 24, endMapX: 960 + 24 };
+  const MUSE = { cx: 640, cy: 540, size: 104 };
+  const S5 = { posts: [] };
+
+  const IG_ICONS = [
+    '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.9" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10Z"/></svg>',
+    '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.9" stroke-linejoin="round"><path d="M20.5 11.6a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.6-4.4a8.4 8.4 0 1 1 15.4-4.5Z"/></svg>',
+    '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.9" stroke-linejoin="round"><path d="M21 3 10.2 13.8M21 3l-6.6 18-4.2-7.2L3 9.6 21 3Z"/></svg>',
+    '<svg width="24" height="26" viewBox="0 0 22 24" fill="none" stroke="#000" stroke-width="1.9" stroke-linejoin="round"><path d="M4 3h14v18l-7-5.2L4 21V3Z"/></svg>',
   ];
-  const SCATTER = { pizza: [1130, 160, 7], boulder: [610, 330, -9], hack: [880, 560, -5] };
-  const S5 = { read: [], noise: [] };
+
+  /* Where a point in the List capture sits on stage, inside a phone at (px, py) scaled by s. */
+  function phonePoint(px, py, s, u, v) {
+    return [px + 207 + (12 + u - 207) * s, py + 434 + (59 + v - 434) * s];
+  }
 
   function prepareScene5() {
-    const field = $("#s5-field");
-    const rand = Deck.rng(77);
-    NOISE.forEach((n, i) => {
-      const el = document.createElement("div");
-      if (n.kind === "flyer") {
-        el.className = "flyer";
-        el.style.width = `${n.w}px`;
-        el.innerHTML = `<img src="../shared/flyers/${n.file}.jpg" alt="" />`;
-      } else {
-        el.className = `nt ${n.kind}`;
-        el.style.width = `${n.w}px`;
-        el.innerHTML = cardHtml(n.kind, i + 3, rand);
-      }
-      field.appendChild(el);
-      S5.noise.push({ el, n });
-    });
-    READ.forEach((f) => {
-      const el = document.createElement("div");
-      el.className = "flyer hero";
-      el.style.width = `${ROW.size}px`;
-      el.innerHTML = `<img src="../shared/flyers/${f.file}.jpg" alt="" />`;
-      const k = ROW.size / 640;
-      f.boxEls = f.boxes.map(([x1, y1, x2, y2]) => {
-        const b = document.createElement("div");
-        b.className = "box";
-        const pad = 4;
-        Object.assign(b.style, { left: `${x1 * k - pad}px`, top: `${y1 * k - pad}px`, width: `${(x2 - x1) * k + pad * 2}px`, height: `${(y2 - y1) * k + pad * 2}px` });
-        el.appendChild(b);
-        return b;
-      });
-      field.appendChild(el);
+    const wrap = $("#s5-posts");
+    POSTS.forEach((p, i) => {
       const card = document.createElement("div");
-      card.className = "xcard";
-      card.innerHTML = `<div class="xt">${f.title}</div><div class="xm">${f.meta}</div><span class="xf">${f.tag}</span>`;
-      field.appendChild(card);
+      card.className = "igp";
+      card.innerHTML = `<div class="igp-head"><i class="igp-av" style="background:${p.color}">${p.initials}</i><b>${p.handle}</b><span>&bull;&bull;&bull;</span></div><img class="igp-pic" src="../shared/flyers/${p.file}.jpg" alt="" /><div class="igp-act">${IG_ICONS.join("")}</div>`;
+      wrap.appendChild(card);
+      const fly = document.createElement("img");
+      fly.className = "s5-fly";
+      fly.src = `../shared/flyers/${p.file}.jpg`;
+      fly.alt = "";
+      wrap.appendChild(fly);
       const ping = document.createElement("div");
       ping.className = "ping";
-      field.appendChild(ping);
-      gsap.set(ping, { x: f.to[0] - 60, y: f.to[1] - 60 });
-      f.el = el;
-      f.card = card;
-      f.ping = ping;
-      S5.read.push(f);
-    });
-    S5.noise.forEach(({ el, n }) => gsap.set(el, { x: n.x, y: n.y, rotation: n.r }));
-    S5.read.forEach((f) => {
-      const [sx, sy, sr] = SCATTER[f.key];
-      gsap.set(f.el, { x: sx, y: sy, rotation: sr });
+      wrap.appendChild(ping);
+      const [tx, ty] = phonePoint(PH.feedX, PH.y, PH.s, p.to[0], p.to[1]);
+      gsap.set(ping, { x: tx - 60, y: ty - 60 });
+      p.card = card;
+      p.fly = fly;
+      p.ping = ping;
+      p.row = { x: ROW.x + i * ROW.step, y: ROW.y };
+      p.col = { x: COL.x, y: COL.y + i * COL.step };
+      p.target = [tx, ty];
+      gsap.set(card, { x: p.row.x, y: p.row.y });
+      S5.posts.push(p);
     });
     gsap.set("#s5-lamp", { x: 620, y: 512 });
     gsap.set("#s5-flyer", { x: 990, y: 540 });
-    gsap.set("#s5-feed", { x: 960 - 420 - 24, y: 107 });
-    gsap.set("#s5-map", { x: 960 + 24, y: 107 });
+    gsap.set("#s5-ig", { x: 960 - 36, y: 176 });
+    gsap.set("#s5-f", { x: (PH.feedX + PH.mapX) / 2 + 207 - 32, y: 58 });
+    gsap.set("#s5-muse", { x: MUSE.cx - MUSE.size / 2, y: MUSE.cy - MUSE.size / 2 });
+    gsap.set("#s5-feed", { x: PH.endFeedX, y: PH.y });
+    gsap.set("#s5-map", { x: PH.endMapX, y: PH.y });
   }
 
   const SCENE5 = [
@@ -755,6 +789,7 @@
       notes: "Quiet. Let them read the question.",
       build(seg, ctx) {
         ctx.show(seg, "s5");
+        ctx.leave(seg, "s4");
         ctx.hush(seg, 0.01);
         /* The listing and the flyer slide in from opposite sides and meet: finding things, finding things to do. */
         ctx.ft(seg, "#s5-lamp", { opacity: 0, x: -420, rotation: -10 }, { opacity: 1, x: 620, rotation: -4, duration: 1.4, ease: "power3.out" }, 0.1);
@@ -770,74 +805,65 @@
       },
     },
     {
-      id: "muse-organizes",
-      title: "Muse turns posts into events",
+      id: "instagram-to-events",
+      title: "Club posts on Instagram come over to Facebook Events",
       lead: "screen",
-      notes: "Let it play. Then: 'Muse turns campus posts into personal, nearby plans.'",
+      notes: "Let it play. Then: what clubs post on Instagram, easy to find here.",
       build(seg, ctx) {
         ctx.show(seg, "s5");
         ["#s5-q1", "#s5-q2"].forEach((sel, i) => ctx.ft(seg, sel, { opacity: 1, y: 0 }, { opacity: 0, y: -30, duration: 0.45, ease: "power2.in" }, i * 0.05));
         ctx.ft(seg, "#s5-lamp", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.9, duration: 0.45, ease: "power2.in" }, 0.05);
         ctx.ft(seg, "#s5-flyer", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.9, duration: 0.45, ease: "power2.in" }, 0.05);
-                /* Chaos returns: everything scattered, slightly tilted. */
-        const appear = [0.25, 0.32, 0.4, 0.44, 0.5, 0.55];
-        S5.noise.forEach(({ el, n }, i) => {
-          const h = n.kind === "flyer" ? n.w * (n.ratio || 1) : 160;
-          ctx.ft(seg, el, { opacity: 0, x: n.x + (n.x < 900 ? -60 : 60), y: n.y, rotation: n.r * 1.6, scale: 0.9 }, { opacity: 1, x: n.x, rotation: n.r, scale: 1, duration: 0.6, ease: "power3.out" }, appear[i]);
-          const out = n.x + n.w / 2 < 960 ? -1 : 1;
-          ctx.ft(seg, el, { opacity: 1, x: n.x, y: n.y }, { opacity: 0, x: n.x + out * 260, y: n.y + (n.y + h / 2 < 540 ? -120 : 120), duration: 0.8, ease: "power2.in" }, 1.15 + i * 0.04);
+        /* What clubs already do: post on Instagram. */
+        ctx.ft(seg, "#s5-ig", { opacity: 0, x: 960 - 36, y: 176, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.6)" }, 0.3);
+        S5.posts.forEach((p, i) => {
+          const at = 0.38 + i * 0.12;
+          ctx.ft(seg, p.card, { opacity: 0, x: p.row.x, y: p.row.y + 70, scale: 1 }, { opacity: 1, y: p.row.y, duration: 0.75, ease: "power3.out" }, at);
+          ctx.sfx(seg, "tap", { f: 1500 + i * 160, level: 0.1 }, at);
         });
-        S5.read.forEach((f, i) => {
-          const [sx, sy, sr] = SCATTER[f.key];
-          const rx = f.cx - ROW.size / 2;
-          ctx.ft(seg, f.el, { opacity: 0, x: sx, y: sy, rotation: sr * 1.6, scale: 0.88 }, { opacity: 1, rotation: sr, scale: 1, duration: 0.6, ease: "power3.out" }, 0.28 + i * 0.07);
-          /* Then into a clean row, in controlled paths. */
-          ctx.ft(seg, f.el, { x: sx, y: sy, rotation: sr }, { x: rx, y: ROW.top, rotation: 0, duration: 1.1, ease: "power3.inOut" }, 1.05 + i * 0.05);
+        /* Facebook Events arrives; the posts make room beside it. */
+        const fold = 1.9;
+        S5.posts.forEach((p, i) => {
+          ctx.ft(seg, p.card, { x: p.row.x, y: p.row.y, scale: 1 }, { x: p.col.x, y: p.col.y, scale: COL.s, duration: 0.9, ease: "power3.inOut" }, fold + i * 0.05);
         });
-        ctx.sfx(seg, "whoosh", { dur: 1.0, level: 0.08, from: 2000, to: 500 }, 1.05);
-        /* Muse reads them: a scan passes, each field is boxed, the event comes out underneath. */
-        const scanFrom = 290;
-        const scanTo = 1630;
-        const scanAt = 2.3;
-        const scanDur = 1.7;
-        ctx.ft(seg, "#s5-scan", { opacity: 0, x: scanFrom, y: ROW.top - 40 }, { opacity: 1, duration: 0.2 }, scanAt - 0.1);
-        ctx.ft(seg, "#s5-scan", { x: scanFrom }, { x: scanTo, duration: scanDur, ease: "none" }, scanAt);
-        seg.to("#s5-scan", { opacity: 0, duration: 0.25 }, scanAt + scanDur - 0.05);
-        ctx.sfx(seg, "scan", { dur: scanDur }, scanAt);
-        S5.read.forEach((f) => {
-          const pass = scanAt + (scanDur * (f.cx - ROW.size / 2 - scanFrom)) / (scanTo - scanFrom);
-          f.boxEls.forEach((b, k) => {
-            ctx.ft(seg, b, { opacity: 0, scale: 1.18 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power3.out" }, pass + 0.12 + k * 0.09);
-          });
-          ctx.ft(seg, f.card, { opacity: 0, x: f.cx - 190, y: ROW.top + ROW.size + 70 }, { opacity: 1, y: ROW.top + ROW.size + 34, duration: 0.6, ease: "power3.out" }, pass + 0.45);
-          ctx.sfx(seg, "tap", { f: 1500 + f.cx / 4, level: 0.09 }, pass + 0.45);
+        ctx.ft(seg, "#s5-ig", { x: 960 - 36, y: 176, scale: 1 }, { x: COL.x + (CARD.w * COL.s) / 2 - 36, y: 54, scale: 0.8, duration: 0.9, ease: "power3.inOut" }, fold);
+        ctx.ft(seg, "#s5-feed", { opacity: 0, x: PH.feedX, y: PH.y + 700, scale: PH.s, rotation: -3 }, { opacity: 1, y: PH.y, rotation: 0, duration: 1.0, ease: "power3.out" }, fold + 0.05);
+        ctx.ft(seg, "#s5-map", { opacity: 0, x: PH.mapX, y: PH.y + 760, scale: PH.s, rotation: 3 }, { opacity: 1, y: PH.y, rotation: 0, duration: 1.0, ease: "power3.out" }, fold + 0.17);
+        ctx.sfx(seg, "whoosh", { dur: 0.8, level: 0.1, from: 400, to: 1800 }, fold + 0.05);
+        ctx.ft(seg, "#s5-f", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.6)" }, fold + 0.7);
+        ctx.ft(seg, "#s5-muse", { opacity: 0, scale: 0.4, rotation: -90 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.7, ease: "power3.out" }, fold + 0.55);
+        /* Each club's flyer lifts out of its post, passes through Muse, and lands where that
+           event really shows up in Facebook Events. */
+        const across = 2.85;
+        S5.posts.forEach((p, i) => {
+          const at = across + i * 0.42;
+          const start = { x: p.col.x, y: p.col.y + CARD.img * COL.s, scale: COL.s };
+          const mid = 0.28;
+          const end = 0.3;
+          ctx.ft(seg, p.fly, { opacity: 0, x: start.x, y: start.y, scale: start.scale }, { opacity: 1, duration: 0.1 }, at);
+          ctx.ft(seg, p.fly, { x: start.x, y: start.y, scale: start.scale }, { x: MUSE.cx - (360 * mid) / 2, y: MUSE.cy - (360 * mid) / 2, scale: mid, duration: 0.45, ease: "power2.in" }, at);
+          ctx.ft(seg, p.fly, { x: MUSE.cx - (360 * mid) / 2, y: MUSE.cy - (360 * mid) / 2, scale: mid }, { x: p.target[0] - (360 * end) / 2, y: p.target[1] - (360 * end) / 2, scale: end, duration: 0.55, ease: "power2.out" }, at + 0.45);
+          seg.to(p.fly, { opacity: 0, duration: 0.18, ease: "power1.in" }, at + 0.97);
+          ctx.ft(seg, p.card, { opacity: 1 }, { opacity: 0.38, duration: 0.4, ease: "power1.out" }, at + 0.1);
+          ctx.ft(seg, "#s5-muse", { scale: 1 }, { scale: 1.16, duration: 0.14, ease: "power2.out" }, at + 0.42);
+          seg.to("#s5-muse", { scale: 1, duration: 0.3, ease: "power2.inOut" }, at + 0.56);
+          ctx.ft(seg, p.ping, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.out" }, at + 0.95);
+          seg.to(p.ping, { opacity: 0, scale: 1.6, duration: 0.5, ease: "power1.out" }, at + 1.25);
+          ctx.sfx(seg, "tap", { f: 1400 + i * 180, level: 0.1 }, at + 0.95);
         });
-        /* The phones rise, then each event flies to where it really appears: the feed or the map. */
-        const land = 4.45;
-        S5.read.forEach((f, i) => {
-          ctx.ft(seg, f.card, { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.7, duration: 0.45, ease: "power2.in" }, land - 0.1 + i * 0.03);
-          f.boxEls.forEach((b) => ctx.ft(seg, b, { opacity: 1 }, { opacity: 0, duration: 0.3 }, land - 0.1));
-          const fromX = f.cx - ROW.size / 2;
-          const s1 = 0.2;
-          ctx.ft(
-            seg,
-            f.el,
-            { opacity: 1, scale: 1, x: fromX, y: ROW.top },
-            { opacity: 0, scale: s1, x: f.to[0] - ROW.size / 2, y: f.to[1] - ROW.size / 2, duration: 0.95, ease: "power3.inOut" },
-            land + 0.55 + i * 0.12,
-          );
-          ctx.ft(seg, f.ping, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.out" }, land + 1.35 + i * 0.12);
-          seg.to(f.ping, { opacity: 0, scale: 1.6, duration: 0.5, ease: "power1.out" }, land + 1.65 + i * 0.12);
-          ctx.sfx(seg, "tap", { f: 1400 + i * 180, level: 0.1 }, land + 1.35 + i * 0.12);
+        /* Then Facebook Events has the room: the posts and marks clear, the phones take center. */
+        const center = across + 2 * 0.42 + 1.35;
+        S5.posts.forEach((p, i) => {
+          ctx.ft(seg, p.card, { opacity: 0.38, x: p.col.x }, { opacity: 0, x: p.col.x - 120, duration: 0.5, ease: "power2.in" }, center + i * 0.04);
         });
-        ctx.ft(seg, "#s5-feed", { opacity: 0, y: 1120, rotation: -3 }, { opacity: 1, y: 107, rotation: 0, duration: 1.0, ease: "power3.out" }, land);
-        ctx.ft(seg, "#s5-map", { opacity: 0, y: 1180, rotation: 3 }, { opacity: 1, y: 107, rotation: 0, duration: 1.0, ease: "power3.out" }, land + 0.12);
-        ctx.sfx(seg, "whoosh", { dur: 0.8, level: 0.1, from: 400, to: 1800 }, land);
-        /* Then the payoff settles in: both phones push in together. */
-        ctx.ft(seg, ["#s5-feed", "#s5-map"], { scale: 1 }, { scale: 1.07, duration: 1.3, ease: "power2.inOut" }, land + 1.9);
+        ctx.ft(seg, ["#s5-ig", "#s5-muse", "#s5-f"], { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power2.in" }, center);
+        ctx.ft(seg, "#s5-feed", { x: PH.feedX, scale: PH.s }, { x: PH.endFeedX, scale: 1, duration: 1.0, ease: "power3.inOut" }, center + 0.1);
+        ctx.ft(seg, "#s5-map", { x: PH.mapX, scale: PH.s }, { x: PH.endMapX, scale: 1, duration: 1.0, ease: "power3.inOut" }, center + 0.1);
+        /* Both phones push in together, and hold there. */
+        ctx.ft(seg, ["#s5-feed", "#s5-map"], { scale: 1 }, { scale: 1.07, duration: 1.3, ease: "power2.inOut" }, center + 1.1);
       },
       idle(api) {
-        api.loop("#s5-feed .screen img", { y: -6, duration: 3.6 });
+        api.loop("#s5-feed .app img", { y: -6, duration: 3.6 });
       },
     },
     {
@@ -856,17 +882,20 @@
     },
   ];
 
-  const STEPS = [...SCENE1, ...SCENE2, ...SCENE3, ...SCENE4, ...SCENE5];
-
-  Deck.start({
-    id: "problem",
-    steps: STEPS,
-    prepare() {
-      prepareScene1();
-      placeQuotes();
-      prepareScene2();
-      prepareScene3();
-      prepareScene5();
-    },
+  Deck.load("./content.json", CONTENT).then((content) => {
+    CONTENT = Object.assign(CONTENT, content);
+    const STEPS = [...(CONTENT.openingQr ? [TRY_IT] : []), ...SCENE1, ...SCENE2, ...SCENE3, ...SCENE4, ...SCENE5];
+    Deck.start({
+      id: "problem",
+      steps: STEPS,
+      prepare() {
+        prepareScene0();
+        prepareScene1();
+        placeQuotes();
+        prepareScene2();
+        prepareScene3();
+        prepareScene5();
+      },
+    });
   });
 })();

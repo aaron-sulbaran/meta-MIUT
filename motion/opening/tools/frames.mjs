@@ -17,7 +17,7 @@ mkdirSync(outDir, { recursive: true });
 for (const f of readdirSync(outDir)) if (f.startsWith('f_')) rmSync(path.join(outDir, f));
 
 const gpu = ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist'];
-const browser = await chromium.launch({ channel: 'chrome', args: gpu }).catch(() => chromium.launch({ args: gpu }));
+const browser = await chromium.launch({ channel: 'chrome', args: process.env.DECK_GPU ? gpu : ['--disable-gpu'] });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 const sep = url.includes('?') ? '&' : '?';
 const ready = () => page.waitForFunction(() => document.documentElement.dataset.deckReady === '1', null, { timeout: 20000 });

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "how-we-built-it",
+    "title": "Appendix: how we built it",
+    "lead": "speaker",
+    "notes": "Five people, their coding agents, one shared board. Numbers from git and the hub."
+  },
+  {
+    "id": "questions",
+    "title": "Appendix: questions we expect",
+    "lead": "speaker",
+    "notes": "Click a question, or click the deck and press its number."
+  },
+  {
+    "id": "q-1",
+    "title": "Q1: Why not just build this on Instagram?",
+    "lead": "speaker",
+    "notes": "Why not just build this on Instagram?"
+  },
+  {
+    "id": "q-2",
+    "title": "Q2: Why would young adults use this?",
+    "lead": "speaker",
+    "notes": "Why would young adults use this?"
+  },
+  {
+    "id": "q-3",
+    "title": "Q3: Is the AI essential or decorative?",
+    "lead": "speaker",
+    "notes": "Is the AI essential or decorative?"
+  },
+  {
+    "id": "q-4",
+    "title": "Q4: What is real and what is staged in the demo?",
+    "lead": "speaker",
+    "notes": "What is real and what is staged in the demo?"
+  },
+  {
+    "id": "q-5",
+    "title": "Q5: How does it get events without extra work for organizers?",
+    "lead": "speaker",
+    "notes": "How does it get events without extra work for organizers?"
+  },
+  {
+    "id": "q-6",
+    "title": "Q6: What about privacy, location and company?",
+    "lead": "speaker",
+    "notes": "What about privacy, location and company?"
+  },
+  {
+    "id": "q-7",
+    "title": "Q7: What would it take inside Facebook?",
+    "lead": "speaker",
+    "notes": "What would it take inside Facebook?"
+  },
+  {
+    "id": "q-8",
+    "title": "Q8: Why not fine-tune a model for this?",
+    "lead": "speaker",
+    "notes": "Why not fine-tune a model for this?"
+  }
+]

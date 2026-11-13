@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>What's next</title>
+    <link rel="stylesheet" href="../shared/deck.css" />
+    <link rel="stylesheet" href="./next.css" />
+  </head>
+  <body>
+    <div id="fit">
+      <div id="root" data-composition-id="next" data-width="1920" data-height="1080">
+        <div id="drift">
+          <div id="cam">
+            <!-- Next steps and future applications: the words come from content.json. -->
+            <section class="scene" id="n1">
+              <h2 class="n-heading" id="n-heading"></h2>
+              <div class="n-row" id="n-row"></div>
+            </section>
+
+            <!-- Thank you, with the code to the live product. -->
+            <section class="scene" id="n2">
+              <div class="n-thanks">
+                <div class="n-left">
+                  <img class="n-fb" id="n-fb" src="../shared/brand/facebook-f.svg" alt="Facebook" />
+                  <p class="n-title" id="n-title"></p>
+                  <p class="n-line" id="n-line"></p>
+                </div>
+                <div class="n-qr" id="n-qr">
+                  <img class="n-code" src="../shared/qr-live.svg" alt="QR code to the live product" />
+                  <p class="n-try" id="n-try"></p>
+                  <p class="n-addr" id="n-addr"></p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div id="toast"></div>
+      </div>
+    </div>
+    <script src="../shared/gsap.min.js"></script>
+    <script src="../shared/sound.js"></script>
+    <script src="../shared/deck.js"></script>
+    <script src="../shared/icons.js"></script>
+    <script src="./next.js"></script>
+  </body>
+</html>

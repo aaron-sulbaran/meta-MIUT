@@ -1,0 +1,142 @@
+/* Next steps and the thank you: the closing of the pitch. */
+
+.n-heading {
+  position: absolute;
+  left: 140px;
+  top: 200px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 96px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  opacity: 0;
+}
+
+/* Four or five items share the row evenly; the grid's column count comes from content.json. */
+.n-row {
+  position: absolute;
+  left: 140px;
+  right: 140px;
+  top: 420px;
+  display: grid;
+  gap: 44px;
+  align-items: start;
+}
+
+.n-item {
+  opacity: 0;
+}
+
+.n-icon {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 30px;
+  background: var(--card-deep);
+  box-shadow: inset 0 0 0 1.5px #2a2d35;
+  color: var(--blue);
+}
+
+.n-icon svg {
+  width: 62px;
+  height: 62px;
+}
+
+.n-item h3 {
+  margin-top: 38px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 42px;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.n-item p {
+  margin-top: 18px;
+  font-size: 28px;
+  line-height: 1.34;
+  color: var(--gray);
+  text-wrap: pretty;
+}
+
+.n-rule {
+  margin-top: 34px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--blue);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+
+/* The thank you: the words left, the code to the live product right. */
+.n-thanks {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 170px;
+}
+
+.n-left {
+  width: 860px;
+}
+
+.n-fb {
+  display: block;
+  width: 120px;
+  height: 120px;
+  opacity: 0;
+}
+
+.n-title {
+  margin-top: 44px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 150px;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  opacity: 0;
+}
+
+.n-line {
+  margin-top: 34px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 58px;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  color: var(--gray);
+  text-wrap: balance;
+  opacity: 0;
+}
+
+.n-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+}
+
+.n-code {
+  display: block;
+  width: 420px;
+  height: 420px;
+  filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.5));
+}
+
+.n-try {
+  margin-top: 34px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 40px;
+  letter-spacing: -0.015em;
+}
+
+.n-addr {
+  margin-top: 10px;
+  font-size: 28px;
+  color: var(--gray);
+}
