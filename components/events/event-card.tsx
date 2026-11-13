@@ -1,12 +1,14 @@
 import { FbEventCard } from "@/components/ui/event-card";
 import { Poster } from "@/components/ui/poster";
 import type { CampusEvent } from "@/lib/events/schema";
-import { formatDateLine } from "@/lib/events/time";
+import { formatDateLine, freePerk } from "@/lib/events/time";
 
 /** What the card's grey meta line says: only facts the event carries. */
 export function eventFacts(event: CampusEvent): string {
   const facts = [event.free ? "Free" : "Paid entry"];
-  if (event.food) facts.push(event.foodNote ?? "Food");
+  const perk = freePerk(event);
+  if (perk) facts.push(perk);
+  else if (event.food) facts.push(event.foodNote ?? "Food");
   if (event.access.kind === "rsvp") {
     facts.push(event.access.capacity ? `RSVP, ${event.access.capacity} spots` : "RSVP");
   }
