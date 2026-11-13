@@ -13,10 +13,12 @@
   const PHONE_SCALE = 0.9;
   const SLOT = { cx: 0, cy: 0, size: 64 };
 
-  /* A y in the 390 x 844 capture to stage pixels inside the list phone. */
+  /* The stage's phone: 414 x 868 outside, the app area 47 px below the glass's top edge. */
+  const HALF = { w: 207, h: 434 };
+  /* A y in the 390 x 797 capture to stage pixels inside the list phone. */
   function listY(y) {
-    const screenTop = LIST.cy - 433 * PHONE_SCALE + 12 * PHONE_SCALE;
-    return screenTop + y * (842 / 844) * PHONE_SCALE;
+    const appTop = LIST.cy - HALF.h * PHONE_SCALE + (12 + 47) * PHONE_SCALE;
+    return appTop + y * PHONE_SCALE;
   }
 
   /* The two sections of the real List view, by where they sit in the capture. */
@@ -31,9 +33,9 @@
     SLOT.cx = head.offsetLeft + slot.offsetLeft + SLOT.size / 2;
     SLOT.cy = head.offsetTop + slot.offsetTop + SLOT.size / 2;
     gsap.set("#mm-mark", { x: MARK.cx - MARK.size / 2, y: MARK.cy - MARK.size / 2 });
-    gsap.set("#md-map", { x: MAP.cx - 200, y: MAP.cy - 433, scale: PHONE_SCALE });
-    gsap.set("#md-list", { x: LIST.cx - 200, y: LIST.cy - 433, scale: PHONE_SCALE });
-    const right = LIST.cx + 200 * PHONE_SCALE;
+    gsap.set("#md-map", { x: MAP.cx - HALF.w, y: MAP.cy - HALF.h, scale: PHONE_SCALE });
+    gsap.set("#md-list", { x: LIST.cx - HALF.w, y: LIST.cy - HALF.h, scale: PHONE_SCALE });
+    const right = LIST.cx + HALF.w * PHONE_SCALE;
     CALLOUTS.forEach((c) => {
       const top = listY(c.from);
       const height = listY(c.to) - top;
@@ -94,8 +96,8 @@
           0.1,
         );
         ctx.ft(seg, "#md-title", { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 0.75, ease: "power3.out" }, 0.62);
-        ctx.ft(seg, "#md-map", { opacity: 0, y: MAP.cy - 433 + 640, rotation: -3 }, { opacity: 1, y: MAP.cy - 433, rotation: 0, duration: 1.05, ease: "power3.out" }, 0.35);
-        ctx.ft(seg, "#md-list", { opacity: 0, y: LIST.cy - 433 + 700, rotation: 3 }, { opacity: 1, y: LIST.cy - 433, rotation: 0, duration: 1.05, ease: "power3.out" }, 0.47);
+        ctx.ft(seg, "#md-map", { opacity: 0, y: MAP.cy - HALF.h + 640, rotation: -3 }, { opacity: 1, y: MAP.cy - HALF.h, rotation: 0, duration: 1.05, ease: "power3.out" }, 0.35);
+        ctx.ft(seg, "#md-list", { opacity: 0, y: LIST.cy - HALF.h + 700, rotation: 3 }, { opacity: 1, y: LIST.cy - HALF.h, rotation: 0, duration: 1.05, ease: "power3.out" }, 0.47);
         ctx.sfx(seg, "whoosh", { dur: 0.8, level: 0.08, from: 400, to: 1800 }, 0.35);
         CALLOUTS.forEach((c, i) => {
           const at = 1.45 + i * 0.38;
@@ -132,8 +134,8 @@
       notes: "Let's see it live: Jing, Jolyn, Lisa, and Trish.",
       build(seg, ctx) {
         ctx.show(seg, "m7");
-        /* A hard cut to the cast, like every other text change. */
-        seg.set("#m7-pair", { opacity: 0 }, 0);
+        /* The lines clear quickly, then the cast. */
+        ctx.ft(seg, "#m7-pair", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power1.in" }, 0);
         const at = [0.35, 0.47, 0.6, 0.7];
         ["#c1", "#c2", "#c3", "#c4"].forEach((sel, i) => {
           ctx.ft(seg, sel, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.85, ease: "power3.out" }, at[i]);

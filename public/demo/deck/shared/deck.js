@@ -65,6 +65,31 @@
     if (window.DeckSound) window.DeckSound.play(name, opts);
   }
 
+  /* Every phone gets the stage phone's chrome: the screen's content moves into the app area
+     below a status bar (the demo clock's 3:05), with the home indicator over the bottom. */
+  const STATUS_ICONS =
+    '<svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>' +
+    '<svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M1.2 4.4a10 10 0 0 1 13.6 0"/><path d="M3.6 7a6.4 6.4 0 0 1 8.8 0"/><path d="M8 11.2 6 9.3a2.9 2.9 0 0 1 4 0Z" fill="currentColor" stroke="none"/></svg>' +
+    '<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x="0.5" y="0.5" width="23" height="12" rx="3.8" stroke="currentColor" stroke-opacity="0.4"/><rect x="2" y="2" width="17" height="9" rx="2.4" fill="currentColor"/><path d="M25 4.4v4.2a2.2 2.2 0 0 0 0-4.2Z" fill="currentColor" fill-opacity="0.45"/></svg>';
+
+  function dressPhones() {
+    document.querySelectorAll(".phone .screen").forEach((screen) => {
+      if (screen.querySelector(":scope > .app")) return;
+      const app = document.createElement("div");
+      app.className = "app";
+      while (screen.firstChild) app.appendChild(screen.firstChild);
+      screen.appendChild(app);
+      const bar = document.createElement("div");
+      bar.className = "sb";
+      bar.setAttribute("aria-hidden", "true");
+      bar.innerHTML = `<time>3:05</time><span>${STATUS_ICONS}</span>`;
+      screen.appendChild(bar);
+      const home = document.createElement("i");
+      home.className = "home";
+      screen.appendChild(home);
+    });
+  }
+
   async function settleAssets() {
     try {
       await document.fonts.ready;
@@ -86,6 +111,15 @@
         scenes.forEach((s) => {
           seg.set(s, { autoAlpha: s.id === sceneId ? 1 : 0 }, 0);
         });
+      },
+      /* The scene the last step rested on fades out instead of vanishing, so a click never
+         pops (call after show). Still reads as a cut to black, without the flash. */
+      leave(seg, sceneId, dur) {
+        const d = dur || 0.3;
+        const scene = document.getElementById(sceneId);
+        seg.set(scene, { autoAlpha: 1 }, 0);
+        seg.fromTo(scene, { opacity: 1 }, { opacity: 0, duration: d, ease: "power1.in", immediateRender: false }, 0);
+        seg.set(scene, { autoAlpha: 0 }, d + 0.01);
       },
       /* A fromTo that never renders early, so many steps can own the same element over time. */
       ft(seg, target, from, to, at) {
@@ -280,6 +314,16 @@
     mode,
     live,
     embedded,
+    /* A deck's editable words (content.json beside it). A missing or broken file falls back. */
+    async load(url, fallback) {
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) return fallback;
+        return await response.json();
+      } catch (e) {
+        return fallback;
+      }
+    },
     async start(config) {
       fit();
       window.addEventListener("resize", fit);
@@ -289,6 +333,7 @@
         /* fonts fall back */
       }
       /* Steps measure text, so fonts first; images the steps create decode before anything plays. */
+      dressPhones();
       if (config.prepare) config.prepare();
       await settleAssets();
       return createDeck(config);

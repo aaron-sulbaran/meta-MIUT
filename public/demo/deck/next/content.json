@@ -1,0 +1,44 @@
+{
+  "_about": "Edit the words here; the animation reads them on load. Four or five items lay out on their own. Icons: glasses, city, megaphone, instagram-to-facebook, lock, calendar, ticket, people, map-pin, sparkle. Items marked draft are placeholders for Aaron (2026-11-13).",
+  "heading": "What's next",
+  "futures": [
+    {
+      "icon": "glasses",
+      "title": "Ray-Ban Display",
+      "body": "On Ray-Ban Display glasses, a heads-up notification tells you where to walk for the free food, through Facebook Events.",
+      "draft": false
+    },
+    {
+      "icon": "city",
+      "title": "Beyond one campus",
+      "body": "Every campus, then a whole city, where the evening offers become restaurant discounts instead of free food.",
+      "draft": true
+    },
+    {
+      "icon": "megaphone",
+      "title": "Leftover food pings",
+      "body": "Organizers can ping people nearby when there is food left over.",
+      "draft": true
+    },
+    {
+      "icon": "instagram-to-facebook",
+      "title": "Page from Instagram",
+      "body": "A club's Facebook page set up from its Instagram in one tap.",
+      "draft": true
+    },
+    {
+      "icon": "lock",
+      "title": "Always opt in",
+      "body": "Everything about location and company stays opt in.",
+      "draft": true
+    }
+  ],
+  "thanks": {
+    "title": "Thank you.",
+    "line": "Help us reimagine Facebook Events.",
+    "draft": true,
+    "qr": true,
+    "tryLine": "Try it yourself",
+    "address": "meta-miut.vercel.app"
+  }
+}

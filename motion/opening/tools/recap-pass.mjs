@@ -1,8 +1,8 @@
-// recap-pass: one capture pass for the recap deck. Each run loads the real screen inside a
-// 390 x 844 frame (as the stage shows it, as the right person), waits for the app's own time
-// stamp, and records its number, where it sits, and a 3x capture. The deck then shows the
-// median run's capture with that run's number, so the screen and the number always agree.
-// usage: node recap-pass.mjs <baseUrl> <outDir> <moment> [--runs 5]
+// recap-pass: one capture pass for the decks. Each run loads the real screen inside a 390 x 797
+// frame, the app area the stage's phone gives an app below its status bar (as the right person),
+// waits for the app's own time stamp, and records its number, where it sits, and a 3x capture.
+// The deck then shows the median run's capture with that run's number, so they always agree.
+// usage: node recap-pass.mjs <baseUrl> <outDir> <moment> [--runs 5] [--h 797]
 //   moments: flyer, walk, replan, picks, hello (needs a fresh server per run), heard
 import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -14,6 +14,8 @@ const args = process.argv.slice(2);
 const [base, outDir, moment] = args;
 const opt = (k, d) => { const i = args.indexOf(k); return i > -1 ? args[i + 1] : d; };
 const runs = Number(opt('--runs', 5));
+/* components/demo/phone-frame.tsx: 844 points of glass, 47 of them the status bar. */
+const H = Number(opt('--h', 797));
 const AT = '2026-11-13T20:05:00.000Z';
 const REPLAN = "Wait, actually I'm not going home, I was gonna hang out with Lisa. Can you find an event closer to both of us and send Lisa the invite?";
 mkdirSync(outDir, { recursive: true });
@@ -70,11 +72,11 @@ if (!m) throw new Error('unknown moment ' + moment);
 const browser = await chromium.launch({ channel: 'chrome', args: ['--mute-audio'] });
 const list = results[moment]?.runs ?? [];
 for (let i = 0; i < runs; i++) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: H }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   if (m.persona) await ctx.addCookies([{ name: 'demo-persona', value: m.persona, url: base }]);
   const page = await ctx.newPage();
   const id = m.prepare ? await m.prepare() : null;
-  const html = `<!doctype html><html><body style="margin:0"><iframe id="f" src="${base}${m.url(id)}" style="border:0;width:390px;height:844px"></iframe></body></html>`;
+  const html = `<!doctype html><html><body style="margin:0"><iframe id="f" src="${base}${m.url(id)}" style="border:0;width:390px;height:${H}px"></iframe></body></html>`;
   await page.route(base + '/__host', (route) => route.fulfill({ contentType: 'text/html', body: html }));
   await page.goto(base + '/__host', { waitUntil: 'domcontentloaded' });
   const frame = page.frameLocator('#f');

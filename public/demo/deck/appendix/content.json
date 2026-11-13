@@ -1,0 +1,78 @@
+{
+  "_about": "Edit the words here; the animation reads them on load. Questions keep their order; number keys 1 to 9 jump to one, 0 goes back to the list. Visuals: capture:list, capture:map, capture:picks, capture:flyer, capture:hello, diagram:instagram-to-facebook, diagram:opt-in, diagram:live-vs-staged, diagram:recap-times, diagram:meta-stack. Items marked draft are placeholders for Aaron (2026-11-13).",
+  "build": {
+    "title": "How we built it",
+    "line": "Five people, their coding agents, one shared board.",
+    "asOf": "2026-11-13 04:17 PST",
+    "stats": [
+      {
+        "value": 197,
+        "label": "commits on main"
+      },
+      {
+        "value": 131,
+        "label": "pull requests merged"
+      },
+      {
+        "value": 64,
+        "label": "test files"
+      },
+      {
+        "value": 1221,
+        "label": "updates on the shared board"
+      }
+    ],
+    "method": "In the product repo: git fetch origin; git rev-list --count origin/main (197); gh pr list --repo aaron-sulbaran/meta-MIUT --state merged --limit 500 --json number, counted the entries (131); git ls-tree -r --name-only origin/main | grep -c '\\.test\\.ts$' (64). Hub events: the hub stores one JSON file per action under events/<date>/, so find events -type f -name '*.json' | wc -l (1221). People: five, from the hub's team list."
+  },
+  "questionsTitle": "Questions we expect",
+  "questions": [
+    {
+      "q": "Why not just build this on Instagram?",
+      "a": "The events live on Facebook: found there, RSVPs there. Instagram is one way in, like a flyer photo or a spoken line. The goal is more young adults opening Facebook, so the product has to live there.",
+      "visual": "diagram:instagram-to-facebook",
+      "draft": false
+    },
+    {
+      "q": "Why would young adults use this?",
+      "a": "People our age open Facebook to get something out of it. Free food is the Events version of that. It changes daily: three picks for today, and an alert only when something free is close and you are free.",
+      "visual": "capture:list",
+      "draft": false
+    },
+    {
+      "q": "Is the AI essential or decorative?",
+      "a": "Essential. Six moments in the skit were live calls to Meta's Muse models, each timed on screen. Without them nobody types events in, so there is nothing to show.",
+      "visual": "diagram:recap-times",
+      "draft": false
+    },
+    {
+      "q": "What is real and what is staged in the demo?",
+      "a": "Every Muse answer is a live call, and a recorded one says so on screen. The Instagram, Reels and lock screen moments are staged, and so is the friend graph. We say which is which.",
+      "visual": "diagram:live-vs-staged",
+      "draft": false
+    },
+    {
+      "q": "How does it get events without extra work for organizers?",
+      "a": "An organizer shares a flyer photo or says one line. Muse drafts the event, shows where each field came from, and the organizer only approves. An Instagram post can feed the same draft.",
+      "visual": "capture:flyer",
+      "draft": false
+    },
+    {
+      "q": "What about privacy, location and company?",
+      "a": "Both are off by default. Lisa turned on Open to company herself, and only then could Muse suggest her to someone new. Location stays opt in too. We plan per-person controls, not one rule for everyone.",
+      "visual": "diagram:opt-in",
+      "draft": true
+    },
+    {
+      "q": "What would it take inside Facebook?",
+      "a": "Events already cross-posts from Instagram, so this extends it. It needs Muse reading the post, the Events tab ranking per student, and a nearby alert. We built each piece on the Muse API.",
+      "visual": "diagram:meta-stack",
+      "draft": true
+    },
+    {
+      "q": "Why not fine-tune a model for this?",
+      "a": "A mentor suggested it. We chose Muse for the core and added photo and voice input, visible evidence per field, and organizer approval. Fine-tuning on Facebook event posts is a good next step.",
+      "visual": "capture:flyer",
+      "draft": true
+    }
+  ]
+}

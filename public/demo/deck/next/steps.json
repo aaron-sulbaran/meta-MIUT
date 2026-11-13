@@ -1,0 +1,14 @@
+[
+  {
+    "id": "futures",
+    "title": "What's next",
+    "lead": "speaker",
+    "notes": "Breeze through them, left to right. Drafts marked in next/content.json."
+  },
+  {
+    "id": "thank-you",
+    "title": "Thank you",
+    "lead": "speaker",
+    "notes": "Thank you. The code opens the live product."
+  }
+]
