@@ -3,9 +3,13 @@ import { getEventStore } from "@/lib/events/store";
 import { whoToGoWith } from "@/lib/social/muse-going";
 import { loadSocial, whoIsGoing } from "@/lib/social/going";
 import { currentViewer } from "@/lib/social/viewer";
+import { sharedAnswer } from "@/lib/store/shared-answer";
 
 // POST: Muse looks at who is going and says who this student could go with
 // (friends first, then people with friends in common or shared interests).
+// One answer per viewer and event for two minutes (lib/store/shared-answer.ts): the
+// stage and the presenter's phone both ask; the second gets the first's live answer.
+// The going list itself is always fresh.
 export async function POST(_request: NextRequest, context: RouteContext<"/api/social/events/[id]/muse">) {
   const { id } = await context.params;
   const event = await getEventStore().getEvent(id);
@@ -13,7 +17,9 @@ export async function POST(_request: NextRequest, context: RouteContext<"/api/so
   const viewer = await currentViewer();
   await loadSocial([event.id]);
   const who = whoIsGoing(event, viewer.id, viewer.interests);
-  const result = await whoToGoWith(event, who, viewer.name);
+  const result = (await sharedAnswer(`going:${viewer.id}:${event.id}`, () => whoToGoWith(event, who, viewer.name))) as Awaited<
+    ReturnType<typeof whoToGoWith>
+  >;
   if (result.error !== null) return Response.json(result, { status: 502 });
   return Response.json({ ...result, data: { ...result.data, who } });
 }

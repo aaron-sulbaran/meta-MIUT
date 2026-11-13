@@ -58,6 +58,11 @@ describe("demo beats", () => {
     expect(inFrameMessage(beat("U3a3"), HANDOFF.reels(1), context)).toBeNull();
   });
 
+  it("ends Trish's act on the same event page: U3e says hi in place", () => {
+    expect(beat("U3e").path!(context)).toBe(HANDOFF.saidHi("evt-story"));
+    expect(inFrameMessage(beat("U3e"), HANDOFF.whosGoing("evt-story"), context)).toEqual({ type: "demo-say-hi" });
+  });
+
   it("never needs the story event before the organizer has published it", () => {
     expect(BEATS[STORY_DUE_AFTER]!.id).toBe("O5");
     for (const candidate of BEATS.slice(0, STORY_DUE_AFTER + 1)) {

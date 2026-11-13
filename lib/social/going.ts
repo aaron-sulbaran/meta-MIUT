@@ -157,13 +157,36 @@ export function setGoing(event: CampusEvent, viewerId: string, update: { going: 
  * The viewer says hi to a student who is open to company. Fixture students
  * opted in, so they say yes ACCEPT_AFTER_MS later and handles are swapped.
  */
-export function sayHello(event: CampusEvent, viewerId: string, toId: string, now = Date.now(), message?: string): { error: string | null } {
+// A recorded line (Muse unreachable) is kept with this mark, so every screen labels it the same way.
+const RECORDED = "recorded:";
+const noteText = (note: string | undefined) => (note === undefined ? null : note.startsWith(RECORDED) ? note.slice(RECORDED.length) : note);
+const noteRecorded = (note: string | undefined) => note?.startsWith(RECORDED) === true;
+
+export function sayHello(
+  event: CampusEvent,
+  viewerId: string,
+  toId: string,
+  now = Date.now(),
+  message?: string,
+  recorded = false,
+): { error: string | null } {
   const entry = goingAt(event).get(toId);
   if (!entry?.open) return { error: "They are not looking for company at this event" };
   const key = helloKey(event.id, viewerId, toId);
   if (!state().hellos.has(key)) state().hellos.set(key, now);
-  if (message) state().notes.set(key, message);
+  if (message) state().notes.set(key, recorded ? `${RECORDED}${message}` : message);
   return { error: null };
+}
+
+export type HelloSent = { to: string; message: string | null; recorded: boolean; at: number };
+
+/** The hellos this viewer sent at this event, oldest first (the page shows a hi sent from another screen). */
+export function hellosFrom(eventId: string, viewerId: string): HelloSent[] {
+  return [...state().hellos.entries()]
+    .map(([key, at]) => ({ key, at, parts: key.split("|") }))
+    .filter(({ parts }) => parts[0] === eventId && parts[1] === viewerId)
+    .map(({ key, at, parts }) => ({ to: parts[2]!, message: noteText(state().notes.get(key)), recorded: noteRecorded(state().notes.get(key)), at }))
+    .sort((first, second) => first.at - second.at);
 }
 
 export type HelloReceived = { eventId: string; from: string; message: string | null; at: number };
@@ -173,7 +196,7 @@ export function hellosTo(personId: string): HelloReceived[] {
   return [...state().hellos.entries()]
     .map(([key, at]) => ({ key, at, parts: key.split("|") }))
     .filter(({ parts }) => parts[2] === personId)
-    .map(({ key, at, parts }) => ({ eventId: parts[0]!, from: parts[1]!, message: state().notes.get(key) ?? null, at }))
+    .map(({ key, at, parts }) => ({ eventId: parts[0]!, from: parts[1]!, message: noteText(state().notes.get(key)), at }))
     .sort((first, second) => second.at - first.at);
 }
 
