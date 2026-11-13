@@ -1,15 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DraftCard } from "@/components/organizer/draft-card";
 import { prepareFlyer } from "@/components/organizer/flyer-image";
 import { MuseMaking, type MakingState } from "@/components/organizer/muse-making";
 import type { ExtractDraft, ExtractDraftsResponse, FlyerImage, InputMode, OrganizerOption } from "@/components/organizer/types";
-import { useSpeechInput } from "@/components/organizer/use-speech-input";
 import { Button } from "@/components/ui/button";
 import { SourceBadge } from "@/components/ui/card";
-import { FilterChip } from "@/components/ui/chips";
-import { PhotoIcon } from "@/components/ui/icons";
 import type { KnownPlace } from "@/lib/organizer/place";
 
 // The organizer side of the demo: a flyer photo (with its caption) or a spoken line in,
@@ -41,14 +38,12 @@ export function OrganizerFlow({
   places,
   organizers,
   eventTitles,
-  sampleCaption,
   said = "",
   handoff = null,
 }: {
   places: KnownPlace[];
   organizers: OrganizerOption[];
   eventTitles: Record<string, string>;
-  sampleCaption: string;
   // A spoken line from Ask Muse, drafted as soon as the screen opens.
   said?: string;
   handoff?: OrganizerHandoff | null;
@@ -57,36 +52,20 @@ export function OrganizerFlow({
   // The club the organizer is signed in as on Instagram; no picking other clubs.
   const organizer = handoff?.organizer ?? organizers[0] ?? fallbackOrganizer;
 
-  const [mode, setMode] = useState<InputMode>(said ? "voice" : "photo");
+  // Manual inputs are gone: a draft comes from a handed-over post or a line said to Ask Muse.
+  const mode: InputMode = said ? "voice" : "photo";
   const [flyer, setFlyer] = useState<FlyerImage | null>(null);
-  const [flyerNote, setFlyerNote] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [spoken, setSpoken] = useState(said);
   const [reading, setReading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [making, setMaking] = useState<MakingState | null>(null);
 
-  const speech = useSpeechInput(useCallback((text: string) => setSpoken(text), []));
-
-  async function pickFlyer(file: File | undefined) {
-    if (!file) return;
-    setFlyerNote("Getting the photo ready");
-    const prepared = await prepareFlyer(file);
-    if (prepared.error !== null) {
-      setFlyerNote(prepared.error);
-      return;
-    }
-    if (flyer) URL.revokeObjectURL(flyer.previewUrl);
-    setFlyer(prepared.data);
-    setFlyerNote(null);
-  }
-
   const canSend = mode === "photo" ? Boolean(flyer || caption.trim()) : Boolean(spoken.trim());
 
   // `post` drafts a handed-over post directly, before its flyer and caption reach state.
   async function draftIt(post?: { flyer: FlyerImage | null; caption: string }) {
     if (!post && (!canSend || reading)) return;
-    if (speech.listening) speech.stop();
     const sendMode: InputMode = post ? "photo" : mode;
     const sendFlyer = post ? post.flyer : flyer;
     const sendCaption = post ? post.caption : caption;
@@ -191,109 +170,9 @@ export function OrganizerFlow({
           <p className="mt-[3px] text-meta text-muted">The club you are signed in as on Instagram.</p>
         </div>
 
-        <p className="rounded-card bg-wash px-3 py-[9px] text-venue text-muted">
-          Coming soon. For now, events come from your Instagram posts and from Ask Muse.
+        <p className="text-body text-muted">
+          Post your flyer on Instagram, or tell Ask Muse about the event, and Muse drafts it here for you to check and publish.
         </p>
-
-        {/* Placeholder: the manual inputs are shown but greyed out and disabled (Lisa). */}
-        <fieldset disabled aria-disabled className="flex flex-col gap-[10px] opacity-45 select-none">
-
-        <div role="group" aria-label="How to make the event" className="flex gap-[7.6px]">
-          <FilterChip active={mode === "photo"} onSelect={() => setMode("photo")}>
-            Flyer photo
-          </FilterChip>
-          <FilterChip active={mode === "voice"} onSelect={() => setMode("voice")}>
-            Say it
-          </FilterChip>
-        </div>
-
-        {mode === "photo" ? (
-          <>
-            {flyer ? (
-              <figure className="relative overflow-hidden rounded-card border border-hairline bg-wash">
-                {/* A local blob URL from the organizer's own photo; next/image does not apply. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={flyer.previewUrl} alt="The flyer you picked" className="mx-auto max-h-[300px] w-auto" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    URL.revokeObjectURL(flyer.previewUrl);
-                    setFlyer(null);
-                  }}
-                  className="absolute top-[8px] right-[8px] rounded-full bg-card/90 px-[10px] py-[4px] font-display text-[12px] font-bold text-ink shadow-sm"
-                >
-                  Remove
-                </button>
-              </figure>
-            ) : (
-              <label className="flex h-[96px] cursor-pointer flex-col items-center justify-center gap-[6px] rounded-card border border-dashed border-divider bg-wash text-ink">
-                <PhotoIcon className="h-[24px] w-[24px] text-primary" />
-                <span className="font-display text-label font-bold">Choose a flyer photo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(change) => {
-                    void pickFlyer(change.target.files?.[0]);
-                    change.target.value = "";
-                  }}
-                />
-              </label>
-            )}
-            {flyerNote && <p className="text-venue text-muted">{flyerNote}</p>}
-            <label className="block text-venue text-muted">
-              Caption from the post
-              <textarea
-                rows={4}
-                className={`${fieldClass} mt-[3px] resize-y`}
-                placeholder="Paste the Instagram caption, if there is one"
-                value={caption}
-                onChange={(change) => setCaption(change.target.value)}
-              />
-            </label>
-            {!caption && !flyer && (
-              <button type="button" onClick={() => setCaption(sampleCaption)} className="self-start text-venue font-semibold text-link underline">
-                Use a sample post
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-[10px]">
-              <Button
-                tone={speech.listening ? "primary" : "soft"}
-                disabled={!speech.supported}
-                onClick={() => (speech.listening ? speech.stop() : speech.start(spoken))}
-                aria-pressed={speech.listening}
-              >
-                {speech.listening ? "Stop" : "Tap to talk"}
-              </Button>
-              <span className="text-venue text-muted" aria-live="polite">
-                {speech.listening
-                  ? "Listening. Say what, where, and until when."
-                  : speech.supported
-                    ? "Or type it below."
-                    : "Voice needs Chrome or Safari here. Type it instead."}
-              </span>
-            </div>
-            {speech.error && <p className="text-venue text-ink">{speech.error}</p>}
-            <label className="block text-venue text-muted">
-              What you said
-              <textarea
-                rows={3}
-                className={`${fieldClass} mt-[3px] resize-y`}
-                placeholder="Leftover pizza in the Stata lobby until 3, come grab it"
-                value={spoken}
-                onChange={(change) => setSpoken(change.target.value)}
-              />
-            </label>
-          </>
-        )}
-
-        <Button tone="primary" disabled={!canSend || reading} onClick={() => void draftIt()}>
-          {reading ? "Muse is reading it" : "Draft it with Muse"}
-        </Button>
-        </fieldset>
       </section>
 
       {reading && !handoff && (

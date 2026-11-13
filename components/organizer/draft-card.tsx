@@ -290,7 +290,7 @@ export function DraftCard({
     const { event, alert, updated } = publish;
     return (
       <section aria-live="polite" className="rounded-card border border-hairline bg-card p-[14px]">
-        <p className="font-display text-meta font-bold tracking-[0.04em] text-muted uppercase">{updated ? "Updated" : "Published"}</p>
+        <p className="font-display text-meta font-bold text-muted">{updated ? "Updated" : "Published"}</p>
         <h2 className="mt-[4px] font-display text-title font-bold">{event.title}</h2>
         <p className="mt-[6px] text-body text-muted">
           {updated
@@ -330,7 +330,7 @@ export function DraftCard({
 
   return (
     <section aria-label={heading} className="rounded-card border border-hairline bg-card px-[14px] pt-[12px] pb-[14px]">
-      <p className="font-display text-meta font-bold tracking-[0.04em] text-muted uppercase">{heading}</p>
+      <p className="font-display text-meta font-bold text-muted">{heading}</p>
 
       {showRepost && (
         <div className="mt-[10px] rounded-[8px] bg-primary-soft px-[10px] py-[9px] text-body">

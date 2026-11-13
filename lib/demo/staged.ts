@@ -18,6 +18,15 @@ export function isStagedScreen(pathname: string | null): boolean {
   return pathname !== null && STAGED_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
 }
 
+// Screens that never mount the nearby alert opt-in: every /demo screen, Lisa's
+// no-account invite, and the first curate visit, where nobody has an account yet.
+const NO_NEARBY_ROOTS = ["/demo", "/invite", "/curate"];
+
+/** True where the nearby alert watcher and its opt-in banner must not mount. */
+export function hidesNearbyOptIn(pathname: string | null): boolean {
+  return pathname !== null && NO_NEARBY_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
+}
+
 // The one event the demo follows, as the organizer posts it: the story's own
 // data (lib/demo/story-data.ts), so the flyer, the post, and the event match.
 export const STORY_POST = { ...STORY, organizer: STORY_ORGANIZER } as const;

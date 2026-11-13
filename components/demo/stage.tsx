@@ -282,11 +282,11 @@ export function Stage() {
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-wash text-ink">
       {beat.kind === "slide" ? (
         <section className="flex flex-1 flex-col justify-center gap-6 px-[8vw]">
-          <p className="font-display text-[clamp(16px,1.6vw,26px)] font-bold tracking-[0.06em] text-muted uppercase">
+          <p className="font-display text-[clamp(16px,1.6vw,26px)] font-bold text-muted">
             {ACT_LABELS[beat.act]}
           </p>
           <h1 className="font-display text-[clamp(44px,6vw,104px)] leading-[1.02] font-extrabold tracking-[-0.02em]">{beat.title}</h1>
-          <p className="max-w-[28ch] font-display text-[clamp(26px,2.8vw,48px)] leading-[1.15] font-bold text-muted">
+          <p className="max-w-[28ch] text-[clamp(26px,2.8vw,48px)] leading-[1.25] font-medium text-muted">
             {beat.caption}
           </p>
         </section>
@@ -313,7 +313,7 @@ export function Stage() {
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-5">
-            <p className="font-display text-[clamp(14px,1.4vw,22px)] font-bold tracking-[0.06em] text-muted uppercase">
+            <p className="font-display text-[clamp(14px,1.4vw,22px)] font-bold text-muted">
               {ACT_LABELS[beat.act]}
             </p>
             <span className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-4 py-1.5 font-display text-[clamp(16px,1.5vw,24px)] font-bold text-link">
@@ -321,7 +321,7 @@ export function Stage() {
               {personaCaption(beat.persona)}
             </span>
             <h1 className="font-display text-[clamp(30px,3.4vw,60px)] leading-[1.05] font-extrabold tracking-[-0.01em]">{beat.title}</h1>
-            <p className="max-w-[26ch] font-display text-[clamp(22px,2.3vw,40px)] leading-[1.2] font-bold text-muted">{beat.caption}</p>
+            <p className="max-w-[26ch] text-[clamp(22px,2.3vw,40px)] leading-[1.3] font-medium text-muted">{beat.caption}</p>
           </div>
         </section>
       )}
