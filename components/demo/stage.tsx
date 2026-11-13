@@ -81,15 +81,17 @@ function readToken(): string {
 }
 
 // Fit a 390 by 844 phone into the stage at any projector size: as tall as the
-// window allows, with room above and below. On a narrow window the words stack under it.
+// window allows, with room above and below. Under 640 px the words stack under it.
 function subscribeToResize(onChange: () => void) {
   window.addEventListener("resize", onChange);
   return () => window.removeEventListener("resize", onChange);
 }
 const phoneScale = () => {
   const byHeight = (window.innerHeight - FOOTER_HEIGHT - 48 - BEZEL * 2) / PHONE_HEIGHT;
-  if (window.innerWidth < 768) return Math.min(byHeight * 0.55, (window.innerWidth - 32 - BEZEL * 2) / PHONE_WIDTH);
-  return Math.min(byHeight, (window.innerWidth * 0.44 - BEZEL * 2) / PHONE_WIDTH);
+  // Stacked under 640 px: the phone takes most of the height, the words sit below it.
+  if (window.innerWidth < 640) return Math.min(byHeight * 0.64, (window.innerWidth - 32 - BEZEL * 2) / PHONE_WIDTH);
+  // Side by side: the phone up to about half the width, the words beside it.
+  return Math.min(byHeight, (window.innerWidth * 0.48 - BEZEL * 2) / PHONE_WIDTH);
 };
 
 async function fetchStoryEvent(): Promise<{ id: string; error: null } | { id: null; error: string }> {
@@ -368,16 +370,16 @@ export function Stage() {
   const cast = castOf(beat.persona);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-page text-ink">
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-clip bg-page text-ink">
       {beat.kind === "slide" || beat.kind === "film" ? (
         <section className="flex min-h-0 flex-1 flex-col justify-center gap-[3vh] px-[8vw]">
           <h1 className="font-display text-[clamp(44px,6.2vw,104px)] leading-[1.02] font-bold tracking-[-0.02em]">{beat.title}</h1>
           <p className="max-w-[30ch] text-[clamp(22px,2.3vw,40px)] leading-[1.3] font-medium text-muted">{beat.caption}</p>
         </section>
       ) : (
-        <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[24px] px-[16px] py-[24px] md:flex-row md:gap-[5vw] md:px-[6vw]">
+        <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[20px] px-[16px] py-[24px] sm:flex-row sm:gap-[4vw] sm:px-[4vw]">
           <div
-            className="relative shrink-0 overflow-hidden rounded-[52px] bg-card shadow-[0_18px_50px_rgba(0,0,0,0.18)]"
+            className="relative shrink-0 overflow-clip rounded-[52px] bg-card shadow-[0_18px_50px_rgba(0,0,0,0.18)]"
             style={{ width: PHONE_WIDTH * scale + BEZEL * 2, height: PHONE_HEIGHT * scale + BEZEL * 2, border: `${BEZEL}px solid #1c1e21` }}
           >
             <div className="relative" style={{ width: PHONE_WIDTH, height: PHONE_HEIGHT, transform: `scale(${scale})`, transformOrigin: "top left" }}>
