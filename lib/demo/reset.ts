@@ -24,9 +24,11 @@ export const DEMO_STATE_PREFIXES = [
   "social-going:",
   "social-comments:",
   "social-hellos",
-  // The curate answer each viewer shares between the stage and their phone (lib/curate/cache.ts).
-  "curate-cache:",
-  "claim:curate-cache:",
+  // Answers the stage and a phone share (curate, who to go with): lib/store/shared-answer.ts.
+  "shared-answer:",
+  "claim:shared-answer:",
+  // One hello written per person per event, whichever screen asks (app/api/social/hello).
+  "claim:hello-write:",
   // Invites already sent (app/api/social/invites dedupe), so a rehearsal right after a reset sends again.
   "claim:invite:",
   // What a presenter said on the Muse card and Muse's answer (lib/demo/said.ts), kept per run.

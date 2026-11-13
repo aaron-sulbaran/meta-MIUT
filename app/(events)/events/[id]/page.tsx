@@ -20,7 +20,7 @@ export default async function EventPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string; auto?: string }>;
+  searchParams: Promise<{ from?: string; auto?: string; hi?: string }>;
 }) {
   await connection();
   const { id } = await params;
@@ -28,6 +28,8 @@ export default async function EventPage({
   const fromAsk = query.from === "ask";
   // ?auto=1 (the demo's U3d): Muse is asked who to go with as the page opens.
   const autoAsk = query.auto === "1";
+  // ?hi=1 (the demo's U3e): say hi to the people Muse suggests, unless this person already did.
+  const autoSayHi = query.hi === "1";
   const event = await getEventStore().getEvent(id);
   if (!event) notFound();
   const now = new Date();
@@ -62,7 +64,7 @@ export default async function EventPage({
 
       {/* One going button under the title, like Facebook's action row (RSVP on
           RSVP events; no Interested, lisa), then Who's going. */}
-      <WhosGoing initial={who} rsvp={rsvp} seats={seats} autoAsk={autoAsk} />
+      <WhosGoing initial={who} rsvp={rsvp} seats={seats} autoAsk={autoAsk} autoSayHi={autoSayHi} />
 
       <Divider />
 
