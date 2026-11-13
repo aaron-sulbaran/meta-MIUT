@@ -4,6 +4,7 @@ import { EventFeed } from "@/components/events/event-feed";
 import { TopPicks, TopPicksSkeleton } from "@/components/events/top-picks";
 import { ListTopBar, type ListChip } from "@/components/map/list-top-bar";
 import { AppSwitch } from "@/components/demo/app-switch";
+import { FirstVisit } from "@/components/curate/first-visit";
 import { MapHome, MapHomeSkeleton } from "@/components/map/map-home";
 import { ListMuseMenu, MuseHeaderButton } from "@/components/map/muse-menu";
 import { ViewToggle } from "@/components/map/view-toggle";
@@ -25,11 +26,13 @@ import { getEventStore } from "@/lib/events/store";
 // scripted re-plan line on its own, as typed text; the real ask call still runs.
 // ?reveal=wait (the stage loading U1b ahead) holds Muse's reveal until the stage posts {type: "reveal"}.
 // ?first=1 is a first visit to Events (the demo's U3b, opened from Instagram with ?opened=instagram,
-// which plays the app switch): the Muse card curates her top events over the map.
+// which plays the app switch): the plain map, then Muse asks before building her feed
+// (components/curate/first-visit.tsx, &step=ask or &step=read to start further on), then
+// the List (?view=list&first=1) with her own Top 3.
 export default async function EventsTabPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string; reveal?: string; muse?: string; first?: string; opened?: string }>;
+  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string; auto?: string; reveal?: string; muse?: string; first?: string; opened?: string; step?: string }>;
 }) {
   await connection();
   const params = await searchParams;
@@ -37,6 +40,7 @@ export default async function EventsTabPage({
   const listChip: ListChip = params.chip === "free" ? "free" : "forYou";
   const now = new Date();
   const events = await getEventStore().listEvents();
+  const firstVisit = params.first === "1";
 
   return (
     <AppSwitch from={params.opened}>
@@ -66,11 +70,16 @@ export default async function EventsTabPage({
               autoAsk={params.auto === "1" ? REPLAN_LINE : null}
               holdReveal={params.reveal === "wait"}
               openAsk={params.muse === "ask"}
-              firstVisit={params.first === "1"}
               planAt={params.time && Number.isFinite(Date.parse(params.time)) ? params.time : null}
             />
           </Suspense>
           <ViewToggle view="map" overlay />
+          {firstVisit && (
+            <FirstVisit
+              startStep={params.step === "ask" || params.step === "read" ? params.step : null}
+              openedFromApp={params.opened === "instagram"}
+            />
+          )}
         </div>
       ) : (
         <>
@@ -86,7 +95,7 @@ export default async function EventsTabPage({
             showChips={false}
             topPicks={
               <Suspense fallback={<TopPicksSkeleton />}>
-                <TopPicks events={events} now={now} />
+                <TopPicks events={events} now={now} firstVisit={firstVisit} />
               </Suspense>
             }
           />

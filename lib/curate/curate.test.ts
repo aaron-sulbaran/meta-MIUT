@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { USER3_CONNECTORS } from "@/lib/curate/connectors";
-import { buildCurateRequest, curateCandidates, curateFixture, pinStory, type CurateOutput } from "@/lib/curate/curate";
+import { buildCurateRequest, curateCandidates, curateFixture, pinStory, sameKindOfNight, type CurateOutput } from "@/lib/curate/curate";
 import type { CampusEvent } from "@/lib/events/schema";
 
 const NOW = new Date("2026-11-13T18:00:00.000Z");
@@ -80,5 +80,44 @@ describe("curateFixture", () => {
     const fixture = curateFixture([film, yoga, story], USER3_CONNECTORS, "evt-demo-story");
     expect(fixture.picks).toHaveLength(3);
     expect(fixture.picks[0]?.eventId).toBe("evt-demo-story");
+  });
+});
+
+describe("three different picks", () => {
+  const storyFull = event("evt-demo-story", "Board Game Night + Free Dumplings", 1, { food: true, foodNote: "Dumplings", description: "board games dumplings" });
+  const copy = event("evt-copy", "Board Game Night + Free Dumplings", 2, { food: true, foodNote: "Dumplings", description: "board games dumplings" });
+  const stata = event("evt-stata", "Free Dumplings in the Stata Student Street", 1, { food: true, foodNote: "Dumplings", description: "dumplings late night food" });
+  const center = event("evt-center", "Dumpling Night in the Student Center", 2, { food: true, foodNote: "Dumplings", description: "dumplings food" });
+  const tea = event("evt-tea", "Board Games and Tea at Walker", 3, { description: "board games strategy" });
+  const shorts = event("evt-film", "Short Film Night", 4, { description: "film screening" });
+
+  it("lists a second copy of an event once, keeping the story's", () => {
+    const ids = curateCandidates([copy, storyFull, tea], NOW, "evt-demo-story").map((item) => item.id);
+    expect(ids).toContain("evt-demo-story");
+    expect(ids).not.toContain("evt-copy");
+  });
+
+  it("never repeats an event or a title, and the recorded feed is not three dumpling nights", () => {
+    const candidates = curateCandidates([storyFull, stata, center, tea, shorts], NOW, "evt-demo-story");
+    const recorded = curateFixture(candidates, USER3_CONNECTORS, "evt-demo-story");
+    const titles = recorded.picks.map((pick) => candidates.find((item) => item.id === pick.eventId)!.title);
+    expect(titles[0]).toBe("Board Game Night + Free Dumplings");
+    expect(new Set(titles).size).toBe(3);
+    expect(titles.filter((title) => /dumpling/i.test(title))).toHaveLength(1);
+  });
+
+  it("drops a repeated pick and pins the story first", () => {
+    const output: CurateOutput = { summary: "s", picks: [{ eventId: "evt-tea", reason: "a" }, { eventId: "evt-tea", reason: "b" }, { eventId: "evt-demo-story", reason: "c" }] };
+    const feed = pinStory(output, "evt-demo-story", [storyFull, tea, shorts]);
+    expect(feed.picks.map((pick) => pick.eventId)).toEqual(["evt-demo-story", "evt-tea"]);
+  });
+});
+
+describe("sameKindOfNight", () => {
+  it("catches near copies and repeated food nights, not different nights", () => {
+    expect(sameKindOfNight("Board Game Night + Free Dumplings", "Board Game Night")).toBe(true);
+    expect(sameKindOfNight("Free Dumplings in the Stata Student Street", "Dumpling Night in the Student Center")).toBe(true);
+    expect(sameKindOfNight("Board Game Night + Free Dumplings", "Board Games and Tea at Walker")).toBe(false);
+    expect(sameKindOfNight("Board Game Night + Free Dumplings", "Short Film Night in the Sidney-Pacific Lounge")).toBe(false);
   });
 });

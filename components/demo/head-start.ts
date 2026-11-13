@@ -10,10 +10,10 @@ import { flyerUrl, storyCaption } from "@/lib/demo/staged";
 // shares that one live call when it asks (lib/demo/head-start.ts). Once per run each:
 // - the organizer's act starts: Muse reads the story flyer (shown at O3)
 // - her post is live (O5): Muse plans the walk home (shown at U1b)
-// - Lisa's act is under way: Muse picks Trish's first events (shown at U3b)
+// Trish's first events feed has no head start: Muse reads nothing before she says yes.
 // Fire and forget: a head start that fails changes nothing, the screen asks as before.
 
-type Job = "flyer" | "walk-home" | "curate";
+type Job = "flyer" | "walk-home";
 
 // After O5 appears, give its screen a moment to list the story event before planning around it.
 const AFTER_POST_MS = 1500;
@@ -21,7 +21,6 @@ const AFTER_POST_MS = 1500;
 function jobFor(beat: Beat): Job | null {
   if (beat.act === "organizer" && (beat.id === "O1" || beat.id === "O2")) return "flyer";
   if (beat.id === "O5" || beat.id === "U1a") return "walk-home";
-  if (beat.act === "lisa" || beat.id === "U3a1" || beat.id === "U3a2") return "curate";
   return null;
 }
 
@@ -35,10 +34,8 @@ async function startJob(job: Job, now: Date): Promise<void> {
     const caption = storyCaption(now);
     body = { job, input: ready.error === null ? { caption, imageBase64: ready.data.base64, imageMediaType: ready.data.mediaType } : { caption } };
     if (ready.error === null) URL.revokeObjectURL(ready.data.previewUrl);
-  } else if (job === "walk-home") {
-    body = { job, at: now.toISOString() };
   } else {
-    body = { job };
+    body = { job, at: now.toISOString() };
   }
   await fetch("/api/demo/head-start", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 }

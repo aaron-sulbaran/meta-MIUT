@@ -104,8 +104,12 @@ export const HANDOFF = {
   // The screen moves between them in place, so each path must match its beat exactly.
   reels: (reel: number, sheet = false) => `${STAGED_PREFIX}/reels?reel=${reel}${sheet ? "&sheet=1" : ""}`,
   // U3b: Trish's first time in Events, opened from Instagram (the app switch plays): the real
-  // Events home, the map, with the Muse card curating her top events over it.
+  // Events home, the map. The onboarding (components/curate/first-visit.tsx) moves in place:
+  // U3b2 Muse asks to build her feed, U3b3 Muse reads her accounts, U3c her Top 3 on the List.
   firstEvents: withAppSwitch("/?first=1"),
+  firstEventsAsk: "/?first=1&step=ask",
+  firstEventsRead: "/?first=1&step=read",
+  firstEventsList: "/?view=list&first=1",
   // The curate step (t-s8eh), no longer in the demo.
   curate: "/curate",
   // U3b on the stage: curating starts on arrival, so the clicker is the one tap.

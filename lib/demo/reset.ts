@@ -3,6 +3,7 @@ import { getAlertFeed } from "@/lib/alerts/feed";
 import { getAttendanceStore } from "@/lib/attendance/store";
 import { getEventStore, type StoreResult } from "@/lib/events/store";
 import { PICKS_PREFIX } from "@/lib/muse/rank";
+import { CURATE_PICKS_PREFIX } from "@/lib/curate/picks";
 import { SAID_PREFIX } from "@/lib/demo/said";
 import { HEAD_START_PREFIX } from "@/lib/demo/head-start";
 import { clearInstanceMemory } from "@/lib/demo/instance-memory";
@@ -42,6 +43,8 @@ export const DEMO_STATE_PREFIXES = [
   PHONE_SEEN_PREFIX,
   // The story event's one publish alert per run (lib/events/publish.ts).
   `claim:${STORY_PUBLISH_CLAIM}`,
+  // A viewer's own first-visit picks, the Events list's Top 3 for them (lib/curate/picks.ts).
+  CURATE_PICKS_PREFIX,
 ] as const;
 
 export type DemoResetSummary = { events: number; clearedState: number; run: string; cleared: readonly string[] };
