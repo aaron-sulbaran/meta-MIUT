@@ -42,6 +42,8 @@ export type InterestMemory = {
   signalCount: number;
   topics: TopicInterest[];
   creators: CreatorAffinity[];
+  // Topics the student keeps skipping; a followed club alone can't put them back.
+  avoided?: string[];
 };
 
 export const DEMO_USER_ID = "sample-student";
@@ -183,6 +185,10 @@ export function buildInterestMemory(userId: string, signals: InstagramSignal[], 
       .filter(([, raw]) => raw > 0)
       .map(([handle, raw]) => ({ handle, score: round2(raw / topCreator) }))
       .sort((a, b) => b.score - a.score || a.handle.localeCompare(b.handle)),
+    avoided: [...topics.entries()]
+      .filter(([, tally]) => tally.raw < 0)
+      .map(([topic]) => topic)
+      .sort(),
   };
 }
 

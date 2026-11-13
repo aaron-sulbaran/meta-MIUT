@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChipRow, FilterChip, LocationChip } from "@/components/ui/chips";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { EventCard } from "@/components/events/event-card";
@@ -12,6 +12,7 @@ import {
   type EventChip,
 } from "@/components/events/chip-filter";
 import type { CampusEvent } from "@/lib/events/schema";
+import { FEED_FILTER_EVENT, type FeedFilter } from "@/lib/muse/types";
 
 /**
  * The chip row and the list it filters. `topPicks` is rendered by the server
@@ -32,6 +33,13 @@ export function EventFeed({
   const [chip, setChip] = useState<EventChip>("forYou");
   const visible = eventsForChip(events, chip, now);
 
+  // Ask Muse can switch the list ("show me what's free").
+  useEffect(() => {
+    const onFilter = (event: Event) => setChip((event as CustomEvent<FeedFilter>).detail);
+    window.addEventListener(FEED_FILTER_EVENT, onFilter);
+    return () => window.removeEventListener(FEED_FILTER_EVENT, onFilter);
+  }, []);
+
   return (
     <div>
       <ChipRow label="Filter events">
@@ -43,8 +51,10 @@ export function EventFeed({
         ))}
       </ChipRow>
 
-      {chip === "forYou" && topPicks}
-
+      {/* For you is only Muse's picks; the unfiltered list is under the other chips. */}
+      {chip === "forYou" ? (
+        topPicks
+      ) : (
       <section aria-labelledby="event-list-heading" className="pt-[21px]">
         <SectionHeading id="event-list-heading" title={EVENT_CHIP_HEADINGS[chip]} />
         <div className="mt-[7px] flex flex-col gap-[7.6px] px-3">
@@ -57,6 +67,7 @@ export function EventFeed({
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }

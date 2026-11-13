@@ -1,11 +1,13 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { AskBar } from "@/components/ask/ask-bar";
 import { EventFeed } from "@/components/events/event-feed";
 import { TopPicks, TopPicksSkeleton } from "@/components/events/top-picks";
 import { HeaderAction, SubPageHeader } from "@/components/ui/header";
 import { PlusSquareIcon, SearchIcon } from "@/components/ui/icons";
 import { CAMPUS_NAME } from "@/lib/brand";
 import { getEventStore } from "@/lib/events/store";
+import { RECORDED_QUESTION } from "@/lib/muse/fixtures/ask";
 
 export default async function EventsTabPage() {
   await connection();
@@ -25,6 +27,7 @@ export default async function EventsTabPage() {
           </>
         }
       />
+      <AskBar events={events} nowIso={now.toISOString()} placeholder={RECORDED_QUESTION} />
       <EventFeed
         events={events}
         nowIso={now.toISOString()}

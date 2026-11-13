@@ -37,6 +37,19 @@ describe("compileCandidates", () => {
     expect(likely.map((candidate) => candidate.eventId)).toEqual(["evt-yoga-tower"]);
   });
 
+  it("leaves out a followed club's event on a topic the student keeps skipping", () => {
+    const concert = { ...events[0]!, id: "evt-test-concert", title: "Jazz concert", description: "Live music.", food: false, organizer: { name: "Band", handle: "test_band" } };
+    const profile: StudentProfile = { ...student, follows: ["test_band"], interests: [] };
+    const skipped = buildInterestMemory(
+      "skipper",
+      [{ kind: "watch", at: now.toISOString(), topics: ["music"], watchSeconds: 2, videoSeconds: 40 }],
+      now,
+    );
+    expect(skipped.avoided).toEqual(["music"]);
+    expect(compileCandidates(profile, skipped, [concert], now)).toEqual([]);
+    expect(compileCandidates(profile, buildInterestMemory("fresh", [], now), [concert], now)).toHaveLength(1);
+  });
+
   it("skips events that are over", () => {
     const later = new Date(now.getTime() + 3 * 3_600_000);
     const likely = compileCandidates(student, getInterestMemory(undefined, now), events, later);
