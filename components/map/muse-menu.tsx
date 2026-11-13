@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 // Sprout, the Muse character (a Blender render), sits in the Events header
 // where the search icon was, as a full body with no circle (Lisa, hub t-94t4).
@@ -42,19 +42,32 @@ export function MuseFace({ size, className = "" }: { size: number; className?: s
 
 /** Sprout's whole body, no circle or background. */
 export function MuseBody({ size, className = "", animated = false }: { size: number; className?: string; animated?: boolean }) {
+  // If the wave cannot load (a dev server that has not picked up the new file,
+  // a stale deploy, an old browser), Sprout falls back to his still body
+  // rather than a broken-image icon.
+  const [failed, setFailed] = useState(false);
+  const ref = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    // An error before hydration fires no onError, so check once on mount.
+    const image = ref.current;
+    if (image && image.complete && image.naturalWidth === 0) setFailed(true);
+  }, []);
+  const wave = animated && !failed;
   const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={animated ? SPROUT_WAVE_SRC : SPROUT_BODY_SRC}
+      ref={ref}
+      src={wave ? SPROUT_WAVE_SRC : SPROUT_BODY_SRC}
       alt=""
       width={size}
       height={size}
       draggable={false}
+      onError={wave ? () => setFailed(true) : undefined}
       className={`block select-none object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] ${className}`}
       style={{ width: size, height: size }}
     />
   );
-  if (!animated) return img;
+  if (!wave) return img;
   // The wave plays nonstop unless the viewer asked for less motion.
   return (
     <picture>
