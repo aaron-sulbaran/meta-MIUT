@@ -4,10 +4,18 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, type ReactNode } from "react";
 
-// The pages this tab has visited inside the app, so a back arrow can return to
-// the page you came from. Kept in sessionStorage, which is per tab like history.
+// The main page of each section this tab visited (Home, or Events as map or list),
+// so a back arrow returns to the section you came from, not just the last page.
+// Kept in sessionStorage, which is per tab like history.
 const KEY = "nav-trail";
-let popped = false;
+
+function mainPage(pathname: string, search: URLSearchParams): string | null {
+  if (pathname === "/home") return "/home";
+  if (pathname === "/") return search.get("view") === "list" ? "/?view=list" : "/";
+  return null;
+}
+
+const section = (page: string) => (page === "/home" ? "home" : "events");
 
 function readTrail(): string[] {
   try {
@@ -20,26 +28,14 @@ function readTrail(): string[] {
 
 function TrailRecorder() {
   const pathname = usePathname();
-  const search = useSearchParams().toString();
+  const search = useSearchParams();
 
   useEffect(() => {
-    const onPop = () => {
-      popped = true;
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
-  useEffect(() => {
-    const here = search ? `${pathname}?${search}` : pathname;
-    const trail = readTrail();
-    if (trail.at(-1) !== here) {
-      if (popped && trail.at(-2) === here) trail.pop();
-      else trail.push(here);
-    }
-    popped = false;
+    const page = mainPage(pathname, search);
+    if (!page) return;
+    const trail = readTrail().filter((item) => section(item) !== section(page));
     try {
-      sessionStorage.setItem(KEY, JSON.stringify(trail.slice(-50)));
+      sessionStorage.setItem(KEY, JSON.stringify([...trail, page].slice(-2)));
     } catch {}
   }, [pathname, search]);
 
@@ -55,18 +51,23 @@ export function NavTrail() {
   );
 }
 
-/** Goes back to the previous page in the app; with none (a direct open), follows href. */
+/** Goes to the main page of the section you came from; on a main page, to the other section; with none (a direct open), follows href. */
 export function BackLink({ href, label, className, children }: { href: string; label: string; className?: string; children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   return (
     <Link
       href={href}
       aria-label={label}
       className={className}
       onClick={(event) => {
-        if (readTrail().length < 2) return;
+        const here = mainPage(pathname, new URLSearchParams(window.location.search));
+        const target = readTrail()
+          .filter((page) => !here || section(page) !== section(here))
+          .at(-1);
+        if (!target) return;
         event.preventDefault();
-        router.back();
+        router.push(target);
       }}
     >
       {children}
