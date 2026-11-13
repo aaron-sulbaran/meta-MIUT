@@ -193,7 +193,7 @@ export function FeedPosts() {
     const [next, ...rest] = queue;
     const hidden = shown.find((post) => post.id === id);
     if (!next || !hidden) return;
-    setShown(shown.map((post) => (post.id === id ? next : post)));
+    setShown([...shown.filter((post) => post.id !== id), next]);
     setQueue([...rest, hidden]);
   }
 
