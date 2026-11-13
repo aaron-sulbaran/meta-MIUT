@@ -3,7 +3,7 @@ import type { StudentProfile } from "@/lib/events/schema";
 import { loadSeedEvents, loadSeedStudent } from "@/lib/events/seed";
 import { compileCandidates, scheduleClash } from "@/lib/muse/candidates";
 import { buildInterestMemory, getInterestMemory, resetInterestMemory } from "@/lib/muse/memory";
-import { personalizeEvents, soonestFirst } from "@/lib/muse/rank";
+import { forYouOrder, personalizeEvents, soonestFirst } from "@/lib/muse/rank";
 import { isInWindow } from "@/lib/events/time";
 
 // Thursday 10:00 in Austin.
@@ -11,6 +11,33 @@ const now = new Date("2026-11-12T16:00:00.000Z");
 const events = loadSeedEvents(now);
 const student = loadSeedStudent();
 const byId = (id: string) => events.find((event) => event.id === id)!;
+
+describe("For you list", () => {
+  it("reaches past this week when asked", () => {
+    const climbing = byId("evt-climbing-gregory");
+    const day = 24 * 60 * 60 * 1000;
+    const far = {
+      ...climbing,
+      id: "evt-far",
+      start: new Date(now.getTime() + 10 * day).toISOString(),
+      end: new Date(now.getTime() + 10 * day + 2 * 60 * 60 * 1000).toISOString(),
+    };
+    const memory = getInterestMemory(undefined, now);
+    expect(compileCandidates(student, memory, [far], now)).toEqual([]);
+    expect(compileCandidates(student, memory, [far], now, "upcoming")).toHaveLength(1);
+  });
+
+  it("keeps every upcoming event, the likely ones first, minus the skipped ones", () => {
+    const likely = compileCandidates(student, getInterestMemory(undefined, now), events, now, "upcoming");
+    const skip = new Set([likely[0]!.eventId]);
+    const list = forYouOrder(likely, events, now, skip);
+    const upcoming = events.filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime());
+    expect(list).toHaveLength(upcoming.length - 1);
+    expect(list.map((event) => event.id)).not.toContain(likely[0]!.eventId);
+    expect(list[0]!.id).toBe(likely[1]!.eventId);
+    expect(list.map((event) => event.id)).toContain("evt-yoga-tower");
+  });
+});
 
 describe("compileCandidates", () => {
   afterEach(() => resetInterestMemory());

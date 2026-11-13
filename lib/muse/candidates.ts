@@ -109,6 +109,7 @@ export function compileCandidates(
   memory: InterestMemory,
   events: CampusEvent[],
   now: Date,
+  window: "week" | "upcoming" = "week",
 ): LikelyEvent[] {
   const remembered = new Map(memory.topics.map((topic) => [topic.topic, topic]));
   const creators = new Map(memory.creators.map((creator) => [creator.handle, creator.score]));
@@ -122,7 +123,11 @@ export function compileCandidates(
   const from = origin(profile);
 
   return events
-    .filter((event) => event.status === "published" && isInWindow(event, "week", now))
+    .filter(
+      (event) =>
+        event.status === "published" &&
+        (window === "week" ? isInWindow(event, "week", now) : Date.parse(event.end) > now.getTime()),
+    )
     .flatMap((event) => {
       const text = eventText(event);
       const ageLimit = minimumAge(text);
