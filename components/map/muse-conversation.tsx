@@ -1277,7 +1277,8 @@ export function MuseConversation({
           })
         ) : showRoute && shownRoute && end ? (
           <>
-            <StartRow leave={clock(new Date(startMs).toISOString())} />
+            {/* A meet-up is one row (the event); a walk starts from her location, as in the planner. */}
+            {shownRoute.stops.length > 0 && <StartRow leave={clock(new Date(startMs).toISOString())} />}
             {shownRoute.stops.map((stop, index) => (
               <StopRow
                 key={`${routeKey}-${stop.title}`}
