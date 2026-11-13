@@ -2,7 +2,8 @@ import "server-only";
 import { z } from "zod";
 import { PHONE_CAST, beatCast, decidePhoneMove, type PhoneMove } from "@/lib/demo/beat-context";
 import { BEATS, type CastId } from "@/lib/demo/beats";
-import { loadState, saveState } from "@/lib/store/state";
+import { loadState, noteRun, saveState } from "@/lib/store/state";
+import { newRunId } from "@/lib/demo/run";
 
 // Where the /demo stage is: one small record (its beat) in the shared store, so
 // a phone remote (/demo/remote) can move the show and the laptop stage follows
@@ -13,8 +14,9 @@ import { loadState, saveState } from "@/lib/store/state";
 // the laptop alone or a phone on the laptop's dev server. On Vercel, phones and
 // the laptop reach different instances, so the remote needs Redis there.
 //
-// Not cleared by the demo reset on purpose: the reset sends the stage to the
-// first beat, which writes a new record anyway.
+// The record also names the run (lib/demo/run.ts): a fresh run (the demo reset)
+// writes a new record on the first beat with a new run id, and every screen that
+// sees the id change starts over. Moves keep the run they were made in.
 
 export const StagePositionSchema = z.object({
   index: z.number().int().min(0),
@@ -22,6 +24,13 @@ export const StagePositionSchema = z.object({
   // reader acts only on moves newer than the last one it saw.
   seq: z.number().int(),
   at: z.string(),
+  // The run this record belongs to, when it started, the last real move (not a deck
+  // step or a phone signal), and the furthest beat reached, for the stale-run warning.
+  // Optional, so records from before runs still parse (they read as an old run).
+  run: z.string().optional(),
+  runAt: z.string().optional(),
+  movedAt: z.string().optional(),
+  furthest: z.number().int().min(0).optional(),
   // The step a deck beat is on (the stage reports it from the deck's "step"
   // message), so a phone can show that step's presenter notes. Belongs to beat
   // `index` only: any move drops it. Optional, so older records still parse.
@@ -109,6 +118,7 @@ export async function reportPhoneSignal(report: PhoneSignal, now = new Date()) {
 export function applyDeckStep(current: StagePosition | null, report: DeckStep, now: Date): StagePosition | null {
   if ((current?.index ?? 0) !== report.at) return null;
   return {
+    ...runFields(current, report.at, now, false),
     index: report.at,
     seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
     at: now.toISOString(),
@@ -118,6 +128,15 @@ export function applyDeckStep(current: StagePosition | null, report: DeckStep, n
 }
 
 const STATE_NAME = "demo-stage";
+
+/** The run fields a new record carries over: same run, and (for a real move) the move's time and furthest beat. */
+function runFields(current: StagePosition | null, index: number, now: Date, moved: boolean) {
+  const run = current?.run ?? newRunId(now);
+  const runAt = current?.runAt ?? now.toISOString();
+  const movedAt = moved ? now.toISOString() : (current?.movedAt ?? current?.at ?? now.toISOString());
+  const furthest = Math.max(current?.furthest ?? current?.index ?? 0, moved ? index : 0);
+  return { run, runAt, movedAt, furthest };
+}
 const memory = globalThis as typeof globalThis & { __demoStagePosition?: StagePosition };
 
 /** The position after a move, clamped to the beats that exist. A deck step stays only while the beat does. */
@@ -126,6 +145,7 @@ export function applyMove(current: StagePosition | null, move: StageMove, beatCo
   const wanted = move.action === "goto" ? move.index : move.action === "next" ? from + 1 : from - 1;
   const index = Math.max(0, Math.min(beatCount - 1, wanted));
   return {
+    ...runFields(current, index, now, true),
     index,
     seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
     at: now.toISOString(),
@@ -168,6 +188,30 @@ export async function reportDeckStep(report: DeckStep, now = new Date()): Promis
   return { data: await savePosition(next), recorded: true };
 }
 
+/**
+ * A fresh run: a new record on the first beat with a new run id, so every stage,
+ * phone, remote and console sees the id change and starts over (lib/demo/reset.ts).
+ */
+export async function startRun(now = new Date()): Promise<StagePosition> {
+  const current = await readStored();
+  const run = newRunId(now);
+  noteRun(run);
+  return savePosition({
+    index: 0,
+    seq: Math.max(now.getTime(), (current?.seq ?? 0) + 1),
+    at: now.toISOString(),
+    run,
+    runAt: now.toISOString(),
+    movedAt: now.toISOString(),
+    furthest: 0,
+  });
+}
+
+/** Forgets this instance's phone check-ins (a fresh run; the stored ones go by prefix). */
+export function resetPhonesSeen(): void {
+  stamps.__demoPhoneSeen = {};
+}
+
 export async function moveStage(move: StageMove, now = new Date()): Promise<StagePosition> {
   return savePosition(applyMove(await readStored(), move, BEATS.length, now));
 }
@@ -200,7 +244,8 @@ const PHONE_STAMP_MS = 15_000;
 export const PHONE_CONNECTED_MS = 40_000;
 const PhoneSeenSchema = z.object({ at: z.string() });
 const stamps = globalThis as typeof globalThis & { __demoPhoneSeen?: Partial<Record<CastId, string>> };
-const phoneState = (cast: CastId) => `demo-phone-seen:${cast}`;
+export const PHONE_SEEN_PREFIX = "demo-phone-seen:";
+const phoneState = (cast: CastId) => `${PHONE_SEEN_PREFIX}${cast}`;
 
 export async function stampPhone(cast: CastId, now = new Date()): Promise<void> {
   const seen = (stamps.__demoPhoneSeen ??= {});

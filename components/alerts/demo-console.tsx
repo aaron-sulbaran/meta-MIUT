@@ -47,7 +47,6 @@ export function DemoConsole({ events, backend }: { events: EventOption[]; backen
   const router = useRouter();
   const [eventId, setEventId] = useState(events[0]?.id ?? "");
   const [kind, setKind] = useState<AlertKind>("free_food_nearby");
-  const [token, setToken] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -126,32 +125,6 @@ export function DemoConsole({ events, backend }: { events: EventOption[]; backen
           onClick={() => run("Send alert", () => postJson("/api/alerts", { eventId, kind }))}
         >
           Send alert
-        </button>
-      </section>
-
-      <section className="flex flex-col gap-2 rounded-lg bg-card p-4">
-        <h3 className="text-[15px] font-semibold">Reset the demo</h3>
-        <p className="text-[13px] text-muted">
-          Fresh seed events with times relative to now; clears stored alerts. On the deployed site it needs the demo
-          token.
-        </p>
-        <input
-          type="password"
-          autoComplete="off"
-          placeholder="Demo token (deployed site only)"
-          className={fieldClass}
-          value={token}
-          onChange={(change) => setToken(change.target.value)}
-        />
-        <button
-          type="button"
-          disabled={busy}
-          className={buttonClass}
-          onClick={() =>
-            run("Reset", () => postJson("/api/demo/reset", {}, token.trim() ? { "x-demo-token": token.trim() } : {}))
-          }
-        >
-          Reset demo data
         </button>
       </section>
 

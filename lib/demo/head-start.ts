@@ -6,7 +6,7 @@ import { isStoryCaption } from "@/lib/demo/story-fixtures";
 import { WALK_HOME } from "@/lib/demo/walk-home";
 import { readStagePosition } from "@/lib/demo/stage-position";
 import { withoutMuse } from "@/lib/muse/client";
-import { claimOnce, loadState, saveState } from "@/lib/store/state";
+import { claimOnce, followRun, loadState, saveState } from "@/lib/store/state";
 
 // A head start for the demo's three slow live Muse moments (the flyer read at O3, the
 // walk home at U1b, Trish's first Events map at U3b). The stage knows what comes next,
@@ -85,6 +85,8 @@ async function sharedCall<Body extends SharedBody>(
   run: () => Promise<Body>,
   now: number,
 ): Promise<{ answer: Promise<Answer<Body>>; how: HowAnswered }> {
+  // A new run drops what this instance kept from the last one (lib/store/state.ts followRun).
+  await followRun();
   const held = running().get(key);
   if (held && fresh(held.at, now)) return { answer: held.answer as Promise<Answer<Body>>, how: "joined" };
 

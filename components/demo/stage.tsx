@@ -13,6 +13,7 @@ import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Bea
 import { beatCast, beatScreen, inFrameMessage, stageOnLoad, nextActStart } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
 import { phoneChromeFor } from "@/lib/demo/phone-chrome";
+import { clearClientDemoState, isStaleRun, lastMoveLabel, requestFreshRun } from "@/lib/demo/run";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
@@ -41,7 +42,6 @@ const CARD_FADE_PCT = Math.round((PERSON_CARD_FADE_MS / PERSON_CARD_MS) * 100);
 // A cut between screens: a cross-fade showed two different screens half over each other.
 const FADE_MS = 0;
 const CHANNEL = "demo-stage";
-const TOKEN_KEY = "demo-reset-token";
 
 // deck-step tells the console (same browser) which deck step is on, for its notes.
 type StageMessage = { type: "goto"; index: number } | { type: "reset" } | { type: "deck-step"; beatId: string; step: number };
@@ -49,7 +49,7 @@ type StageMessage = { type: "goto"; index: number } | { type: "reset" } | { type
 type MoveSource = "local" | "channel" | "remote";
 // The shared stage record: where the show is, a deck's step, and what the presenter's phone heard.
 type StageSignal = { from: string; kind: "listening" | "said" | "failed"; on?: boolean; text?: string; at: string };
-type StagePosition = { index: number; seq: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
+type StagePosition = { index: number; seq: number; run?: string; at?: string; movedAt?: string; furthest?: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
 
 const POSITION_URL = "/api/demo/stage";
 
@@ -90,14 +90,6 @@ function setPersonaCookie(persona: PersonaId | null) {
   document.cookie = persona
     ? `${PERSONA_COOKIE}=${encodeURIComponent(persona)}; path=/; SameSite=Lax`
     : `${PERSONA_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
-}
-
-function readToken(): string {
-  try {
-    return window.sessionStorage.getItem(TOKEN_KEY) ?? "";
-  } catch {
-    return "";
-  }
 }
 
 // Fit a 390 by 844 phone into the stage at any projector size: as tall as the
@@ -214,6 +206,16 @@ export function Stage() {
   // The newest stage move this window has seen in the store, and its own beat, for the remote.
   const lastSeqRef = useRef(0);
   const indexRef = useRef(0);
+  // The run on screen (lib/demo/run.ts): a new id in the record means a fresh run started somewhere.
+  const runRef = useRef<string | null>(null);
+  // startOver (below), for the store poll, which starts before it is defined.
+  const startOverRef = useRef<() => void>(() => {});
+  // The quiet fresh-run control on the first beat: shown until the show leaves it.
+  const [leftStart, setLeftStart] = useState(false);
+  const [staleNote, setStaleNote] = useState<string | null>(null);
+  const [confirmFresh, setConfirmFresh] = useState(false);
+  // Counts fresh runs seen here, so the opening deck restarts from its first step.
+  const [runCount, setRunCount] = useState(0);
 
   const beat: Beat = BEATS[index] ?? BEATS[0]!;
 
@@ -269,6 +271,7 @@ export function Stage() {
       }
       indexRef.current = clamped;
       setIndex(clamped);
+      if (clamped > 0) setLeftStart(true);
       if (source !== "channel") channelRef.current?.postMessage({ type: "goto", index: clamped } satisfies StageMessage);
       if (source === "local") {
         void writePosition(clamped).then((position) => {
@@ -295,6 +298,9 @@ export function Stage() {
     let poll: StagePoll | undefined;
     const start = async () => {
       const stored = await readPosition();
+      runRef.current = stored?.run ?? null;
+      clearClientDemoState(stored?.run);
+      if (stored && isStaleRun(stored)) setStaleNote(`This is an old run, last moved ${lastMoveLabel(stored)}.`);
       const onLoad = stageOnLoad(stored);
       if (stored && onLoad.kind === "join") {
         lastSeqRef.current = Math.max(lastSeqRef.current, stored.seq);
@@ -308,6 +314,14 @@ export function Stage() {
       if (stopped) return;
       poll = startStagePoll(async () => {
         const position = await readPosition();
+        // A fresh run started from the console, the remote, or another stage tab: start over here too.
+        if (!stopped && position?.run && position.run !== runRef.current) {
+          runRef.current = position.run;
+          clearClientDemoState(position.run);
+          lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
+          startOverRef.current();
+          return 0;
+        }
         if (!stopped && position && position.seq > lastSeqRef.current) {
           lastSeqRef.current = position.seq;
           if (position.index !== indexRef.current) goTo(position.index, "remote");
@@ -445,38 +459,44 @@ export function Stage() {
   const deckEnd = useCallback(() => goTo(indexRef.current + 1, "local", true), [goTo]);
   const deckStart = useCallback(() => goTo(indexRef.current - 1, "local", true), [goTo]);
 
-  const resetDemo = useCallback(async () => {
-    setStatus("Resetting the demo");
-    let token = readToken();
-    let response = await fetch("/api/demo/reset", {
-      method: "POST",
-      headers: token ? { "x-demo-token": token } : {},
-    }).catch(() => null);
-    if (response?.status === 403) {
-      token = window.prompt("Demo reset token") ?? "";
-      try {
-        window.sessionStorage.setItem(TOKEN_KEY, token);
-      } catch {
-        // Private window: ask again next time.
-      }
-      response = await fetch("/api/demo/reset", { method: "POST", headers: { "x-demo-token": token } }).catch(() => null);
-    }
-    if (!response?.ok) {
-      setStatus("Reset failed; the demo data was not changed");
-      return;
-    }
+  // Back to the first beat of a new run: a fresh clock, no screens, no story event yet.
+  const startOver = useCallback(() => {
     setRunStartedAt(demoClock());
     personaRef.current = undefined;
     locationRef.current = null;
     lastCastRef.current = null;
+    spokenRef.current = false;
+    lastSignalRef.current = null;
     setFrames([]);
+    setLoadedAhead([]);
+    setHandedOffTo(null);
     setStoryEventId(null);
-    setStatus(null);
-    goTo(0);
+    setLeftStart(false);
+    setStaleNote(null);
+    setConfirmFresh(false);
+    setRunCount((count) => count + 1);
+    goTo(0, "local", true);
   }, [goTo]);
+  useEffect(() => {
+    startOverRef.current = startOver;
+  }, [startOver]);
+
+  // The fresh run (Shift+R, or the quiet control on the first beat), with this browser's token.
+  const resetDemo = useCallback(async () => {
+    setStatus("Starting a fresh run");
+    const result = await requestFreshRun();
+    if (!result.ok) {
+      setStatus(result.needsToken ? `${result.message} Enter the token once on /demo/console.` : result.message);
+      return;
+    }
+    if (result.run) runRef.current = result.run;
+    clearClientDemoState(result.run ?? undefined);
+    startOver();
+    setStatus("Fresh run: nothing from earlier runs is left");
+  }, [startOver]);
 
   useEffect(() => {
-    if (!status || status === "Resetting the demo") return;
+    if (!status || status === "Starting a fresh run") return;
     const timer = setTimeout(() => setStatus(null), 6_000);
     return () => clearTimeout(timer);
   }, [status]);
@@ -560,7 +580,7 @@ export function Stage() {
     <div className={`fixed inset-0 z-[100] flex flex-col overflow-clip ${opening ? "bg-[#08090d] text-white" : "bg-page text-ink"}`}>
       {opening && !showDeck && !playFilm && beat.sections ? (
         openingChecked ? (
-          <SectionSlides key={`${beat.id}-${enteredBack}`} lines={beat.sections.map((section) => section.line)} startAtEnd={enteredBack} controls={filmRef} />
+          <SectionSlides key={`${beat.id}-${enteredBack}-${runCount}`} lines={beat.sections.map((section) => section.line)} startAtEnd={enteredBack} controls={filmRef} />
         ) : (
           <section className="flex-1" />
         )
@@ -623,7 +643,7 @@ export function Stage() {
       )}
 
       {showDeck && deck && <DeckHost
-          key={`${deck}-${enteredBack}`}
+          key={`${deck}-${enteredBack}-${runCount}`}
           src={deck}
           startAtEnd={enteredBack}
           controls={filmRef}
@@ -645,6 +665,27 @@ export function Stage() {
           <style>{`@keyframes stage-card{0%{opacity:0}${CARD_FADE_PCT}%{opacity:1}${100 - CARD_FADE_PCT}%{opacity:1}100%{opacity:0}}`}</style>
           <CastAvatar id={personCard} size={128} />
           <p className="font-display text-[clamp(28px,3.4vw,56px)] font-bold">Now: {castLine(personCard)}</p>
+        </div>
+      )}
+
+      {/* The fresh run, offered quietly on the first beat until the show moves on (Shift+R works anywhere). */}
+      {index === 0 && !leftStart && (
+        <div className="absolute right-3 bottom-3 z-30 flex items-center gap-2 text-[12px] text-white/45 hover:text-white/90">
+          {confirmFresh ? (
+            <>
+              <span>Clear every earlier run and start over?</span>
+              <button type="button" onClick={() => void resetDemo()} className="rounded-full bg-white/15 px-3 py-1 font-semibold text-white">
+                Start fresh
+              </button>
+              <button type="button" onClick={() => setConfirmFresh(false)} className="rounded-full px-2 py-1">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={() => setConfirmFresh(true)} className="rounded-full px-2 py-1">
+              {staleNote ? `${staleNote} Fresh run` : "Fresh run"}
+            </button>
+          )}
         </div>
       )}
 

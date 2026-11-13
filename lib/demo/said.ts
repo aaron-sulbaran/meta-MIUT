@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { readStagePosition } from "@/lib/demo/stage-position";
 import { loadState, saveState } from "@/lib/store/state";
 
 // The request a presenter really made on the Muse card in this run (spoken on the
@@ -20,6 +21,8 @@ export const SaidRecordSchema = z.object({
   by: z.enum(["voice", "typed"]),
   view: z.record(z.string(), z.unknown()),
   at: z.string().optional(),
+  // The run it was said in (lib/demo/run.ts). A record from another run is never shown.
+  run: z.string().optional(),
 });
 export type SaidRecord = z.infer<typeof SaidRecordSchema>;
 
@@ -30,12 +33,22 @@ export function viewFits(record: SaidRecord): boolean {
   return JSON.stringify(record.view).length <= MAX_VIEW_BYTES;
 }
 
+/** The record when it belongs to `run` (or there is no run yet), else null. */
+export function sameRun(record: SaidRecord | null | undefined, run: string | null | undefined): SaidRecord | null {
+  if (!record) return null;
+  if (!run) return record;
+  return record.run === run ? record : null;
+}
+
 export async function readSaid(viewerId: string): Promise<SaidRecord | null> {
-  return (await loadState(`${SAID_PREFIX}${viewerId}`, SaidRecordSchema)) ?? remembered().get(viewerId) ?? null;
+  const run = (await readStagePosition())?.run;
+  const stored = sameRun(await loadState(`${SAID_PREFIX}${viewerId}`, SaidRecordSchema), run);
+  return stored ?? sameRun(remembered().get(viewerId), run);
 }
 
 export async function writeSaid(viewerId: string, record: SaidRecord, now = new Date()): Promise<SaidRecord> {
-  const stored = { ...record, at: now.toISOString() };
+  const run = (await readStagePosition())?.run;
+  const stored = { ...record, at: now.toISOString(), ...(run ? { run } : {}) };
   remembered().set(viewerId, stored);
   await saveState(`${SAID_PREFIX}${viewerId}`, stored);
   return stored;

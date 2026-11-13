@@ -35,8 +35,10 @@ export function withStoryFlyer(event: CampusEvent): CampusEvent | null {
 
 const sameHandle = (event: CampusEvent) => event.organizer.handle.toLowerCase() === STORY_ORGANIZER.handle;
 
-/** The newest listed event from the story's organizer, or null. */
+/** The run's story event (every story publish lands on its one id), else the newest from its organizer, or null. */
 export function pickStoryEvent(events: CampusEvent[]): CampusEvent | null {
+  const story = events.find((event) => event.id === STORY_FALLBACK_ID);
+  if (story) return story;
   return events.filter(sameHandle).sort((first, second) => second.createdAt.localeCompare(first.createdAt))[0] ?? null;
 }
 

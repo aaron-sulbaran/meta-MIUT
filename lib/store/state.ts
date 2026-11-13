@@ -20,13 +20,69 @@ function client(): RedisClient | null {
 /** Tests swap in a fake client; undefined goes back to reading the environment. */
 export function setStateClient(next: RedisClient | null | undefined): void {
   globalState.__jsonStateClient = next;
+  runWatch.__demoRunWatch = undefined;
 }
 
 const keyFor = (name: string) => `${storeNamespace()}:state:${name}`;
 
+// The demo's run (lib/demo/run.ts): the id in the shared stage record ("demo-stage").
+// A fresh run clears the stored values everywhere, but each server instance also
+// holds copies in memory (social, Muse memory, kept answers). Before reading, an
+// instance checks the run at most every RUN_CHECK_MS; when it changed since the last
+// look, it drops every copy it holds (lib/demo/instance-memory.ts), so no instance
+// ever serves a screen something from an earlier run.
+export const RUN_RECORD = "demo-stage";
+export const RUN_CHECK_MS = 500;
+type RunWatch = { seen: string | null | undefined; checkedAt: number; pending: Promise<void> | null };
+const runWatch = globalThis as typeof globalThis & { __demoRunWatch?: RunWatch };
+const watch = () => (runWatch.__demoRunWatch ??= { seen: undefined, checkedAt: 0, pending: null });
+
+/** This instance started `run` itself (it already cleared its memory). */
+export function noteRun(run: string): void {
+  const state = watch();
+  state.seen = run;
+  state.checkedAt = Date.now();
+}
+
+function runIn(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  try {
+    const run = (JSON.parse(raw) as { run?: unknown } | null)?.run;
+    return typeof run === "string" ? run : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Drops this instance's in-memory demo state when the run changed. No-op without Redis. */
+export async function followRun(now = Date.now()): Promise<void> {
+  const redis = client();
+  if (!redis) return;
+  const state = watch();
+  if (state.pending) return state.pending;
+  if (now - state.checkedAt < RUN_CHECK_MS) return;
+  state.checkedAt = now;
+  state.pending = (async () => {
+    const reply = await redis.command(["GET", keyFor(RUN_RECORD)]);
+    if (reply.error !== null) return;
+    const run = runIn(reply.data);
+    if (state.seen !== undefined && run !== state.seen) {
+      const { clearInstanceMemory } = await import("@/lib/demo/instance-memory");
+      clearInstanceMemory();
+    }
+    state.seen = run;
+  })()
+    .catch(() => {})
+    .finally(() => {
+      state.pending = null;
+    });
+  return state.pending;
+}
+
 export async function loadState<T>(name: string, schema: z.ZodType<T>): Promise<T | null> {
   const redis = client();
   if (!redis) return null;
+  if (name !== RUN_RECORD) await followRun();
   const reply = await redis.command(["GET", keyFor(name)]);
   if (reply.error !== null || typeof reply.data !== "string") return null;
   try {

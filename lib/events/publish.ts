@@ -14,6 +14,19 @@ import {
 } from "@/lib/events/schema";
 import { loadSeedStudent } from "@/lib/events/seed";
 import { getEventStore, type EventStore, type StoreResult } from "@/lib/events/store";
+import { STORY_FALLBACK_ID, STORY_ORGANIZER } from "@/lib/demo/story-data";
+import { claimOnce } from "@/lib/store/state";
+
+// The demo's story event is one event per run: every publish from its organizer
+// (the organizer act, Back then Next, the stage and a phone both posting) lands on
+// the same id, and only the first sends the alert (cleared by the fresh run).
+export const STORY_PUBLISH_CLAIM = "story-publish";
+const STORY_CLAIM_SECONDS = 12 * 60 * 60;
+
+/** True when this draft is the demo's story event (its organizer's handle). */
+export function isStoryDraft(input: Pick<PublishEventInput, "organizer">): boolean {
+  return input.organizer.handle.trim().replace(/^@/, "").toLowerCase() === STORY_ORGANIZER.handle;
+}
 
 // What the organizer flow sends when the organizer taps Publish: the confirmed
 // draft plus a resolved place. The server fills id, status, and createdAt.
@@ -60,7 +73,14 @@ function newEventId(title: string, now: Date): string {
 // the student. The event is saved even if the alert fails.
 export async function publishEvent(
   input: PublishEventInput,
-  options: { now?: Date; store?: EventStore; feed?: AlertFeed; viewerLocation?: { lat: number; lng: number } } = {},
+  options: {
+    now?: Date;
+    store?: EventStore;
+    feed?: AlertFeed;
+    viewerLocation?: { lat: number; lng: number };
+    // Publish as the run's one story event (default: when the organizer is the story's).
+    story?: boolean;
+  } = {},
 ): Promise<StoreResult<PublishOutcome>> {
   const now = options.now ?? new Date();
   // One demo student, so the alert's walk minutes are measured from them.
@@ -68,15 +88,17 @@ export async function publishEvent(
   const store = options.store ?? getEventStore();
   const feed = options.feed ?? getAlertFeed();
 
+  const story = options.story ?? isStoryDraft(input);
   const saved = await store.upsertEvent({
     ...input,
-    id: newEventId(input.title, now),
+    id: story ? STORY_FALLBACK_ID : newEventId(input.title, now),
     status: "published",
     createdAt: now.toISOString(),
   });
   if (saved.error !== null) return { data: null, error: saved.error };
 
-  const kind = alertKindForPublishedEvent(saved.data);
+  const firstOfRun = !story || (await claimOnce(STORY_PUBLISH_CLAIM, STORY_CLAIM_SECONDS, now.getTime()));
+  const kind = !firstOfRun ? null : alertKindForPublishedEvent(saved.data);
   if (kind === null) return { data: { event: saved.data, alert: null, alertError: null }, error: null };
 
   const sent = await feed.publish(composeAlert(saved.data, kind, { now, viewerLocation }));
