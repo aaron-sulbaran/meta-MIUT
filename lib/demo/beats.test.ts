@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BEATS, STORY_DUE_AFTER } from "@/lib/demo/beats";
+import { inFrameMessage } from "@/lib/demo/beat-context";
 import { HANDOFF, LIVE_ACTIVITY_PATH, isStagedScreen } from "@/lib/demo/staged";
 
 const context = { storyEventId: "evt-story", now: new Date("2026-11-13T22:02:00Z") };
@@ -41,6 +42,19 @@ describe("demo beats", () => {
     expect(beat("U2e").path!(context)).toBe(HANDOFF.lisaStep("evt-story", "sample-student", "event"));
     expect(beat("U2f").path!(context)).toBe(HANDOFF.lisaJoined("evt-story", "sample-student"));
     expect(beat("U3d").path!(context)).toBe(HANDOFF.whosGoing("evt-story"));
+  });
+
+  it("walks Trish through three reels and the sheet in one screen, each beat moving it in place", () => {
+    expect(["U3a1", "U3a2", "U3a3", "U3a4"].map((id) => beat(id).path!(context))).toEqual([
+      "/demo/instagram/reels?reel=1",
+      "/demo/instagram/reels?reel=2",
+      "/demo/instagram/reels?reel=3",
+      "/demo/instagram/reels?reel=3&sheet=1",
+    ]);
+    expect(inFrameMessage(beat("U3a2"), HANDOFF.reels(1), context)).toEqual({ type: "demo-reel", reel: 2 });
+    expect(inFrameMessage(beat("U3a3"), HANDOFF.reels(2), context)).toEqual({ type: "demo-reel", reel: 3 });
+    expect(inFrameMessage(beat("U3a4"), HANDOFF.reels(3), context)).toEqual({ type: "demo-reel", reel: 3, sheet: true });
+    expect(inFrameMessage(beat("U3a3"), HANDOFF.reels(1), context)).toBeNull();
   });
 
   it("never needs the story event before the organizer has published it", () => {

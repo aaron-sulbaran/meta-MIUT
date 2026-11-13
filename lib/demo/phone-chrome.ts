@@ -26,6 +26,8 @@ const STAGED_CHROME: Record<StagedScreen, PhoneChrome> = {
   "instagram-new-post": { layout: "full-bleed", tone: "dark", showTime: true, background: "#ffffff" },
   "instagram-crosspost-prompt": { layout: "full-bleed", tone: "dark", showTime: true, background: "#ffffff" },
   "instagram-feed-prompt": { layout: "full-bleed", tone: "dark", showTime: true, background: "#ffffff" },
+  // Reels is dark: full-bleed video with white chrome.
+  "instagram-reels": { layout: "full-bleed", tone: "light", showTime: true, background: "#000000" },
   "invite-message": { layout: "full-bleed", tone: "dark", showTime: true, background: "#ffffff" },
   "live-activity": { layout: "full-bleed", tone: "light", showTime: false, background: "#10204a" },
 };
