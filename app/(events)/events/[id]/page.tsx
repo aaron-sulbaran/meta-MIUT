@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { ComponentType, ReactNode } from "react";
-import { EventActions } from "@/components/events/event-actions";
-import { WhosGoing } from "@/components/social/whos-going";
+import { EventShareAction } from "@/components/events/event-actions";
+import { LookingForCompany, WhosGoing } from "@/components/social/whos-going";
 import { posterKicker } from "@/components/events/event-card";
 import { SubPageHeader } from "@/components/ui/header";
-import { ClockIcon, FoodIcon, InstagramPostIcon, MapPinIcon, PeopleIcon, TicketIcon } from "@/components/ui/icons";
+import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon, TicketIcon } from "@/components/ui/icons";
 import { Poster } from "@/components/ui/poster";
 import { getEventStore } from "@/lib/events/store";
 import { formatDateLine, formatEventTime } from "@/lib/events/time";
@@ -20,10 +20,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const now = new Date();
   const viewer = demoViewer();
   await loadSocial([event.id]);
+  const who = whoIsGoing(event, viewer.id, viewer.interests);
+  const rsvp = event.access.kind === "rsvp";
 
   return (
     <>
-      <SubPageHeader title="Event" backHref="/" backLabel="Back to Events" />
+      <SubPageHeader title="Event" backHref="/" backLabel="Back to Events" actions={<EventShareAction event={event} />} />
       <Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />
 
       <section className="px-3 pt-[14px]">
@@ -32,14 +34,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <p className="mt-[4px] text-venue font-semibold text-ink">
           {event.place.name} · Hosted by {event.organizer.name}
         </p>
-        <div className="mt-[12px]">
-          <EventActions event={event} />
-        </div>
       </section>
 
       <Divider />
 
-      <WhosGoing initial={whoIsGoing(event, viewer.id, viewer.interests)} />
+      {/* One going button for every event (RSVP on RSVP events); no Interested (lisa). */}
+      <WhosGoing initial={who} rsvp={rsvp} capacity={rsvp ? event.access.capacity : undefined} showCompany={false} />
 
       <Divider />
 
@@ -64,23 +64,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         {event.description && <p className="mt-[14px] text-body">{event.description}</p>}
       </section>
 
-      <Divider />
-
-      <section aria-labelledby="source-heading" className="px-3">
-        <h2 id="source-heading" className="font-display text-title font-bold">
-          Where this came from
-        </h2>
-        {event.source.kind === "instagram" ? (
-          <div className="mt-[10px] rounded-card border border-hairline p-3">
-            <p className="flex items-center gap-[7px] font-display text-label font-bold">
-              <InstagramPostIcon className="h-[17px] w-[17px] shrink-0" />@{event.organizer.handle} on Instagram
-            </p>
-            {event.source.caption && <p className="mt-[6px] text-body">{event.source.caption}</p>}
-          </div>
-        ) : (
-          <p className="mt-[8px] text-body text-muted">Added by hand by the organizer.</p>
-        )}
-      </section>
+      {who.openToCompany.length > 0 && (
+        <>
+          <Divider />
+          <LookingForCompany initial={who} />
+        </>
+      )}
     </>
   );
 }
