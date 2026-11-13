@@ -1,16 +1,15 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import type { ComponentType, ReactNode } from "react";
 import { EventShareAction } from "@/components/events/event-actions";
+import { EventDetails } from "@/components/events/event-details";
 import { EventCommentsSection } from "@/components/social/event-comments";
 import { WhosGoing } from "@/components/social/whos-going";
 import { posterKicker } from "@/components/events/event-card";
 import { SubPageHeader } from "@/components/ui/header";
-import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon, TicketIcon } from "@/components/ui/icons";
 import { Poster } from "@/components/ui/poster";
 import { getAttendanceStore } from "@/lib/attendance/store";
 import { getEventStore } from "@/lib/events/store";
-import { formatDateLine, formatEventTime } from "@/lib/events/time";
+import { formatDateLine } from "@/lib/events/time";
 import { eventComments, loadComments } from "@/lib/social/comments";
 import { loadSocial, whoIsGoing } from "@/lib/social/going";
 import { currentViewer } from "@/lib/social/viewer";
@@ -68,26 +67,7 @@ export default async function EventPage({
 
       <Divider />
 
-      <section aria-labelledby="details-heading" className="px-3">
-        <h2 id="details-heading" className="font-display text-title font-bold">
-          Details
-        </h2>
-        <ul className="mt-[10px] flex flex-col gap-[12px]">
-          <DetailRow Icon={ClockIcon}>{formatEventTime(event, now)}</DetailRow>
-          <DetailRow Icon={MapPinIcon}>{event.place.name}</DetailRow>
-          <DetailRow Icon={TicketIcon}>
-            {event.free ? "Free" : "Paid entry"}
-            {event.access.kind === "rsvp"
-              ? event.access.capacity
-                ? `, RSVP required, ${event.access.capacity} spots`
-                : ", RSVP required"
-              : ", open to everyone"}
-          </DetailRow>
-          {event.food && <DetailRow Icon={FoodIcon}>{event.foodNote ?? "Food provided"}</DetailRow>}
-          <DetailRow Icon={PeopleIcon}>Hosted by {event.organizer.name}</DetailRow>
-        </ul>
-        {event.description && <p className="mt-[14px] text-body">{event.description}</p>}
-      </section>
+      <EventDetails event={event} now={now} />
 
       <Divider />
 
@@ -98,13 +78,4 @@ export default async function EventPage({
 
 function Divider() {
   return <div aria-hidden className="my-[18px] h-px bg-hairline" />;
-}
-
-function DetailRow({ Icon, children }: { Icon: ComponentType<{ className?: string }>; children: ReactNode }) {
-  return (
-    <li className="flex items-start gap-[12px] text-body font-medium">
-      <Icon className="mt-[-1px] h-[20px] w-[20px] shrink-0 text-muted" />
-      <span>{children}</span>
-    </li>
-  );
 }
