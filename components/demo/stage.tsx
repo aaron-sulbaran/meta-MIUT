@@ -36,7 +36,8 @@ const FADE_MS = 200;
 const CHANNEL = "demo-stage";
 const TOKEN_KEY = "demo-reset-token";
 
-type StageMessage = { type: "goto"; index: number } | { type: "reset" };
+// deck-step tells the console (same browser) which deck step is on, for its notes.
+type StageMessage = { type: "goto"; index: number } | { type: "reset" } | { type: "deck-step"; beatId: string; step: number };
 // Where a move came from: this window, another window on this browser, or the store (a phone remote).
 type MoveSource = "local" | "channel" | "remote";
 type StagePosition = { index: number; seq: number };
@@ -450,7 +451,8 @@ export function Stage() {
   const shownFrames: Frame[] = [...frames, ...aheadSrcs.map((src) => ({ src, key: prefetchKey(src), loaded: false, z: 0, prefetch: true }))];
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-clip bg-page text-ink">
+    // The opening is near-black like its decks (#08090D), with nothing over it; the skit is Facebook's white page.
+    <div className={`fixed inset-0 z-[100] flex flex-col overflow-clip ${opening ? "bg-[#08090d] text-white" : "bg-page text-ink"}`}>
       {opening && !showDeck && !playFilm && beat.sections ? (
         openingChecked ? (
           <SectionSlides key={`${beat.id}-${enteredBack}`} lines={beat.sections.map((section) => section.line)} startAtEnd={enteredBack} controls={filmRef} />
@@ -511,11 +513,21 @@ export function Stage() {
         </section>
       )}
 
-      <footer className="flex shrink-0 items-center justify-center px-[16px]" style={{ height: FOOTER_HEIGHT }}>
-        <StageProgress index={index} />
-      </footer>
+      {!opening && (
+        <footer className="flex shrink-0 items-center justify-center px-[16px]" style={{ height: FOOTER_HEIGHT }}>
+          <StageProgress index={index} />
+        </footer>
+      )}
 
-      {showDeck && deck && <DeckHost key={`${deck}-${enteredBack}`} src={deck} startAtEnd={enteredBack} controls={filmRef} onEnd={deckEnd} onStart={deckStart} />}
+      {showDeck && deck && <DeckHost
+          key={`${deck}-${enteredBack}`}
+          src={deck}
+          startAtEnd={enteredBack}
+          controls={filmRef}
+          onEnd={deckEnd}
+          onStart={deckStart}
+          onStep={(step) => channelRef.current?.postMessage({ type: "deck-step", beatId: beat.id, step } satisfies StageMessage)}
+        />}
       {playFilm && film && filmCues && <FilmPlayer key={film.video} src={film.video} cues={filmCues} controls={filmRef} />}
 
       {personCard && (

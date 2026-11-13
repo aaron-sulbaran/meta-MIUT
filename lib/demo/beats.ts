@@ -44,7 +44,7 @@ export type Beat = {
   staged?: StagedScreen;
   // A film beat's name: public/demo/films/<film>.mp4 and <film>.cues.json.
   film?: FilmName;
-  // A deck beat's name: public/demo/deck/<deck>/index.html.
+  // A deck beat's name: public/demo/deck/<deck>/index.html, notes in steps.json beside it.
   deck?: DeckName;
   // The opening's sections, in order: each one cue of the deck or film. `line` is
   // the fallback slide (the section's one bold line), `note` what the presenter says.
@@ -66,6 +66,13 @@ export type DeckName = "problem" | "muse";
 export function deckPath(deck: DeckName): string {
   return `/demo/deck/${deck}/index.html`;
 }
+
+/** A deck's presenter notes: an ordered array of {id, title, notes}, one per step. */
+export function deckStepsPath(deck: DeckName): string {
+  return `/demo/deck/${deck}/steps.json`;
+}
+
+export type DeckStep = { id: string; title: string; notes: string };
 
 /** Where a film beat's video and its cue points (an array of seconds) live. */
 export function filmFiles(film: FilmName): { video: string; cues: string } {
@@ -135,27 +142,33 @@ export const BEATS: Beat[] = [
     deck: "problem",
     film: "problem",
     title: "The problem",
-    caption: "Gen Z goes to Facebook to get something done.",
+    caption: "We need a reason to open the app.",
+    // Fallback lines only from the confirmed list (no survey replies); the deck replaces them.
     sections: [
       {
-        name: "Hook",
-        line: "What would actually get you back on Facebook?",
-        note: "We started with a simple question. We asked Gen Z students (the number is not confirmed yet): what would actually get you back on Facebook? And the responses were pretty brutal.",
+        name: "The hook",
+        line: "What would get you back on Facebook?",
+        note: "We started with a simple question. We asked 50 Gen Z students: what would actually get you back on Facebook? And the responses were pretty brutal.",
       },
       {
         name: "Marketplace",
-        line: "It's an app to DO.",
-        note: "But there was one exception: Facebook Marketplace. As Gen Z, we don't go on Facebook to scroll. We go on Facebook to get something done. It's an app to do. So what else could it help us do?",
+        line: "But there was one exception. Marketplace.",
+        note: "But there was one exception: Facebook Marketplace. As Gen Z, we don't go on Facebook to scroll. We go to get something done. It's an app to do.",
       },
       {
-        name: "Missing out",
+        name: "Campus flyers",
+        line: "We don't need another feed to scroll. We need a reason to open the app.",
+        note: "Every day, clubs and departments host events and give away free food. Things we'd actually want to go to.",
+      },
+      {
+        name: "Overload",
         line: "The opportunities exist. We just can't find them.",
-        note: "Every day, clubs and departments host events and give away free food. But it's scattered across emails, Instagram posts, and group chats, and by the time we hear about it, it's over.",
+        note: "But it's scattered across emails, Instagram posts, and group chats. By the time we hear about it, it's already over.",
       },
       {
-        name: "Solution",
+        name: "The solution",
         line: "What if finding your next experience was as easy as finding your next deal?",
-        note: "Marketplace made Facebook useful for finding things. Introducing a reimagined Facebook Events, powered by Muse AI: the campus events already being shared, turned into personal, nearby plans.",
+        note: "Marketplace made Facebook useful for finding things. So what if finding your next experience was as easy as finding your next deal?",
       },
     ],
   },
@@ -170,9 +183,14 @@ export const BEATS: Beat[] = [
     caption: "Less work for organizers. Less searching for students.",
     sections: [
       {
-        name: "How Muse AI makes it possible",
+        name: "Muse reads the post",
+        line: "Events, reimagined.",
+        note: "Organizers already post on Instagram, so why post twice? With one share, Muse reads the post and makes the Facebook event. For students, Muse surfaces what fits their interests, place, and schedule.",
+      },
+      {
+        name: "Over to the skit",
         line: "Less work for organizers. Less searching for students.",
-        note: "Organizers already post on Instagram, so why post twice? With one share, Muse reads the post and makes the Facebook event. For students, Muse surfaces what fits their interests, place, and schedule. Then hand over to the skit.",
+        note: "Less work for organizers. Less searching for students. Let's see it.",
       },
     ],
   },

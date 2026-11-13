@@ -457,7 +457,9 @@ export function CrawlPlanner({
     return (
       <div className={`${sheet} px-4 pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+20px)] pt-4`} role="status">
         <div className="flex items-center justify-between">
-          <p className="text-label font-semibold">{step === "loading" ? "Muse is planning your walk..." : "Muse could not plan a walk right now."}</p>
+          <p className={`text-label font-semibold ${step === "loading" ? "motion-safe:animate-pulse" : ""}`}>
+            {step === "loading" ? "Muse is planning your walk..." : "Muse could not plan a walk right now."}
+          </p>
           <button type="button" onClick={close} aria-label="Close food crawl" className="flex h-8 w-8 items-center justify-center rounded-full text-muted">
             <CloseIcon className="h-[14px] w-[14px]" />
           </button>
