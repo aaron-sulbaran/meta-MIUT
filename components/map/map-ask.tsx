@@ -17,7 +17,7 @@ export function MapAsk({
 }: {
   events: CampusEvent[];
   nowIso: string;
-  onPlan: (plan: AskPlan, question: string) => void;
+  onPlan: (plan: AskPlan, question: string, options: { invite: boolean }) => void;
   onClose: () => void;
 }) {
   return (

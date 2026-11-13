@@ -32,7 +32,7 @@ export function AlertBanner({
         type="button"
         onClick={() => onOpen(alert)}
         className="flex min-w-0 flex-1 items-start gap-[10px] text-left"
-        aria-label={`${alert.title}. ${alert.body}. Open the event.`}
+        aria-label={`${alert.title}. ${alert.body}. ${alert.href ? "Open it." : "Open the event."}`}
       >
         <span aria-hidden className="relative mt-[1px] flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
           <BellIcon className="h-[21px] w-[21px]" />

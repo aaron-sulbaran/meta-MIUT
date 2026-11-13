@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertBanner } from "@/components/alerts/alert-banner";
 import type { Alert, AlertRouteResponse } from "@/lib/alerts/schema";
+import { personaFromCookieString, viewerIdFor } from "@/lib/social/persona";
 
 const POLL_INTERVAL_MS = 2_500;
 const BANNER_VISIBLE_MS = 8_000;
@@ -12,7 +13,9 @@ const BANNER_VISIBLE_MS = 8_000;
 // Polls GET /api/alerts; the first call only learns the current cursor, so a
 // freshly opened screen never replays old alerts. A new alert shows a banner
 // and refreshes server components so the new event is already in the feed
-// when the student taps through.
+// when the student taps through. An alert sent to one person (`to`, a demo
+// persona's viewer id, like Muse's invite to Lisa) shows only on that phone,
+// and an alert with `href` opens that path (the map with a walk planned).
 export function AlertListener({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: number }) {
   const router = useRouter();
   const cursorRef = useRef<number | null>(null);
@@ -33,8 +36,10 @@ export function AlertListener({ pollIntervalMs = POLL_INTERVAL_MS }: { pollInter
           const page = body.data;
           if (!stopped && page) {
             cursorRef.current = page.cursor;
-            if (cursor !== null && page.alerts.length > 0) {
-              setQueue((current) => [...current, ...page.alerts]);
+            const me = viewerIdFor(personaFromCookieString(document.cookie));
+            const mine = page.alerts.filter((alert) => alert.to === undefined || alert.to === me);
+            if (cursor !== null && mine.length > 0) {
+              setQueue((current) => [...current, ...mine]);
               router.refresh();
             }
           }
@@ -61,7 +66,7 @@ export function AlertListener({ pollIntervalMs = POLL_INTERVAL_MS }: { pollInter
   const open = useCallback(
     (alert: Alert) => {
       dismiss(alert);
-      router.push(`/events/${encodeURIComponent(alert.eventId)}`);
+      router.push(alert.href ?? `/events/${encodeURIComponent(alert.eventId)}`);
     },
     [dismiss, router],
   );

@@ -2,6 +2,7 @@ import type { AskPlanLink } from "@/components/map/events-map";
 import { EventsMap, type MapCard, type MapChip } from "@/components/map/events-map";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine, freePerk, isOpenFree } from "@/lib/events/time";
+import { classJustEnded } from "@/lib/map/class-start";
 import { eventCategory } from "@/lib/map/category";
 import { heatPoints } from "@/lib/map/heat";
 import { organizerLogo } from "@/lib/map/organizer-logos";
@@ -70,7 +71,20 @@ export async function MapHome({
     ];
   });
 
-  return <EventsMap cards={cards} studentSpot={student.home} askEvents={events} nowIso={now.toISOString()} autoPlan={autoPlan} planAt={planAt} askPlan={askPlan} />;
+  // The walk starts where the student's class was (profile.home is the class building).
+  const lastClass = classJustEnded(student.schedule, planAt ? new Date(planAt) : now);
+  return (
+    <EventsMap
+      cards={cards}
+      studentSpot={student.home}
+      askEvents={events}
+      nowIso={now.toISOString()}
+      autoPlan={autoPlan}
+      planAt={planAt}
+      askPlan={askPlan}
+      startLabel={lastClass ? `Out of ${lastClass}` : null}
+    />
+  );
 }
 
 export function MapHomeSkeleton() {

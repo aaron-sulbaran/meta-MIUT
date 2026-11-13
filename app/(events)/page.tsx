@@ -20,7 +20,7 @@ import { getEventStore } from "@/lib/events/store";
 export default async function EventsTabPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string }>;
+  searchParams: Promise<{ view?: string; chip?: string; plan?: string; time?: string; note?: string; to?: string; invite?: string }>;
 }) {
   await connection();
   const params = await searchParams;
@@ -49,7 +49,11 @@ export default async function EventsTabPage({
               events={events}
               now={now}
               autoPlan={params.plan === "home" ? "home" : null}
-              askPlan={params.plan === "ask" && params.note ? { note: params.note.slice(0, 300), toEventId: params.to ?? null } : null}
+              askPlan={
+                params.plan === "ask" && params.note
+                  ? { note: params.note.slice(0, 300), toEventId: params.to ?? null, invite: params.invite === "1" }
+                  : null
+              }
               planAt={params.time && Number.isFinite(Date.parse(params.time)) ? params.time : null}
             />
           </Suspense>

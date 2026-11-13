@@ -9,6 +9,7 @@ import { CloseIcon, MuseMark } from "@/components/ui/icons";
 import { updateAttendance } from "@/lib/attendance/client";
 import { EVENT_FULL_ERROR } from "@/lib/attendance/schema";
 import { getViewerId } from "@/lib/attendance/viewer";
+import { EVERYONE, personNamedIn } from "@/lib/social/fixtures/people";
 import type { CampusEvent } from "@/lib/events/schema";
 import { FEED_FILTER_EVENT, type AskAction, type AskReply, type MuseRouteResponse } from "@/lib/muse/types";
 
@@ -119,8 +120,8 @@ export function AskBar({
   placeholder?: string;
   /** The text box sits at the bottom of the screen under the conversation (the Ask Muse page). */
   docked?: boolean;
-  /** When set, plan_night goes to the host (the map draws the route) instead of a list here. */
-  onPlan?: (plan: AskPlan, question: string) => void;
+  /** When set, plan_night goes to the host (the map draws the route) instead of a list here; invite is set when the student also asked to invite a friend. */
+  onPlan?: (plan: AskPlan, question: string, options: { invite: boolean }) => void;
 }) {
   const router = useRouter();
   const [question, setQuestion] = useState("");
@@ -212,15 +213,28 @@ export function AskBar({
         case "create_event":
           router.push(`/organizer?say=${encodeURIComponent(question)}`);
           return { note: "Drafting your event" };
+        case "invite_friend": {
+          // With a walk to plan, the map sends the invite once Muse has picked the stop.
+          if (reply.actions.some((other) => other.type === "plan_night")) return { note: null };
+          const friend = personNamedIn(question, EVERYONE);
+          if (!friend || !id) return { note: null };
+          const sent = await fetch("/api/social/invites", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ to: friend.id, eventId: id }),
+          }).catch(() => null);
+          return { note: sent?.ok ? `Sent ${friend.name} the invite to ${title(id)}` : `Couldn't send ${friend.name} the invite` };
+        }
         case "plan_night": {
           if (!reply.plan) return { note: null };
+          const invite = reply.actions.some((other) => other.type === "invite_friend");
           const link = {
             label: "Open the walk on the map",
-            href: `/?plan=ask&note=${encodeURIComponent(question.slice(0, 300))}${id ? `&to=${encodeURIComponent(id)}` : ""}`,
+            href: `/?plan=ask&note=${encodeURIComponent(question.slice(0, 300))}${id ? `&to=${encodeURIComponent(id)}` : ""}${invite ? "&invite=1" : ""}`,
           };
           if (onPlan) {
-            onPlan(reply.plan, question);
-            return { note: "Planning it on the map" };
+            onPlan(reply.plan, question, { invite });
+            return { note: invite ? "Planning it on the map, then sending the invite" : "Planning it on the map" };
           }
           try {
             const response = await fetch("/api/muse/crawl", {

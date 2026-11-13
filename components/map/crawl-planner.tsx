@@ -30,7 +30,17 @@ export type CrawlEvent = {
   endIso: string;
 };
 
-type Ending = { kind: "home" | "friend" | "wander"; label: string; to: Point; note?: string; friendName?: string };
+type Ending = {
+  kind: "home" | "friend" | "wander";
+  label: string;
+  to: Point;
+  note?: string;
+  friendName?: string;
+  /** The friend's viewer id, so the invite can reach their phone in the app. */
+  friendId?: string;
+  /** Send Muse's invite to the friend as soon as the walk is planned ("and send her the invite"). */
+  sendInvite?: boolean;
+};
 
 /**
  * A walk to plan as soon as the sheet opens: home (the alert's "on your way
@@ -39,10 +49,10 @@ type Ending = { kind: "home" | "friend" | "wander"; label: string; to: Point; no
  */
 export type CrawlStart =
   | { kind: "home"; note?: string }
-  | { kind: "friend"; to: Point; label: string; note: string; friendName: string | null };
+  | { kind: "friend"; to: Point; label: string; note: string; friendName: string | null; friendId?: string | null; sendInvite?: boolean };
 
 // startMs: when the walk starts (leave now, or the time the student picked).
-type Plan = { route: Route; pitch: string; invite: { message: string; path: string | null }; startMs: number };
+type Plan = { route: Route; pitch: string; invite: { eventId: string | null; message: string; path: string | null }; startMs: number };
 
 type ApiStop = {
   eventId: string | null;
@@ -68,14 +78,22 @@ const HOME = { name: "Maseeh Hall", lat: 42.3575, lng: -71.0934 };
 
 function endingFor(start: CrawlStart): Ending {
   if (start.kind === "home") return { kind: "home", label: HOME.name, to: HOME, note: start.note };
-  return { kind: "friend", label: start.label, to: start.to, note: start.note, friendName: start.friendName ?? undefined };
+  return {
+    kind: "friend",
+    label: start.label,
+    to: start.to,
+    note: start.note,
+    friendName: start.friendName ?? undefined,
+    friendId: start.friendId ?? undefined,
+    sendInvite: start.sendInvite,
+  };
 }
 
 /** The Meet a friend line: a friend the map knows (lib/map/friend-spots.ts) ends the walk where they are. */
 function friendEnding(note: string): Ending {
   const friend = friendNamedIn(note);
   return friend
-    ? { kind: "friend", label: friendLabel(friend), to: friend, note, friendName: friend.name }
+    ? { kind: "friend", label: friendLabel(friend), to: friend, note, friendName: friend.name, friendId: friend.id }
     : { kind: "friend", label: "Your friend", to: HOME, note };
 }
 
@@ -129,6 +147,7 @@ export function CrawlPlanner({
   dismissed,
   start,
   at,
+  fromLabel,
   onRoute,
   onClose,
 }: {
@@ -139,6 +158,8 @@ export function CrawlPlanner({
   start?: CrawlStart;
   /** When walks start (ISO) unless the student picks a time: a set campus time for the demo (?time=). Now when left out. */
   at?: string | null;
+  /** How the walk's start reads, like "Out of Data Structures"; "Your spot" when left out. */
+  fromLabel?: string | null;
   onRoute: (route: Route | null) => void;
   onClose: () => void;
 }) {
@@ -149,6 +170,22 @@ export function CrawlPlanner({
   const [plan, setPlan] = useState<Plan | null>(null);
   const [adding, setAdding] = useState(false);
   const [shared, setShared] = useState(false);
+  // Muse's invite to the friend, sent in the app (it reaches their phone as an alert).
+  const [invited, setInvited] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  const deliverInvite = useCallback(async (friendId: string, eventId: string, message: string) => {
+    setInvited("sending");
+    try {
+      const response = await fetch("/api/social/invites", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ to: friendId, eventId, message }),
+      });
+      setInvited(response.ok ? "sent" : "error");
+    } catch {
+      setInvited("error");
+    }
+  }, []);
   // Leave now, or depart at a picked time (a datetime-local value), like Google Maps.
   const [leaveAt, setLeaveAt] = useState("");
   // A set start time from the link (?time=), used while the student has not picked one.
@@ -190,14 +227,17 @@ export function CrawlPlanner({
         const kept = { ...data, stops: data.stops.filter((stop) => !stop.eventId || !dismissed.includes(stop.eventId)) };
         let route = toRoute(studentSpot, kept, eventsById);
         if (kept.stops.length !== data.stops.length) route = retime(route, startMs);
-        showPlan({ route, pitch: data.pitch, invite: { message: data.invite.message, path: data.invite.path }, startMs });
+        showPlan({ route, pitch: data.pitch, invite: data.invite, startMs });
         setStep("plan");
+        if (target.sendInvite && target.friendId && data.invite.eventId) {
+          void deliverInvite(target.friendId, data.invite.eventId, data.invite.message);
+        }
       } catch {
         showPlan(null);
         setStep("error");
       }
     },
-    [dismissed, eventsById, leaveAt, presetStartMs, showPlan, studentSpot],
+    [deliverInvite, dismissed, eventsById, leaveAt, presetStartMs, showPlan, studentSpot],
   );
 
   const choose = (target: Ending) => {
@@ -409,7 +449,7 @@ export function CrawlPlanner({
           <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
             <span className="h-3 w-3 rounded-full border-2 border-white bg-primary shadow-[0_0_0_4px_rgba(8,102,255,0.18)]" />
           </span>
-          <span className="text-meta font-semibold">Your spot · leave {leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
+          <span className="text-meta font-semibold">{fromLabel ?? "Your spot"} · leave {leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
         </li>
         {route.stops.map((stop, index) => {
           const event = stop.eventId ? eventsById.get(stop.eventId) : undefined;
@@ -506,9 +546,27 @@ export function CrawlPlanner({
         >
           Get directions
         </a>
-        <button type="button" onClick={() => void share()} className="flex-1 rounded-[10px] bg-wash py-[9px] text-label font-semibold">
-          {shared ? "Invite ready" : ending?.friendName ? `Send to ${ending.friendName}` : "Send to a friend"}
-        </button>
+        {ending?.friendId && ending.friendName && plan.invite.eventId ? (
+          <button
+            type="button"
+            aria-live="polite"
+            disabled={invited === "sending" || invited === "sent"}
+            onClick={() => ending.friendId && plan.invite.eventId && void deliverInvite(ending.friendId, plan.invite.eventId, plan.invite.message)}
+            className={`flex-1 rounded-[10px] py-[9px] text-label font-semibold ${invited === "sent" ? "bg-primary-soft text-link" : "bg-wash"}`}
+          >
+            {invited === "sent"
+              ? `Invite sent to ${ending.friendName}`
+              : invited === "sending"
+                ? "Sending..."
+                : invited === "error"
+                  ? "Try sending again"
+                  : `Send to ${ending.friendName}`}
+          </button>
+        ) : (
+          <button type="button" onClick={() => void share()} className="flex-1 rounded-[10px] bg-wash py-[9px] text-label font-semibold">
+            {shared ? "Invite ready" : "Send to a friend"}
+          </button>
+        )}
       </div>
     </div>
   );
