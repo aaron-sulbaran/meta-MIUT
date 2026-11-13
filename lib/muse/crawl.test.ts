@@ -85,3 +85,17 @@ describe("food crawl with places the student names", () => {
     ]);
   });
 });
+
+describe("food crawl timing", () => {
+  beforeEach(() => vi.stubEnv("MUSE_API_KEY", ""));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("leaves the first place in time to reach the next one by its time", async () => {
+    const result = await planCrawl({ from, to, note: "harvard then baker at 7" }, all, NOW);
+    const plan = result.data!;
+    // Tests run on the frozen Austin campus, so 7 PM is Central time.
+    const sevenPm = Date.parse("2026-11-13T01:00:00.000Z");
+    expect(plan.destination.name).toBe("Baker House");
+    expect(Date.parse(plan.destination.arriveAt)).toBeLessThanOrEqual(sevenPm);
+  });
+});

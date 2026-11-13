@@ -50,8 +50,9 @@ export function itineraryFixture(note: string, places: CrawlPlace[]): Itinerary 
     .sort((a, b) => a.index - b.index)
     .slice(0, 3);
   return {
-    places: found.map(({ place, index }) => {
-      const time = /^[^,.;]{0,24}?\b(?:at|by)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/.exec(text.slice(index));
+    places: found.map(({ place, index }, order) => {
+      const segment = text.slice(index, found[order + 1]?.index ?? text.length);
+      const time = /\b(?:at|by)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/.exec(segment);
       if (!time) return { name: place.name, arriveBy: null };
       let hour = Number(time[1]) % 12;
       if (time[3] !== "am" && hour < 12 && Number(time[1]) <= 11) hour += 12;

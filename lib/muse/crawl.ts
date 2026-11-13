@@ -30,6 +30,7 @@ export const MAX_STOPS = 4;
 export const MAX_DETOUR_MINUTES = 20;
 const LOOKAHEAD_MINUTES = 180;
 const STOP_MINUTES = 15;
+const PREFERRED_ORDER_SLACK_MINUTES = 5;
 const MINUTE = 60_000;
 
 export const CrawlPickSchema = z.object({
@@ -98,8 +99,9 @@ export function orderLeg(
 ): { stops: CrawlStop[]; walkMinutes: number; arriveMs: number } {
   for (let size = picks.length; size >= 0; size--) {
     let best: { stops: CrawlStop[]; walk: number; arrive: number } | null = null;
+    let given: { stops: CrawlStop[]; walk: number; arrive: number } | null = null;
     for (const subset of combinations(picks, size)) {
-      for (const order of permutations(subset)) {
+      for (const [index, order] of permutations(subset).entries()) {
         let at = startMs;
         let here: Point = from;
         let walk = 0;
@@ -120,9 +122,12 @@ export function orderLeg(
         const last = walkMinutes(here, to);
         const arrive = at + last * MINUTE;
         if (!ok || (deadlineMs !== null && size > 0 && arrive > deadlineMs)) continue;
+        if (size === picks.length && index === 0) given = { stops, walk: walk + last, arrive };
         if (!best || walk + last < best.walk) best = { stops, walk: walk + last, arrive };
       }
     }
+    // Keep Muse's order (the pitch names stops in it) unless another is clearly shorter.
+    if (given && best && given.walk <= best.walk + PREFERRED_ORDER_SLACK_MINUTES) best = given;
     if (best) return { stops: best.stops, walkMinutes: best.walk, arriveMs: best.arrive };
   }
   const walk = walkMinutes(from, to);
@@ -204,7 +209,16 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
     if (deadline !== null && deadline < now.getTime()) deadline += 12 * 60 * MINUTE;
     return [{ name: place.name, lat: place.lat, lng: place.lng, deadline }];
   });
-  const ends = named.length > 0 ? named : [{ name: input.toLabel ?? "Home", ...input.to, deadline: null }];
+  const ends: { name: string; lat: number; lng: number; deadline: number | null }[] =
+    named.length > 0 ? named : [{ name: input.toLabel ?? "Home", ...input.to, deadline: null }];
+  // A later "by 7" also bounds the legs before it, leaving time to walk on.
+  for (let leg = ends.length - 2; leg >= 0; leg--) {
+    const next = ends[leg + 1]!;
+    if (next.deadline === null) continue;
+    const latest = next.deadline - walkMinutes(ends[leg]!, next) * MINUTE;
+    const own = ends[leg]!.deadline;
+    ends[leg]!.deadline = own === null ? latest : Math.min(own, latest);
+  }
 
   const legOf = new Map<string, number>();
   const candidates: CampusEvent[] = [];
@@ -239,6 +253,7 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
         "At most one main. Prefer food first, then dessert or drinks, then merch or an event on the way.",
         "Respect what the student said, for example skip a kind they do not want.",
         'Return JSON only: {"stops":[{"eventId","kind"}],"pitch":"one line under 120 characters, like Out of class and hungry? ...",',
+        "List stops in the order to visit them, and name them in that order in the pitch.",
         '"invite":{"eventId": the stop best to share with a friend, or null,"message":"a short text the student sends a friend to join, naming the event, under 200 characters"}}.',
         "Use only ids from the list. If the student mentions a friend, write the invite to that friend. Plain words, no emoji.",
       ].join(" "),
@@ -272,7 +287,10 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
     at = ordered.arriveMs;
     if (leg < ends.length - 1) {
       stops.push({ eventId: null, title: end.name, kind: "plan", placeName: end.name, lat: end.lat, lng: end.lng, arriveAt: new Date(at).toISOString(), walkMinutes: walkMinutes(fromLast ?? here, end) });
-      at = Math.max(at + WAYPOINT_MINUTES * MINUTE, at);
+      // Stay a while, but leave in time for the next place's "by" time.
+      const next = ends[leg + 1]!;
+      const leaveBy = next.deadline === null ? Infinity : next.deadline - walkMinutes(end, next) * MINUTE;
+      at = Math.max(at, Math.min(at + WAYPOINT_MINUTES * MINUTE, leaveBy));
     }
     here = end;
   });
