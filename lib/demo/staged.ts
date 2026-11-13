@@ -86,6 +86,8 @@ export const HANDOFF = {
   organizer: ORGANIZER_HANDOFF,
   // U2b: the no-account landing (t-1lup).
   lisaLanding: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`,
+  // U3d: the story event, with Muse asked who to go with on arrival.
+  whosGoing: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1`,
   // U3b: the curate step (t-s8eh).
   curate: "/curate",
   // U3b on the stage: curating starts on arrival, so the clicker is the one tap.
