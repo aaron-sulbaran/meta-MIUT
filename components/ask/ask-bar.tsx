@@ -407,7 +407,7 @@ export function AskBar({
             </ol>
           </div>
         )}
-        <div ref={endRef} />
+        <div ref={endRef} className="scroll-mb-[calc(var(--tabbar-height)+var(--tabbar-gap)+72px)]" />
       </div>
       {docked && (
         <div className="sticky bottom-[calc(var(--tabbar-height)+var(--tabbar-gap)+8px)] mt-2 bg-page pb-1 pt-1">
