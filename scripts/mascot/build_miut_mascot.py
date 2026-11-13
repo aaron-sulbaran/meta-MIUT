@@ -61,6 +61,9 @@ POSTER_CX, POSTER_TOP = 216.5, 244
 LEFT_HAND = (52, 212, 128, 304)
 RIGHT_HAND = (300, 212, 386, 304)
 
+# How long he stands still after T before the posters start again.
+REST_MS = 10_000
+
 FPS = 25
 FRAME_MS = 1000 // FPS
 
@@ -170,7 +173,8 @@ def to_output(frame: Image.Image) -> Image.Image:
 def timeline() -> list[tuple[int | None, float, int, str]]:
     """(poster index or None, lift, duration ms, label) for every frame."""
     frames: list[tuple[int | None, float, int, str]] = []
-    # The loop's rest is this plus "neutral end" (identical frames): about 1.5 s.
+    # After T he stands still for REST_MS, then the posters start again (Lisa):
+    # "neutral end" plus this opening beat (identical frames) make that rest.
     frames.append((None, 0, 450, "neutral start"))
     raise_n, lower_n = 9, 7
     for i, _ in enumerate(POSTERS):
@@ -183,7 +187,7 @@ def timeline() -> list[tuple[int | None, float, int, str]]:
             frames.append((i, 1 - ease_in_cubic(k / lower_n), FRAME_MS, f"lower {POSTERS[i]}"))
         if i < len(POSTERS) - 1:
             frames.append((None, 0, 220, "between"))
-    frames.append((None, 0, 1100, "neutral end"))
+    frames.append((None, 0, REST_MS - 450, "neutral end"))
     return frames
 
 
