@@ -449,7 +449,8 @@ export type AskPlanLink = { note: string; toEventId: string | null; invite?: boo
 /** To the event asked about, else to a friend named in the request, else home. */
 function startFromAsk(link: AskPlanLink, events: CampusEvent[]): CrawlStart {
   const event = link.toEventId ? events.find((candidate) => candidate.id === link.toEventId) : undefined;
-  if (event) return { kind: "friend", to: { lat: event.place.lat, lng: event.place.lng }, label: event.place.name, note: link.note, friendName: null };
+  // The note names the event's place, so the walk ends there and not at a place that only sounds like it.
+  if (event) return { kind: "friend", to: { lat: event.place.lat, lng: event.place.lng }, label: event.place.name, note: `${link.note} (${event.title} at ${event.place.name})`, friendName: null };
   const friend = friendNamedIn(link.note);
   return friend
     ? { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name, friendId: friend.id, sendInvite: link.invite === true }
