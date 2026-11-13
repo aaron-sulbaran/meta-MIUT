@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { entersAtLastStep } from "./deck-entry";
+import { catchesUpOnRemoteStep, entersAtLastStep, followsAsBeatMove } from "./deck-entry";
 
 describe("entersAtLastStep", () => {
   it("enters at the last step on a single Back", () => {
@@ -21,5 +21,33 @@ describe("entersAtLastStep", () => {
     expect(entersAtLastStep(1, 0, true)).toBe(false);
     expect(entersAtLastStep(25, 0, true)).toBe(false);
     expect(entersAtLastStep(0, 0, true)).toBe(false);
+  });
+});
+
+describe("followsAsBeatMove", () => {
+  it("applies another stage's move as a beat move", () => {
+    expect(followsAsBeatMove("stage")).toBe(true);
+  });
+
+  it("lets the remote and the phones step a deck first", () => {
+    expect(followsAsBeatMove("control")).toBe(false);
+    expect(followsAsBeatMove(undefined)).toBe(false);
+  });
+});
+
+describe("catchesUpOnRemoteStep", () => {
+  const control = { seq: 50, from: 0, to: 1, dir: 1 as const };
+  it("steps for a remote Next or Back another stage already put back", () => {
+    expect(catchesUpOnRemoteStep(control, 40, 0)).toBe(true);
+    expect(catchesUpOnRemoteStep({ seq: 50, from: 3, to: 2 }, 40, 3)).toBe(true);
+    // Back on the first beat, Next on the last: the record stays, the deck still steps.
+    expect(catchesUpOnRemoteStep({ seq: 50, from: 0, to: 0 }, 40, 0)).toBe(true);
+  });
+
+  it("never applies the same move twice, a move from another beat, or a jump", () => {
+    expect(catchesUpOnRemoteStep(control, 50, 0)).toBe(false);
+    expect(catchesUpOnRemoteStep(control, 40, 5)).toBe(false);
+    expect(catchesUpOnRemoteStep({ seq: 50, from: 0, to: 4 }, 40, 0)).toBe(false);
+    expect(catchesUpOnRemoteStep(undefined, 40, 0)).toBe(false);
   });
 });

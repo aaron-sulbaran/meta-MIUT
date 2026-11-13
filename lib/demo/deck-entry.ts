@@ -6,3 +6,24 @@
 export function entersAtLastStep(from: number, to: number, freshRun = false): boolean {
   return !freshRun && to === from - 1;
 }
+
+// How a stage applies a move it did not make. Another stage tab's move (by "stage", over the
+// store or this browser's channel) is a beat move: a stage that only follows goes to that beat
+// and never steps its own deck or writes a position back, so it can never pull the show back.
+// The remote's Next and Back and a presenter phone (by "control", or an older record without
+// `by`) step a deck or film on screen first, as the presenter's own keys do.
+export function followsAsBeatMove(by: "stage" | "control" | undefined): boolean {
+  return by === "stage";
+}
+
+// A remote move this stage has not applied yet that leaves the record on this stage's beat:
+// another stage already put it back (it stepped its deck instead), or it was Back on the first
+// beat or Next on the last. This stage steps its own deck or film for it, once.
+// `seen` is the newest control seq this stage has applied.
+export function catchesUpOnRemoteStep(
+  control: { seq: number; from: number; to: number } | undefined,
+  seen: number,
+  here: number,
+): boolean {
+  return control !== undefined && control.seq > seen && control.from === here && Math.abs(control.to - control.from) <= 1;
+}

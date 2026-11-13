@@ -9,7 +9,7 @@ import { PHONE_OUTER_HEIGHT, PHONE_OUTER_WIDTH, PhoneFrame } from "@/components/
 import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
-import { entersAtLastStep } from "@/lib/demo/deck-entry";
+import { catchesUpOnRemoteStep, entersAtLastStep, followsAsBeatMove } from "@/lib/demo/deck-entry";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
 import { beatCast, beatScreen, inFrameMessage, stageOnLoad, nextActStart } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
@@ -51,7 +51,7 @@ type StageMessage = { type: "goto"; index: number; fresh?: boolean } | { type: "
 type MoveSource = "local" | "channel" | "remote";
 // The shared stage record: where the show is, a deck's step, and what the presenter's phone heard.
 type StageSignal = { from: string; kind: "listening" | "said" | "failed"; on?: boolean; text?: string; at: string };
-type StagePosition = { index: number; seq: number; run?: string; at?: string; movedAt?: string; furthest?: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
+type StagePosition = { index: number; seq: number; by?: "stage" | "control"; control?: { seq: number; from: number; to: number; dir: 1 | -1 }; run?: string; at?: string; movedAt?: string; furthest?: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
 
 const POSITION_URL = "/api/demo/stage";
 
@@ -65,12 +65,13 @@ async function readPosition(): Promise<StagePosition | null> {
   }
 }
 
-async function writePosition(index: number): Promise<StagePosition | null> {
+// `undo`: the beat a remote move put the record on, when this stage stepped a deck instead.
+async function writePosition(index: number, undo?: number): Promise<StagePosition | null> {
   try {
     const response = await fetch(POSITION_URL, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "goto", index }),
+      body: JSON.stringify({ action: "goto", index, ...(undo !== undefined ? { undo } : {}) }),
     });
     const body = (await response.json()) as { data: StagePosition | null };
     return body.data;
@@ -216,6 +217,8 @@ export function Stage() {
   const indexRef = useRef(0);
   // The run on screen (lib/demo/run.ts): a new id in the record means a fresh run started somewhere.
   const runRef = useRef<string | null>(null);
+  // The newest control move (the remote, a phone) this stage has applied, by its seq.
+  const controlSeenRef = useRef(0);
   // startOver (below), for the store poll, which starts before it is defined.
   const startOverRef = useRef<() => void>(() => {});
   // The quiet fresh-run control on the first beat: shown until the show leaves it.
@@ -259,8 +262,9 @@ export function Stage() {
       const film = filmRef.current;
       if (!skipSteps && film && (step === 1 || step === -1) && (step === 1 ? film.next() : film.back())) {
         // A remote asked to move on: put the shared position back on this beat.
+        // Only while the record still sits on that move, so a following stage never pulls the show back.
         if (source === "remote") {
-          void writePosition(indexRef.current).then((position) => {
+          void writePosition(indexRef.current, clamped).then((position) => {
             if (position) lastSeqRef.current = Math.max(lastSeqRef.current, position.seq);
           });
         }
@@ -307,12 +311,15 @@ export function Stage() {
     const start = async () => {
       const stored = await readPosition();
       runRef.current = stored?.run ?? null;
+      // Remote moves made before this stage opened are already part of where the show is.
+      controlSeenRef.current = stored?.control?.seq ?? 0;
       clearClientDemoState(stored?.run);
       if (stored && isStaleRun(stored)) setStaleNote(`This is an old run, last moved ${lastMoveLabel(stored)}.`);
       const onLoad = stageOnLoad(stored);
       if (stored && onLoad.kind === "join") {
         lastSeqRef.current = Math.max(lastSeqRef.current, stored.seq);
-        if (!stopped && onLoad.index !== indexRef.current) goTo(onLoad.index, "remote");
+        // Joining the show is a beat move: never a deck step, never written back.
+        if (!stopped && onLoad.index !== indexRef.current) goTo(onLoad.index, "remote", true);
         return;
       }
       const position = await writePosition(indexRef.current);
@@ -332,7 +339,16 @@ export function Stage() {
         }
         if (!stopped && position && position.seq > lastSeqRef.current) {
           lastSeqRef.current = position.seq;
-          if (position.index !== indexRef.current) goTo(position.index, "remote");
+          const control = position.control;
+          const catchUp = catchesUpOnRemoteStep(control, controlSeenRef.current, indexRef.current);
+          if (control) controlSeenRef.current = Math.max(controlSeenRef.current, control.seq);
+          // Another stage tab's move is followed as a beat move; the remote and phones step a deck first.
+          if (position.index !== indexRef.current) goTo(position.index, "remote", followsAsBeatMove(position.by));
+          // The remote's step that another stage already put back: step this stage's deck or film too.
+          else if (catchUp && control && filmRef.current) {
+            if (control.dir === 1) filmRef.current.next();
+            else filmRef.current.back();
+          }
         }
         // What the presenter's own phone heard on their beat, mirrored into the stage's phone.
         const signal = position?.signal;
@@ -549,9 +565,8 @@ export function Stage() {
     channelRef.current = channel;
     channel.onmessage = (message: MessageEvent<StageMessage>) => {
       if (message.data.type === "goto") {
-        // A fresh run started in another tab of this browser: land on the first beat's first step.
-        const fresh = message.data.fresh === true;
-        goTo(message.data.index, "channel", fresh, fresh);
+        // Another stage tab in this browser moved: follow it as a beat move (a fresh run lands on the first step).
+        goTo(message.data.index, "channel", true, message.data.fresh === true);
       }
       if (message.data.type === "reset") void resetDemo();
     };
