@@ -104,7 +104,9 @@ async function sharedCall<Body extends SharedBody>(
   const startedAt = performance.now();
   const answer = run().then(async (body): Promise<Answer<Body>> => {
     const live = isLiveAnswer(body);
-    const museMs = live ? Math.round(performance.now() - startedAt) : null;
+    // A time the answer already carries (lib/store/shared-answer.ts measured its own call) wins.
+    const own = (body as { museMs?: unknown }).museMs;
+    const museMs = !live ? null : typeof own === "number" ? own : Math.round(performance.now() - startedAt);
     if (!live) running().delete(key);
     await saveState(answerName(key), { at: now, body, museMs, live });
     return { body, museMs };
