@@ -1,3 +1,4 @@
+import { demoClock } from "@/lib/demo/clock";
 import { ImageResponse } from "next/og";
 import { STORY_POST, storyTimeLine } from "@/lib/demo/staged";
 

@@ -28,7 +28,7 @@ export function DeckHost({
   onEnd: () => void;
   onStart: () => void;
   /** The step the deck reports it is on (for the presenter notes). */
-  onStep?: (step: number) => void;
+  onStep?: (step: number, steps?: number) => void;
 }) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const handlers = useRef({ onEnd, onStart, onStep, startAtEnd });
@@ -46,7 +46,7 @@ export function DeckHost({
       if (data.type === "ready" && handlers.current.startAtEnd && typeof data.steps === "number" && data.steps > 0) {
         frameRef.current?.contentWindow?.postMessage({ source: "demo-stage", type: "goto", step: data.steps - 1 }, window.location.origin);
       }
-      if (data.type === "step" && typeof data.index === "number") handlers.current.onStep?.(data.index);
+      if (data.type === "step" && typeof data.index === "number") handlers.current.onStep?.(data.index, typeof data.steps === "number" ? data.steps : undefined);
       if (data.type === "end") handlers.current.onEnd();
       if (data.type === "start") handlers.current.onStart();
     };

@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { CAMPUS_NAME, CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { AccessSchema, ConfidenceSchema } from "@/lib/events/schema";
+import { isStoryCaption, storyExtractFixture } from "@/lib/demo/story-fixtures";
 import { extractFixture } from "@/lib/muse/fixtures/extract";
 import type { MuseRequest } from "@/lib/muse/client";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
@@ -155,7 +156,8 @@ export async function extractEventDrafts(
     runMuseJob({
       request: buildExtractRequest(input, now),
       outputSchema: ExtractListOutputSchema,
-      fixture: () => ({ events: [extractFixture(now)] }),
+      // The demo story's own flyer falls back to its own recorded draft, never the sample post.
+      fixture: () => ({ events: [isStoryCaption(input.caption) ? storyExtractFixture(input.caption) : extractFixture(now)] }),
     });
   // Ember sometimes returns a draft that misses the schema; one retry is about 3 s and beats showing the fixture.
   let result = await job();
