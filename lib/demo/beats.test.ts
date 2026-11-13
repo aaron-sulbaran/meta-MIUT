@@ -36,6 +36,13 @@ describe("demo beats", () => {
     expect(beat("U2b").path!(context)).toBe(HANDOFF.lisaLanding("evt-story", "sample-student"));
     expect(beat("U3b").path!(context)).toBe(HANDOFF.firstEvents);
     expect(HANDOFF.firstEvents).toBe("/?first=1&opened=instagram");
+    // Trish's onboarding moves in place: each beat continues the one before it inside the frame.
+    expect(beat("U3b2").inFrame).toEqual({ from: "U3b", message: { type: "demo-first", step: "ask" } });
+    expect(beat("U3b3").inFrame).toEqual({ from: "U3b2", message: { type: "demo-first", step: "read" } });
+    expect(beat("U3c").inFrame).toEqual({ from: "U3b3", message: { type: "demo-first", step: "list" } });
+    expect(beat("U3b2").path!(context)).toBe(HANDOFF.firstEventsAsk);
+    expect(beat("U3b3").path!(context)).toBe(HANDOFF.firstEventsRead);
+    expect(beat("U3c").path!(context)).toBe(HANDOFF.firstEventsList);
     expect(beat("O5").path!(context)).toBe(HANDOFF.organizerPosted(iso));
     expect(beat("U1c").path!(context)).toBe(HANDOFF.replanLisa(iso));
     expect(beat("U2c").path!(context)).toBe(HANDOFF.lisaStep("evt-story", "sample-student", "account"));

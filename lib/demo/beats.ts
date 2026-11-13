@@ -29,7 +29,9 @@ export type InFrameMessage =
   // U2c to U2f: Lisa's invite landing moves to its next step in place, no reload.
   | { type: "demo-step"; step: "account" | "ready" | "event" | "joined" }
   // U3f: Jolyn and Lisa say yes on the event page when their phones have not.
-  | { type: "demo-say-yes" };
+  | { type: "demo-say-yes" }
+  // U3b2 to U3c: Trish's first Events visit moves on in place (Muse asks, reads, opens her List).
+  | { type: "demo-first"; step: "ask" | "read" | "list" };
 
 // now is the run's clock: stamped when the first live beat opens, so every
 // screen (the flyer, the organizer's draft, the walk home) shows the same
@@ -412,15 +414,52 @@ export const BEATS: Beat[] = [
     path: () => HANDOFF.reels(3, true),
     inFrame: { from: "U3a3", message: { type: "demo-reel", reel: 3, sheet: true } },
   },
+  // Trish's first visit to Facebook Events: the real map, then Muse asks before it reads anything,
+  // reads her accounts while the real curate call runs, and opens the List on her Top 3. The screen
+  // moves in place (inFrame); the opt-in and the List come by themselves, so the laptop alone needs
+  // two Nexts: one taps yes, one opens the first event.
   {
     id: "U3b",
     act: "user3",
     persona: "user3",
     kind: "app",
     title: "First time in Events",
-    caption: "Facebook opens on the map of everything on campus. Muse picks hers from what she already follows.",
-    note: "Trish: Facebook opens on the Events map. Muse reads what she follows, live, and puts her top picks on the map. Tap Board Game Night + Free Dumplings.",
+    caption: "Facebook opens on the map of everything happening on campus.",
+    note: "Trish: Facebook opens on the Events map. Everything on campus, nothing picked for her yet. Muse asks in a second.",
     path: () => HANDOFF.firstEvents,
+  },
+  {
+    id: "U3b2",
+    act: "user3",
+    persona: "user3",
+    kind: "app",
+    title: "Muse asks first",
+    caption: "Before it reads anything, Muse asks. She sees exactly what it would look at.",
+    note: "Trish: read the question and the six sources out loud. Tap Yes, build my feed (or press Next).",
+    path: () => HANDOFF.firstEventsAsk,
+    inFrame: { from: "U3b", message: { type: "demo-first", step: "ask" } },
+  },
+  {
+    id: "U3b3",
+    act: "user3",
+    persona: "user3",
+    kind: "app",
+    title: "Muse reads her world",
+    caption: "Calendar, email, who she follows, her chats and groups. One live call to Muse.",
+    note: "Trish: watch each source tick. This is a live Muse call on sample accounts; the list opens by itself.",
+    path: () => HANDOFF.firstEventsRead,
+    inFrame: { from: "U3b2", message: { type: "demo-first", step: "read" } },
+  },
+  {
+    id: "U3c",
+    act: "user3",
+    persona: "user3",
+    kind: "app",
+    title: "Her Top 3",
+    caption: "Her own Top 3, and the one at the top is the night Jolyn and Lisa are going to.",
+    note: "Trish: her Top 3 on the List, with Muse's line and the live stamp. Tap Board Game Night + Free Dumplings (or press Next).",
+    path: () => HANDOFF.firstEventsList,
+    inFrame: { from: "U3b3", message: { type: "demo-first", step: "list" } },
   },
   {
     id: "U3d",

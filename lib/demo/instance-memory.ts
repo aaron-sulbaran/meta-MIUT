@@ -8,6 +8,7 @@ import { resetHeadStart } from "@/lib/demo/head-start";
 import { resetSaid } from "@/lib/demo/said";
 import { resetSharedAnswers } from "@/lib/store/shared-answer";
 import { resetClaims } from "@/lib/store/state";
+import { resetViewerPicks } from "@/lib/curate/picks";
 
 // Everything one server instance holds in memory for the demo: what a run remembers
 // (Muse memory and Ask turns, nearby alerts sent, going, hellos, comments, kept
@@ -31,6 +32,7 @@ export function clearInstanceMemory(): void {
   resetSharedAnswers();
   resetHeadStart();
   resetSaid();
+  resetViewerPicks();
   held.__musePicks?.clear();
   held.__musePicksRunning?.clear();
   held.__demoPhoneSeen = {};
