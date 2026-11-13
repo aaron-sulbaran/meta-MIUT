@@ -27,13 +27,20 @@ export function isInWindow(event: CampusEvent, window: TimeWindow, now: Date): b
   return start <= nowMs + 7 * 24 * 60 * MINUTE;
 }
 
+// The Free tab is for events anyone can walk into. A free event with limited spots stays
+// off it (Muse still recommends it) until the organizer opens it to everyone.
+// An RSVP with no capacity is only a headcount, so it still counts.
+export function isOpenFree(event: CampusEvent): boolean {
+  return event.free && !(event.access.kind === "rsvp" && event.access.capacity !== undefined);
+}
+
 export function filterEvents(
   events: CampusEvent[],
   options: { window: TimeWindow; freeOnly: boolean; now: Date },
 ): CampusEvent[] {
   return events
     .filter((event) => isInWindow(event, options.window, options.now))
-    .filter((event) => !options.freeOnly || event.free)
+    .filter((event) => !options.freeOnly || isOpenFree(event))
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
 }
 
