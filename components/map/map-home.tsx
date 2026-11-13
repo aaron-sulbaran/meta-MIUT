@@ -7,11 +7,10 @@ import { heatPoints } from "@/lib/map/heat";
 import { organizerLogo } from "@/lib/map/organizer-logos";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { DEMO_USER_ID, loadInterestMemory } from "@/lib/muse/memory";
-import { personalizeEvents } from "@/lib/muse/rank";
+import { forYouFeed } from "@/lib/muse/rank";
 
-// Server half of the map home: asks Muse for this student's picks with the
-// same student and shared interest memory as the Top 3 on the list, orders the
-// events by them, and hands plain data to the client map.
+// Server half of the map home: takes the same For you order as the list
+// (forYouFeed: its Top 3, then the rest) and hands plain data to the client map.
 
 // For you matches the list (#15): every upcoming event, in Muse's order (the
 // cards are already sorted picks first, then by interest). Free is free and
@@ -38,12 +37,17 @@ export async function MapHome({
   askPlan?: AskPlanLink | null;
 }) {
   const student = loadDemoStudent();
-  const ranking = await personalizeEvents(student, events, now, await loadInterestMemory(DEMO_USER_ID, now));
-  const picks = ranking.error === null ? ranking.data.picks : [];
+  const { ranking, tiles, rest } = await forYouFeed(student, events, now, await loadInterestMemory(DEMO_USER_ID, now));
   const likely = ranking.error === null ? ranking.data.likely : undefined;
   const eventsById = new Map(events.map((event) => [event.id, event]));
+  // Cards in the list's order: its Top 3 tiles, then the rest of For you. Heat only sizes bubbles.
+  const topPicks = tiles.map((tile) => ({ eventId: tile.eventId, reason: tile.reason ?? "", walkMinutes: tile.walkMinutes }));
+  const order = new Map([...tiles.map((tile) => tile.eventId), ...rest.map((event) => event.id)].map((id, index) => [id, index]));
+  const points = heatPoints(events, topPicks, student.home, now, likely).sort(
+    (a, b) => (order.get(a.eventId) ?? Infinity) - (order.get(b.eventId) ?? Infinity),
+  );
 
-  const cards: MapCard[] = heatPoints(events, picks, student.home, now, likely).flatMap((point) => {
+  const cards: MapCard[] = points.flatMap((point) => {
     const event = eventsById.get(point.eventId);
     if (!event) return [];
     return [

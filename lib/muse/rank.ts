@@ -130,6 +130,17 @@ export async function personalizeEvents(
     creators: memory.creators.slice(0, 5),
   };
 
+  // Keep the same Top 3 until something real changes: a new candidate or one leaving
+  // today's pool, the interest memory (hiding an event updates it), or a picked event ending.
+  // The list and the map then always show one Top 3.
+  const cacheKey = JSON.stringify([candidates.map((candidate) => candidate.id), interestMemory]);
+  const cached = picksCache().get(cacheKey);
+  const stillOn = (eventId: string) => {
+    const event = eventsById.get(eventId);
+    return event !== undefined && Date.parse(event.end) > now.getTime();
+  };
+  if (cached?.data && cached.data.picks.every((pick) => stillOn(pick.eventId))) return cached;
+
   const result = await runMuseJob({
     request: {
       system:
@@ -151,7 +162,46 @@ export async function personalizeEvents(
     const event = eventsById.get(pick.eventId);
     return event ? [{ eventId: pick.eventId, reason: pick.reason, walkMinutes: walkMinutes(origin(profile), event.place) }] : [];
   });
-  return { ...result, data: { picks, likely } };
+  const personalized = { ...result, data: { picks, likely } };
+  if (result.source === "muse") picksCache().set(cacheKey, personalized);
+  return personalized;
+}
+
+type CachedPicks = MuseJobResult<PersonalizedEvents>;
+
+// On globalThis, because Next dev compiles pages and route handlers as separate module graphs.
+function picksCache(): Map<string, CachedPicks> {
+  const scope = globalThis as typeof globalThis & { __musePicks?: Map<string, CachedPicks> };
+  scope.__musePicks ??= new Map();
+  if (scope.__musePicks.size > 50) scope.__musePicks.clear();
+  return scope.__musePicks;
+}
+
+export type ForYouTile = { eventId: string; walkMinutes: number; reason: string | null };
+export type ForYouFeed = { ranking: MuseJobResult<PersonalizedEvents>; tiles: ForYouTile[]; rest: CampusEvent[] };
+
+/**
+ * The one For you order the list and the map share: the Top 3 (Muse's picks
+ * for today, filled from forYouOrder when Muse picks fewer), then every other
+ * upcoming event in forYouOrder.
+ */
+export async function forYouFeed(
+  profile: StudentContext,
+  events: CampusEvent[],
+  now: Date,
+  memory: InterestMemory,
+): Promise<ForYouFeed> {
+  const ranking = await personalizeEvents(profile, events, now, memory);
+  const picks = ranking.data?.picks ?? [];
+  const pickedIds = new Set(picks.map((pick) => pick.eventId));
+  const ordered = forYouOrder(compileCandidates(profile, memory, events, now, "upcoming"), events, now, pickedIds);
+  const fill = ordered.slice(0, Math.max(0, 3 - picks.length));
+  const reasons = new Map((ranking.data?.likely ?? []).map((candidate) => [candidate.eventId, candidate.reason]));
+  const tiles = [
+    ...picks.map((pick) => ({ eventId: pick.eventId, walkMinutes: pick.walkMinutes, reason: pick.reason })),
+    ...fill.map((event) => ({ eventId: event.id, walkMinutes: walkMinutes(profile.home, event.place), reason: reasons.get(event.id) ?? null })),
+  ];
+  return { ranking, tiles, rest: ordered.slice(fill.length) };
 }
 
 export async function rankEvents(
