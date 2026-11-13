@@ -32,11 +32,14 @@ const SeedEventsFileSchema = z.object({ events: z.array(SeedEventSchema) });
 const SeedStudentFileSchema = z.object({ profile: StudentProfileSchema });
 
 const MINUTE = 60_000;
+const QUARTER_HOUR = 15 * MINUTE;
 
 export function loadSeedEvents(now: Date): CampusEvent[] {
   const file = SeedEventsFileSchema.parse(eventsFile);
+  // Offsets count from the nearest quarter hour, so real events read 7:30, not 7:33, whenever the app loads.
+  const anchor = Math.round(now.getTime() / QUARTER_HOUR) * QUARTER_HOUR;
   return file.events.map(({ startsInMinutes, durationMinutes, ...rest }) => {
-    const start = new Date(now.getTime() + startsInMinutes * MINUTE);
+    const start = new Date(anchor + startsInMinutes * MINUTE);
     const end = new Date(start.getTime() + durationMinutes * MINUTE);
     return EventSchema.parse({
       ...rest,

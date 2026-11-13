@@ -1,11 +1,11 @@
 {
-  "_note": "Real upcoming MIT events (public calendar.mit.edu, Eventbrite, club pages), gathered 2026-11-12. Times are relative to 6:55 PM Eastern on Nov 12, so they stay current when the demo loads. Organizer handles are short slugs, not verified Instagram accounts.",
+  "_note": "Real upcoming MIT events (public calendar.mit.edu, Eventbrite, club pages), gathered 2026-11-12. Times are relative to 7:00 PM Eastern on Nov 12 (the loader counts from the nearest quarter hour), so they stay current when the demo loads. Organizer handles are short slugs, not verified Instagram accounts.",
   "events": [
     {
       "id": "evt-hsa-movie-night",
       "title": "HSA Movie Night",
       "description": "Movie night hosted by the Harvard-MIT student group HSA. Drop in, grab a seat.",
-      "startsInMinutes": 5,
+      "startsInMinutes": 0,
       "durationMinutes": 180,
       "place": {
         "name": "Building 4, Room 4-237",
@@ -30,7 +30,7 @@
       "id": "evt-beowulf-w97",
       "title": "BEOWULF, MIT Theater Arts fall production",
       "description": "Beowulf reimagined in a surreal corporate office. Also Nov 14 and Nov 19 to 21 at 7:30 PM. Tickets from $6.24.",
-      "startsInMinutes": 1475,
+      "startsInMinutes": 1470,
       "durationMinutes": 90,
       "place": {
         "name": "MIT Theater Arts Building W97, 345 Vassar St",
@@ -55,7 +55,7 @@
       "id": "evt-ukraine-hackathon-info",
       "title": "Build for Ukraine Hackathon 3.0 info session",
       "description": "Learn about the Build for Ukraine Hackathon and meet the organizers. Pizza provided.",
-      "startsInMinutes": 1235,
+      "startsInMinutes": 1230,
       "durationMinutes": 90,
       "place": {
         "name": "Stratton Student Center W20, Wellbeing Lab",
@@ -81,7 +81,7 @@
       "id": "evt-diwali-chapel",
       "title": "Diwali celebration",
       "description": "Celebrate Diwali with lights, music, and a community dinner. Registration requested.",
-      "startsInMinutes": 1385,
+      "startsInMinutes": 1380,
       "durationMinutes": 105,
       "place": {
         "name": "MIT Chapel W15",
@@ -107,7 +107,7 @@
       "id": "evt-thai-fall-biannual",
       "title": "Fall Biannual 2026, Thai Students at MIT x Harvard Thai Students Association",
       "description": "Thai food, games, and prizes for Greater Boston's Thai community. Everyone is welcome. Ticketed, RSVP by QR code.",
-      "startsInMinutes": 1385,
+      "startsInMinutes": 1380,
       "durationMinutes": 240,
       "place": {
         "name": "Lobdell Dining Hall, Stratton Student Center W20, 2nd floor",
@@ -133,7 +133,7 @@
       "id": "evt-energy-climate-night",
       "title": "MIT Energy & Climate Night",
       "description": "About 50 interactive demos from MIT labs and climate start-ups. Free and open to the public.",
-      "startsInMinutes": 1385,
+      "startsInMinutes": 1380,
       "durationMinutes": 240,
       "place": {
         "name": "MIT Museum, 314 Main St",
@@ -158,7 +158,7 @@
       "id": "evt-herb-pomeroy-jazz",
       "title": "Festival Jazz Ensemble: Herb Pomeroy Memorial Concert",
       "description": "The 19th annual Herb Pomeroy memorial concert, Giant Steps in Jazz. Free for the MIT community, $20 general.",
-      "startsInMinutes": 1505,
+      "startsInMinutes": 1500,
       "durationMinutes": 120,
       "place": {
         "name": "Thomas Tull Concert Hall, W18",
@@ -183,7 +183,7 @@
       "id": "evt-chess-museum",
       "title": "Drop-in chess",
       "description": "Casual chess at the MIT Museum. Boards provided, all levels.",
-      "startsInMinutes": 2405,
+      "startsInMinutes": 2400,
       "durationMinutes": 120,
       "place": {
         "name": "MIT Museum, 314 Main St",
@@ -208,7 +208,7 @@
       "id": "evt-boba-a-cappella",
       "title": "BOBA: The Best of Boston A Cappella",
       "description": "A cappella groups from across Boston in one showcase. Free for MIT, $7 for non-MIT students.",
-      "startsInMinutes": 2825,
+      "startsInMinutes": 2820,
       "durationMinutes": 150,
       "place": {
         "name": "Kresge Auditorium W16",
@@ -234,7 +234,7 @@
       "id": "evt-littea",
       "title": "LitTea",
       "description": "Afternoon tea and conversation about books with Literature students and faculty.",
-      "startsInMinutes": 5600,
+      "startsInMinutes": 5595,
       "durationMinutes": 75,
       "place": {
         "name": "Building 14, Room 14-417",
@@ -260,7 +260,7 @@
       "id": "evt-ai-discussion-night",
       "title": "Discussion night: AI issues, policy, and a potential pause",
       "description": "Open student discussion on AI risk and policy. Pizza provided.",
-      "startsInMinutes": 5645,
+      "startsInMinutes": 5640,
       "durationMinutes": 120,
       "place": {
         "name": "Building 10, Room 10-105",
@@ -286,7 +286,7 @@
       "id": "evt-tango-class",
       "title": "Argentine tango class series",
       "description": "Weekly beginner and intermediate tango classes. $8 and up.",
-      "startsInMinutes": 5750,
+      "startsInMinutes": 5745,
       "durationMinutes": 135,
       "place": {
         "name": "Stratton Student Center W20, Room 401",
@@ -311,7 +311,7 @@
       "id": "evt-mad-tea-party",
       "title": "MAD Tea Party: snacks and design activities",
       "description": "Hands-on design activities with snacks at the Morningside Academy for Design.",
-      "startsInMinutes": 8525,
+      "startsInMinutes": 8520,
       "durationMinutes": 90,
       "place": {
         "name": "MET Warehouse W41, Room 1402",
@@ -337,7 +337,7 @@
       "id": "evt-starr-forum-ai",
       "title": "Starr Forum: AI and Global Power",
       "description": "Panel on democracy, competition, and AI. Refreshments after. Registration requested.",
-      "startsInMinutes": 8525,
+      "startsInMinutes": 8520,
       "durationMinutes": 90,
       "place": {
         "name": "Wong Auditorium, E51-115",
@@ -363,7 +363,7 @@
       "id": "evt-the-table-dinner",
       "title": "The Table: weekly dinner",
       "description": "Weekly community dinner and conversation hosted by the Lutheran Episcopal Ministry. All welcome.",
-      "startsInMinutes": 8540,
+      "startsInMinutes": 8535,
       "durationMinutes": 195,
       "place": {
         "name": "MIT Chapel W15",
@@ -389,7 +389,7 @@
       "id": "evt-tango-night-lous",
       "title": "Tango Night at Lou's",
       "description": "Social tango night with live music in Harvard Square. $15 for students, $20 general.",
-      "startsInMinutes": 8645,
+      "startsInMinutes": 8640,
       "durationMinutes": 240,
       "place": {
         "name": "Lou's Harvard Square, Live Music Room",
@@ -414,7 +414,7 @@
       "id": "evt-climate-careers-panel",
       "title": "Careers in Climate and Sustainability panel",
       "description": "Alumni panel on climate careers, then networking. Registration requested.",
-      "startsInMinutes": 10025,
+      "startsInMinutes": 10020,
       "durationMinutes": 120,
       "place": {
         "name": "Grier Room, 34-401",
@@ -439,7 +439,7 @@
       "id": "evt-famle-concert",
       "title": "FaMLE fall concert: East Coast Patch Out",
       "description": "The MIT Laptop Ensemble's fall concert of live electronic music.",
-      "startsInMinutes": 10145,
+      "startsInMinutes": 10140,
       "durationMinutes": 90,
       "place": {
         "name": "Killian Hall, Building 14",
@@ -464,7 +464,7 @@
       "id": "evt-carmina-burana",
       "title": "MIT Concert Choir and Symphony Orchestra: Carmina Burana",
       "description": "Orff's Carmina Burana with the MIT Concert Choir and MIT Symphony Orchestra.",
-      "startsInMinutes": 11585,
+      "startsInMinutes": 11580,
       "durationMinutes": 120,
       "place": {
         "name": "Kresge Auditorium W16",
@@ -489,7 +489,7 @@
       "id": "evt-boulez-100",
       "title": "Boulez at 100",
       "description": "A centennial concert of Pierre Boulez's music. Free for MIT, $5 general.",
-      "startsInMinutes": 15875,
+      "startsInMinutes": 15870,
       "durationMinutes": 90,
       "place": {
         "name": "Thomas Tull Concert Hall, W18",
@@ -514,7 +514,7 @@
       "id": "evt-japan-film-festival",
       "title": "Boston Japan Film Festival 2026",
       "description": "A day of Japanese films with snacks. Free, suggested donation $15. Registration requested.",
-      "startsInMinutes": 24005,
+      "startsInMinutes": 24000,
       "durationMinutes": 420,
       "place": {
         "name": "Building 32, Room 32-123",
@@ -540,7 +540,7 @@
       "id": "evt-wreath-coffee-social",
       "title": "Coffee social and holiday wreath making",
       "description": "Make a holiday wreath over coffee. Supplies provided, registration requested.",
-      "startsInMinutes": 28235,
+      "startsInMinutes": 28230,
       "durationMinutes": 90,
       "place": {
         "name": "Stratton Student Center W20, Room 401",
