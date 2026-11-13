@@ -28,6 +28,7 @@ describe("staged screens", () => {
 
   it("hands off to one place per beat", () => {
     expect(HANDOFF.organizer).toBe("/organizer?handoff=story");
-    expect(HANDOFF.lisaLanding("evt-1", "sample-student")).toBe("/events/evt-1?invite=sample-student");
+    expect(HANDOFF.lisaLanding("evt-1", "sample-student")).toBe("/invite/evt-1?from=sample-student");
+    expect(HANDOFF.curate).toBe("/curate");
   });
 });

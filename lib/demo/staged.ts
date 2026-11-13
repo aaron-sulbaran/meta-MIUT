@@ -1,4 +1,5 @@
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
+import { STORY, STORY_ORGANIZER } from "@/lib/demo/story-data";
 
 // The staged screens of the demo (hub t-y329): screens that imitate another
 // app (an Instagram post, an Instagram message, an Instagram feed), live only
@@ -13,17 +14,9 @@ export function isStagedScreen(pathname: string | null): boolean {
   return pathname !== null && (pathname === STAGED_PREFIX || pathname.startsWith(`${STAGED_PREFIX}/`));
 }
 
-// The one event the demo follows, as the organizer posts it. Matches the
-// story (lib/demo/story.ts): same title, club, place, food, and a start about
-// 25 minutes after the demo clock.
-export const STORY_POST = {
-  title: "Board Game Night",
-  organizer: { name: "MIT Board Game Club", handle: "mit_boardgames" },
-  placeName: "MIT Museum, 314 Main St",
-  foodNote: "Dumplings",
-  startsInMinutes: 25,
-  durationMinutes: 120,
-} as const;
+// The one event the demo follows, as the organizer posts it: the story's own
+// data (lib/demo/story-data.ts), so the flyer, the post, and the event match.
+export const STORY_POST = { ...STORY, organizer: STORY_ORGANIZER } as const;
 
 const MINUTE_MS = 60_000;
 
@@ -50,15 +43,31 @@ export function storyCaption(now: Date): string {
   return `Board Game Night today at the MIT Museum (314 Main St), ${storyTimeLine(now)}: free dumplings while they last and 40 board games. Open to everyone, no experience needed. Come by after class!`;
 }
 
-/** Where each staged screen hands off into the real app. One place, so a route change is one line. */
+/**
+ * Where each staged screen hands off into the real app: the /demo stage's next
+ * beat paths (lib/demo/beats.ts). They must match exactly, or the stage reloads
+ * the phone (and the organizer's Muse call would run twice).
+ */
 export const HANDOFF = {
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
   organizer: "/organizer?handoff=story",
-  // U2b: the first builder's no-account landing (t-1lup); until it names its URL, the event with who invited.
-  lisaLanding: (eventId: string, inviter: string) => `/events/${encodeURIComponent(eventId)}?invite=${encodeURIComponent(inviter)}`,
-  // U3b: the first builder's curate screen (t-s8eh); the Events tab until it names its URL.
-  curate: "/",
+  // U2b: the no-account landing (t-1lup).
+  lisaLanding: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`,
+  // U3b: the curate step (t-s8eh).
+  curate: "/curate",
 } as const;
+
+/**
+ * Hand off into the real app: go to `path`, and when this screen runs inside the
+ * /demo stage's phone, tell the stage, so it moves to the next beat without
+ * reloading the phone.
+ */
+export function handOff(path: string, go: (path: string) => void) {
+  if (typeof window !== "undefined" && window.parent !== window) {
+    window.parent.postMessage({ type: "demo-handoff", path }, window.location.origin);
+  }
+  go(path);
+}
 
 /** The flyer image, drawn for the demo clock (app/demo/flyer.png). */
 export function flyerUrl(now: Date): string {

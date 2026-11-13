@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DrawnAvatar, IG, IgIcons, StagedScreen } from "@/components/demo/instagram";
 import { MuseMark } from "@/components/ui/icons";
-import { HANDOFF } from "@/lib/demo/staged";
+import { HANDOFF, handOff } from "@/lib/demo/staged";
 
 // O1: the organizer finishes an Instagram post of their flyer. O2: on Share,
 // the prompt that this looks like event promo and could be a Facebook event.
@@ -33,30 +33,19 @@ export function InstagramNewPost({
   caption,
   flyerSrc,
   atIso,
-  embedded = false,
-  sheetOpen = false,
-  onShare,
-  onPost,
 }: {
   handle: string;
   caption: string;
   flyerSrc: string;
-  atIso: string;
-  /** Inside the /demo stage's phone. */
-  embedded?: boolean;
-  /** Open with the cross-post prompt already up (the stage's O2 beat). */
-  sheetOpen?: boolean;
-  /** The stage's handoff for Share (O1 to O2); without it, Share opens the prompt here. */
-  onShare?: () => void;
-  /** The stage's handoff for "Post to Facebook Events" (O2 to O3); without it, this opens the organizer flow. */
-  onPost?: () => void;
+  /** Set when the page was given a pinned clock (?at=), so the organizer flow uses the same one. */
+  atIso: string | null;
 }) {
   const router = useRouter();
-  const [asking, setAsking] = useState(sheetOpen);
+  const [asking, setAsking] = useState(false);
   const [shared, setShared] = useState(false);
 
   return (
-    <StagedScreen label="Staged Instagram new post" embedded={embedded}>
+    <StagedScreen label="Staged Instagram new post">
       <header className="flex h-[44px] shrink-0 items-center justify-between px-3">
         <span aria-hidden>{IgIcons.back()}</span>
         <h1 className="text-[16px] font-semibold">New post</h1>
@@ -82,7 +71,11 @@ export function InstagramNewPost({
       <div className="shrink-0 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
         <button
           type="button"
-          onClick={() => (onShare ? onShare() : setAsking(true))}
+          onClick={() => {
+            // On the /demo stage, Share is O1's tap: the prompt is O2, on this same screen.
+            setAsking(true);
+            handOff("/demo/instagram/post", () => undefined);
+          }}
           className="h-[44px] w-full rounded-[10px] text-[15px] font-semibold text-white"
           style={{ background: IG.blue }}
         >
@@ -115,7 +108,7 @@ export function InstagramNewPost({
             </div>
             <button
               type="button"
-              onClick={() => (onPost ? onPost() : router.push(`${HANDOFF.organizer}&at=${encodeURIComponent(atIso)}`))}
+              onClick={() => handOff(atIso ? `${HANDOFF.organizer}&at=${encodeURIComponent(atIso)}` : HANDOFF.organizer, router.push)}
               className="mt-5 h-[44px] w-full rounded-[10px] text-[15px] font-semibold text-white"
               style={{ background: IG.blue }}
             >

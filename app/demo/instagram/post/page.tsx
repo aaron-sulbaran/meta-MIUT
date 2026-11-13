@@ -14,7 +14,7 @@ export default async function StagedInstagramPostPage({ searchParams }: { search
       handle={STORY_POST.organizer.handle}
       caption={storyCaption(now)}
       flyerSrc={flyerUrl(now)}
-      atIso={now.toISOString()}
+      atIso={at && Number.isFinite(Date.parse(at)) ? now.toISOString() : null}
     />
   );
 }

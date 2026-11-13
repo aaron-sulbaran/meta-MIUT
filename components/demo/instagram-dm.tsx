@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DrawnAvatar, IG, IgIcons, StagedScreen } from "@/components/demo/instagram";
 import { MuseMark } from "@/components/ui/icons";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
-import { HANDOFF } from "@/lib/demo/staged";
+import { HANDOFF, handOff } from "@/lib/demo/staged";
 
 // U2a: Lisa's Instagram thread with Aaron. The first two lines are the skit;
 // the invite is real: it shows up when Aaron's Muse sends it from the map,
@@ -20,16 +20,8 @@ function when(iso: string): string {
   return new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: CAMPUS_TIME_ZONE });
 }
 
-export function InstagramDm({
-  to,
-  embedded = false,
-  onOpen,
-}: {
-  to: string;
-  embedded?: boolean;
-  /** The stage's handoff into the landing; without it, the card is a link. */
-  onOpen?: () => void;
-}) {
+export function InstagramDm({ to }: { to: string }) {
+  const router = useRouter();
   const [invite, setInvite] = useState<Invite | null>(null);
   const [event, setEvent] = useState<EventSummary | null>(null);
 
@@ -72,7 +64,7 @@ export function InstagramDm({
   const inviter = invite?.href ? (new URL(invite.href, "http://local").searchParams.get("invite") ?? "sample-student") : "sample-student";
 
   return (
-    <StagedScreen label="Staged Instagram message" embedded={embedded}>
+    <StagedScreen label="Staged Instagram message">
       <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-[#efefef] px-3">
         <span aria-hidden>{IgIcons.back()}</span>
         <DrawnAvatar name="Aaron" size={32} />
@@ -119,8 +111,12 @@ export function InstagramDm({
                 <p className="rounded-[20px] px-[14px] py-[9px] text-[15px] leading-[20px]" style={{ background: IG.bubble }}>
                   {invite.message}
                 </p>
-                {onOpen ? (
-                  <button type="button" onClick={onOpen} className="overflow-hidden rounded-[16px] border border-[#efefef] bg-white text-left" aria-label={`Open the event${event ? `: ${event.title}` : ""}`}>
+                <button
+                  type="button"
+                  onClick={() => handOff(HANDOFF.lisaLanding(invite.eventId, inviter), router.push)}
+                  className="overflow-hidden rounded-[16px] border border-[#efefef] bg-white text-left"
+                  aria-label={`Open the event${event ? `: ${event.title}` : ""}`}
+                >
                   <div className="flex h-[96px] items-end bg-[#0866ff] p-3">
                     <p className="line-clamp-2 text-[17px] font-bold leading-[20px] text-white">{event?.title ?? "Facebook event"}</p>
                   </div>
@@ -133,27 +129,7 @@ export function InstagramDm({
                       facebook.com/events
                     </p>
                   </div>
-                  </button>
-                ) : (
-                  <Link
-                    href={HANDOFF.lisaLanding(invite.eventId, inviter)}
-                    className="overflow-hidden rounded-[16px] border border-[#efefef] bg-white"
-                    aria-label={`Open the event${event ? `: ${event.title}` : ""}`}
-                  >
-                  <div className="flex h-[96px] items-end bg-[#0866ff] p-3">
-                    <p className="line-clamp-2 text-[17px] font-bold leading-[20px] text-white">{event?.title ?? "Facebook event"}</p>
-                  </div>
-                  <div className="px-3 py-2">
-                    <p className="text-[13px] font-semibold">{event ? when(event.start) : "Event invite"}</p>
-                    <p className="truncate text-[13px]" style={{ color: IG.muted }}>
-                      {event ? `${event.place.name} · ${event.free ? "Free" : "Paid"}` : "Facebook Events"}
-                    </p>
-                    <p className="mt-1 text-[12px]" style={{ color: IG.muted }}>
-                      facebook.com/events
-                    </p>
-                  </div>
-                  </Link>
-                )}
+                </button>
               </div>
             </div>
           </div>
