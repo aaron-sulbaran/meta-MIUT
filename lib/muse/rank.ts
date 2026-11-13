@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { CampusEvent, RankedPick } from "@/lib/events/schema";
 import { isInWindow } from "@/lib/events/time";
 import { walkMinutes } from "@/lib/geo";
@@ -51,14 +52,37 @@ function picksPool(likely: LikelyEvent[], events: CampusEvent[], profile: Studen
   return [...pool, ...rest].slice(0, POOL_SIZE);
 }
 
-/** Likely events by time: what is on now first, then the soonest to start. */
+/**
+ * Likely events by time and interest: what is on now first, then day by day,
+ * and within each, the best match first (soonest breaks ties).
+ */
 export function soonestFirst(likely: LikelyEvent[], events: CampusEvent[], now: Date): LikelyEvent[] {
   const startOf = new Map(events.map((event) => [event.id, Date.parse(event.start)]));
-  const key = (candidate: LikelyEvent) => {
-    const start = startOf.get(candidate.eventId) ?? Number.POSITIVE_INFINITY;
-    return start <= now.getTime() ? Number.NEGATIVE_INFINITY : start;
+  const start = (candidate: LikelyEvent) => startOf.get(candidate.eventId) ?? Number.POSITIVE_INFINITY;
+  const bucket = (candidate: LikelyEvent) => {
+    const at = start(candidate);
+    if (at <= now.getTime()) return "0";
+    return Number.isFinite(at) ? `1${new Date(at).toLocaleDateString("en-CA", { timeZone: CAMPUS_TIME_ZONE })}` : "2";
   };
-  return [...likely].sort((a, b) => key(a) - key(b) || b.score - a.score);
+  return [...likely].sort(
+    (a, b) => bucket(a).localeCompare(bucket(b)) || b.score - a.score || start(a) - start(b),
+  );
+}
+
+/**
+ * For you under the Top 3: every upcoming event except `skip`. The ones Muse thinks the student
+ * will like come first (best match, then soonest), then the rest by time.
+ */
+export function forYouOrder(likely: LikelyEvent[], events: CampusEvent[], now: Date, skip: Set<string>): CampusEvent[] {
+  const scores = new Map(likely.map((candidate) => [candidate.eventId, candidate.score]));
+  return events
+    .filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime() && !skip.has(event.id))
+    .sort(
+      (a, b) =>
+        Number(scores.has(b.id)) - Number(scores.has(a.id)) ||
+        (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0) ||
+        Date.parse(a.start) - Date.parse(b.start),
+    );
 }
 
 export async function personalizeEvents(

@@ -3,7 +3,7 @@ import type { StudentProfile } from "@/lib/events/schema";
 import { loadSeedEvents, loadSeedStudent } from "@/lib/events/seed";
 import { compileCandidates, scheduleClash } from "@/lib/muse/candidates";
 import { buildInterestMemory, getInterestMemory, resetInterestMemory } from "@/lib/muse/memory";
-import { personalizeEvents, soonestFirst } from "@/lib/muse/rank";
+import { forYouOrder, personalizeEvents, soonestFirst } from "@/lib/muse/rank";
 import { isInWindow } from "@/lib/events/time";
 
 // Thursday 10:00 in Austin.
@@ -11,6 +11,33 @@ const now = new Date("2026-11-12T16:00:00.000Z");
 const events = loadSeedEvents(now);
 const student = loadSeedStudent();
 const byId = (id: string) => events.find((event) => event.id === id)!;
+
+describe("For you list", () => {
+  it("reaches past this week when asked", () => {
+    const climbing = byId("evt-climbing-gregory");
+    const day = 24 * 60 * 60 * 1000;
+    const far = {
+      ...climbing,
+      id: "evt-far",
+      start: new Date(now.getTime() + 10 * day).toISOString(),
+      end: new Date(now.getTime() + 10 * day + 2 * 60 * 60 * 1000).toISOString(),
+    };
+    const memory = getInterestMemory(undefined, now);
+    expect(compileCandidates(student, memory, [far], now)).toEqual([]);
+    expect(compileCandidates(student, memory, [far], now, "upcoming")).toHaveLength(1);
+  });
+
+  it("keeps every upcoming event, the likely ones first, minus the skipped ones", () => {
+    const likely = compileCandidates(student, getInterestMemory(undefined, now), events, now, "upcoming");
+    const skip = new Set([likely[0]!.eventId]);
+    const list = forYouOrder(likely, events, now, skip);
+    const upcoming = events.filter((event) => event.status === "published" && Date.parse(event.end) > now.getTime());
+    expect(list).toHaveLength(upcoming.length - 1);
+    expect(list.map((event) => event.id)).not.toContain(likely[0]!.eventId);
+    expect(list[0]!.id).toBe(likely[1]!.eventId);
+    expect(list.map((event) => event.id)).toContain("evt-yoga-tower");
+  });
+});
 
 describe("compileCandidates", () => {
   afterEach(() => resetInterestMemory());
@@ -93,15 +120,29 @@ describe("personalizeEvents without a key", () => {
 });
 
 describe("soonestFirst", () => {
-  it("puts what is on now first, then the soonest to start", () => {
+  it("puts what is on now first, then day by day with the best match first", () => {
     const likely = compileCandidates(loadSeedStudent(), getInterestMemory(undefined, now), events, now);
     const starts = new Map(events.map((event) => [event.id, Date.parse(event.start)]));
-    const keys = soonestFirst(likely, events, now).map((candidate) => {
-      const start = starts.get(candidate.eventId)!;
-      return start <= now.getTime() ? -Infinity : start;
-    });
-    expect(keys).toEqual([...keys].sort((a, b) => a - b));
-    expect(soonestFirst(likely, events, now)).toHaveLength(likely.length);
+    const day = (at: number) =>
+      at <= now.getTime() ? "0" : new Date(at).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const sorted = soonestFirst(likely, events, now);
+    const keys = sorted.map((candidate) => day(starts.get(candidate.eventId)!));
+    expect(keys).toEqual([...keys].sort());
+    for (let i = 1; i < sorted.length; i++) {
+      if (keys[i] === keys[i - 1]) expect(sorted[i]!.score).toBeLessThanOrEqual(sorted[i - 1]!.score);
+    }
+    expect(sorted).toHaveLength(likely.length);
+  });
+
+  it("ranks a free-food event that matches nothing else below a real match", () => {
+    const base = { ...events[0]!, food: true, foodNote: "Pizza", organizer: { name: "Club", handle: "test_club" } };
+    const pizza = { ...base, id: "evt-test-pizza", title: "Pizza social", description: "Free pizza." };
+    const hack = { ...base, id: "evt-test-hack", title: "Hackathon info session", description: "Free pizza." };
+    const profile: StudentProfile = { ...student, follows: [], interests: ["free food", "hackathons"] };
+    const [first, second] = compileCandidates(profile, buildInterestMemory("food", [], now), [pizza, hack], now);
+    expect(first!.eventId).toBe("evt-test-hack");
+    expect(second!.eventId).toBe("evt-test-pizza");
+    expect(first!.score - second!.score).toBeGreaterThan(1);
   });
 });
 
