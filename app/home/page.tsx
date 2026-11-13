@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { eventFacts, posterKicker } from "@/components/events/event-card";
+import { FeedPosts } from "@/components/home/feed-posts";
 import { FeedSeparator } from "@/components/ui/card";
 import { FbEventCard } from "@/components/ui/event-card";
 import { HeaderAction, HomeHeader } from "@/components/ui/header";
@@ -89,6 +90,9 @@ export default async function HomePage() {
           </div>
         </article>
       )}
+      {shared && shared.source.caption && <FeedSeparator />}
+
+      <FeedPosts />
     </>
   );
 }

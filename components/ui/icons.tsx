@@ -309,3 +309,28 @@ export function WaveIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function LikeIcon({ className }: IconProps) {
+  return (
+    <svg {...line} className={className}>
+      <path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3Zm0 0 4-7.2a1.9 1.9 0 0 1 3.5 1.2L13.8 9H19a2 2 0 0 1 2 2.3l-1.2 7.5A2.6 2.6 0 0 1 17.2 21H7" />
+    </svg>
+  );
+}
+
+export function CommentIcon({ className }: IconProps) {
+  return (
+    <svg {...line} className={className}>
+      <path d="M12 3.5c5 0 9 3.6 9 8s-4 8-9 8c-1.1 0-2.2-.2-3.2-.5L4 20.5l1.3-3.9A7.6 7.6 0 0 1 3 11.5c0-4.4 4-8 9-8Z" />
+    </svg>
+  );
+}
+
+export function GlobeIcon({ className }: IconProps) {
+  return (
+    <svg {...line} strokeWidth={1.6} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3Z" />
+    </svg>
+  );
+}

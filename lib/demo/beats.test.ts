@@ -33,7 +33,8 @@ describe("demo beats", () => {
     expect(HANDOFF.organizerAt(iso)).toBe(`/organizer?handoff=story&at=${encodeURIComponent(iso)}`);
     expect(HANDOFF.instagramPost(null)).toBe("/demo/instagram/post");
     expect(beat("U2b").path!(context)).toBe(HANDOFF.lisaLanding("evt-story", "sample-student"));
-    expect(beat("U3b").path!(context)).toBe(HANDOFF.curate);
+    expect(beat("U3b").path!(context)).toBe(HANDOFF.curateAuto);
+    expect(beat("O5").path!(context)).toBe(HANDOFF.organizerPosted(iso));
   });
 
   it("never needs the story event before the organizer has published it", () => {
