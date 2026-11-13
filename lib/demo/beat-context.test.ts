@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { castFromSlug, decidePhoneMove, inFrameMessage, nextCast, phoneView } from "@/lib/demo/beat-context";
+import { canJoinAt, castFromSlug, decidePhoneMove, nextActStart, inFrameMessage, nextCast, phoneView } from "@/lib/demo/beat-context";
 import { BEATS, type CastId } from "@/lib/demo/beats";
 
 const at = (id: string) => BEATS.findIndex((beat) => beat.id === id);
@@ -30,6 +30,38 @@ describe("who may move the stage from their own phone", () => {
     const start = firstOf("user2");
     expect(decidePhoneMove(start, { action: "back", from: "user2", at: start }).ok).toBe(false);
     expect(decidePhoneMove(start + 1, { action: "back", from: "user2", at: start + 1 })).toEqual({ ok: true, index: start });
+  });
+
+  it("lets the next person start their own act once the act before rests on its last beat", () => {
+    // Jing to Jolyn, Jolyn to Lisa, Lisa to Trish.
+    const joins: [CastId, CastId][] = [["organizer", "user1"], ["user1", "user2"], ["user2", "user3"]];
+    for (const [before, after] of joins) {
+      const last = lastOf(before);
+      expect(canJoinAt(last, after)).toBe(true);
+      expect(phoneView(last, after)).toMatchObject({ kind: "waiting", upNext: true, canJoin: true });
+      expect(decidePhoneMove(last, { action: "join", from: after, at: last })).toEqual({ ok: true, index: last + 1 });
+      // Not before the last beat, not for anyone else, and only once.
+      expect(decidePhoneMove(last - 1, { action: "join", from: after, at: last - 1 }).ok).toBe(false);
+      expect(decidePhoneMove(last, { action: "join", from: before, at: last }).ok).toBe(false);
+      expect(decidePhoneMove(last + 1, { action: "join", from: after, at: last })).toEqual({ ok: false, reason: "The stage has already moved" });
+      // The person on now still hands over with Next.
+      expect(decidePhoneMove(last, { action: "next", from: before, at: last })).toEqual({ ok: true, index: last + 1 });
+    }
+    // Nobody joins from the pitch beats (Jing starts from the laptop), or past the last act.
+    expect(canJoinAt(firstOf("organizer") - 1, "organizer")).toBe(false);
+    expect(canJoinAt(lastOf("user3"), "user1")).toBe(false);
+  });
+
+  it("lets a screen of the person on now pass the show to the next person's first beat", () => {
+    // Lisa's "Open to company" on any of her beats goes to Trish's first beat; Jolyn's "Sent to Lisa" to Lisa's.
+    for (const [cast, next] of [["user2", "user3"], ["user1", "user2"]] as [CastId, CastId][]) {
+      for (let beat = firstOf(cast); beat <= lastOf(cast); beat += 1) {
+        expect(decidePhoneMove(beat, { action: "pass", from: cast, at: beat })).toEqual({ ok: true, index: firstOf(next) });
+      }
+      expect(decidePhoneMove(firstOf(cast), { action: "pass", from: next, at: firstOf(cast) }).ok).toBe(false);
+    }
+    expect(nextActStart(lastOf("user3"))).toBeNull();
+    expect(decidePhoneMove(lastOf("user3"), { action: "pass", from: "user3", at: lastOf("user3") }).ok).toBe(false);
   });
 
   it("does nothing twice: a tap from a beat the stage has left is refused", () => {
