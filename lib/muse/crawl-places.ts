@@ -18,3 +18,11 @@ export const CRAWL_PLACES: CrawlPlace[] = [
   { name: "Central Square", lat: 42.3654, lng: -71.1037, aliases: ["central square", "central"] },
   { name: "Harvard Square", lat: 42.3734, lng: -71.1189, aliases: ["harvard"] },
 ];
+
+const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/** The first campus spot named in what the student said or typed (whole words), or null. */
+export function placeNamedIn(text: string): CrawlPlace | null {
+  const said = ` ${squash(text)} `;
+  return CRAWL_PLACES.find((place) => [place.name, ...place.aliases].some((name) => said.includes(` ${squash(name)} `))) ?? null;
+}

@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { CastAvatar } from "@/components/demo/cast-avatar";
+import { DeckHost } from "@/components/demo/deck-host";
 import { FilmPlayer, type FilmControls } from "@/components/demo/film-player";
+import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
-import { BEATS, STORY_DUE_AFTER, castLine, castOf, filmFiles, type Beat, type CastId } from "@/lib/demo/beats";
+import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type CastId } from "@/lib/demo/beats";
 import { demoClock } from "@/lib/demo/clock";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 
@@ -34,13 +36,14 @@ const FADE_MS = 200;
 const CHANNEL = "demo-stage";
 const TOKEN_KEY = "demo-reset-token";
 
-type StageMessage = { type: "goto"; index: number } | { type: "reset" };
+// deck-step tells the console (same browser) which deck step is on, for its notes.
+type StageMessage = { type: "goto"; index: number } | { type: "reset" } | { type: "deck-step"; beatId: string; step: number };
 // Where a move came from: this window, another window on this browser, or the store (a phone remote).
 type MoveSource = "local" | "channel" | "remote";
 type StagePosition = { index: number; seq: number };
 
 const POSITION_URL = "/api/demo/stage";
-const POSITION_POLL_MS = 1_000;
+const POSITION_POLL_MS = 75;
 
 async function readPosition(): Promise<StagePosition | null> {
   try {
@@ -104,7 +107,23 @@ async function fetchStoryEvent(): Promise<{ id: string; error: null } | { id: nu
   }
 }
 
-type Frame = { src: string; key: number; loaded: boolean };
+// A phone screen. `z` orders them (the highest shown one is on screen); a
+// prefetched screen loads hidden ahead of its beat and is shown in place when the
+// beat opens, because moving an iframe in the page would reload it.
+type Frame = { src: string; key: string; loaded: boolean; z: number; prefetch?: boolean };
+
+/** The screen on top: the frame with the highest z. */
+function topFrame(frames: Frame[]): Frame | undefined {
+  return frames.reduce<Frame | undefined>((top, frame) => (!top || frame.z > top.z ? frame : top), undefined);
+}
+
+/** Adds a screen on top, keeping only the one it fades in over. */
+function withFrameOnTop(current: Frame[], frame: Omit<Frame, "z">, z: number): Frame[] {
+  const top = topFrame(current);
+  return [...current.filter((item) => item === top), { ...frame, z }];
+}
+
+const prefetchKey = (src: string) => `next:${src}`;
 
 /** A film's cue points (public/demo/films/<film>.cues.json), or none when the file is missing. */
 function useCues(path: string | null): number[] | undefined {
@@ -151,6 +170,14 @@ export function Stage() {
   const personaRef = useRef<PersonaId | null | undefined>(undefined);
   // The film on screen, when there is one, so Next and Back step through its cues.
   const filmRef = useRef<FilmControls | null>(null);
+  const [enteredBack, setEnteredBack] = useState(false);
+  // The phone's newest screen, for a beat that continues inside it.
+  const lastFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const zRef = useRef(0);
+  // Screens loaded ahead that have finished loading, by path.
+  const [loadedAhead, setLoadedAhead] = useState<string[]>([]);
+  // Where a staged screen last handed the phone off to (it navigated there itself).
+  const [handedOffTo, setHandedOffTo] = useState<string | null>(null);
   // Where the phone is now, as far as the stage knows (a handoff moves it too).
   const locationRef = useRef<string | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -184,12 +211,12 @@ export function Stage() {
   }, []);
 
   const goTo = useCallback(
-    (next: number, source: MoveSource = "local") => {
+    (next: number, source: MoveSource = "local", skipSteps = false) => {
       const clamped = Math.max(0, Math.min(BEATS.length - 1, next));
-      // On a film, one step forward or back moves between its cue points first.
+      // On a deck, a film, or the opening's slides, one step forward or back moves between its cues first.
       const step = next - indexRef.current;
       const film = filmRef.current;
-      if (film && (step === 1 || step === -1) && (step === 1 ? film.next() : film.back())) {
+      if (!skipSteps && film && (step === 1 || step === -1) && (step === 1 ? film.next() : film.back())) {
         // A remote asked to move on: put the shared position back on this beat.
         if (source === "remote") {
           void writePosition(indexRef.current).then((position) => {
@@ -200,7 +227,9 @@ export function Stage() {
       }
       const target = BEATS[clamped];
       // A new person on screen: say who, briefly.
-      if (target && target.kind !== "slide" && target.kind !== "film") {
+      // Entering a stepped beat with Back starts it at its last cue.
+      setEnteredBack(clamped < indexRef.current);
+      if (target && target.kind !== "slide" && target.kind !== "film" && target.kind !== "deck") {
         const cast = castOf(target.persona);
         if (cast !== lastCastRef.current) {
           lastCastRef.current = cast;
@@ -248,9 +277,22 @@ export function Stage() {
     };
   }, [goTo]);
 
+  const frameLoaded = useCallback((key: string) => {
+    setFrames((current) => current.map((frame) => (frame.key === key ? { ...frame, loaded: true } : frame)));
+    // Once the top screen has faded in, drop the one under it.
+    setTimeout(
+      () =>
+        setFrames((current) => {
+          const top = topFrame(current);
+          return top?.key === key ? current.filter((frame) => frame === top) : current;
+        }),
+      FADE_MS + 40,
+    );
+  }, []);
+
   // Open the beat: its persona, its screen.
   useEffect(() => {
-    if (beat.kind === "slide" || beat.kind === "film") return;
+    if (beat.kind === "slide" || beat.kind === "film" || beat.kind === "deck") return;
     const personaChanged = personaRef.current !== beat.persona;
     if (personaChanged) {
       setPersonaCookie(beat.persona);
@@ -258,25 +300,53 @@ export function Stage() {
     }
     if (!beatSrc) return;
     if (personaChanged || locationRef.current !== beatSrc) {
+      // Continue inside the phone already on screen when this beat follows on from it.
+      const from = beat.inFrame ? BEATS.find((candidate) => candidate.id === beat.inFrame?.from) : undefined;
+      const fromSrc = from?.path?.({ storyEventId, now: runStartedAt }) ?? null;
+      const phone = lastFrameRef.current?.contentWindow;
+      if (!personaChanged && beat.inFrame && fromSrc && locationRef.current === fromSrc && phone) {
+        phone.postMessage(beat.inFrame.message, window.location.origin);
+        locationRef.current = beatSrc;
+        return;
+      }
       locationRef.current = beatSrc;
-      setFrames((current) => [...current.slice(-1), { src: beatSrc, key: Date.now(), loaded: false }]);
+      zRef.current += 1;
+      const z = zRef.current;
+      // Loaded ahead (U1b during U1a): take over that screen in place, with the same key,
+      // so React keeps its iframe instead of loading it again.
+      const prefetched = document.querySelector<HTMLIFrameElement>("iframe[data-prefetch]")?.getAttribute("src") === beatSrc;
+      const key = prefetched ? prefetchKey(beatSrc) : String(Date.now());
+      const loaded = prefetched && loadedAhead.includes(beatSrc);
+      setFrames((current) => withFrameOnTop(current, { src: beatSrc, key, loaded }, z));
+      if (loaded) frameLoaded(key);
     }
-  }, [beat, beatSrc]);
+  }, [beat, beatSrc, storyEventId, runStartedAt, frameLoaded, loadedAhead]);
 
-  const frameLoaded = useCallback((key: number) => {
-    setFrames((current) => current.map((frame) => (frame.key === key ? { ...frame, loaded: true } : frame)));
-    setTimeout(() => setFrames((current) => (current.at(-1)?.key === key ? current.slice(-1) : current)), FADE_MS + 40);
-  }, []);
+  // Load the next beat's screen hidden, when it asks for that and the same person plays it.
+  const nextBeat = BEATS[index + 1];
+  const prefetchSrc =
+    nextBeat?.prefetch && beat.kind !== "slide" && beat.kind !== "film" && beat.kind !== "deck" && castOf(nextBeat.persona) === castOf(beat.persona)
+      ? (nextBeat.path?.({ storyEventId, now: runStartedAt }) ?? null)
+      : null;
+
 
   // A staged beat's route may not be built yet: use a placeholder until it is.
   const stagedPath = beat.kind === "staged" ? beatSrc : null;
   const stagedReady = useExists(stagedPath);
   const showPlaceholder = beat.kind === "staged" && (!stagedPath || stagedReady !== true);
-  // A film plays when its file is there; until then the beat shows as a slide.
-  const film = beat.kind === "film" && beat.film ? filmFiles(beat.film) : null;
+  // The opening: its live deck when the page is there, else its rendered film, else
+  // a plain slide per section. Nothing shows until the checks answer, so it never flashes.
+  const deck = beat.kind === "deck" && beat.deck ? deckPath(beat.deck) : null;
+  const deckReady = useExists(deck);
+  const film = (beat.kind === "film" || beat.kind === "deck") && beat.film ? filmFiles(beat.film) : null;
   const filmReady = useExists(film?.video ?? null);
   const filmCues = useCues(film?.cues ?? null);
-  const playFilm = film !== null && filmReady === true && filmCues !== undefined;
+  const showDeck = deck !== null && deckReady === true;
+  const playFilm = !showDeck && film !== null && filmReady === true && filmCues !== undefined;
+  const opening = beat.kind === "deck" || beat.kind === "film";
+  const openingChecked = (deck === null || deckReady !== undefined) && (film === null || filmReady !== undefined);
+  const deckEnd = useCallback(() => goTo(indexRef.current + 1, "local", true), [goTo]);
+  const deckStart = useCallback(() => goTo(indexRef.current - 1, "local", true), [goTo]);
 
   const resetDemo = useCallback(async () => {
     setStatus("Resetting the demo");
@@ -333,6 +403,7 @@ export function Stage() {
       const data = event.data as { type?: unknown; path?: unknown } | null;
       if (data?.type !== "demo-handoff" || typeof data.path !== "string" || !data.path.startsWith("/")) return;
       locationRef.current = data.path;
+      setHandedOffTo(data.path);
       goTo(index + 1);
     };
     window.addEventListener("message", onMessage);
@@ -355,7 +426,10 @@ export function Stage() {
       } else if (event.key === "R") {
         void resetDemo();
       } else if (event.key === "r") {
-        setFrames((current) => current.slice(-1).map((frame) => ({ ...frame, key: Date.now(), loaded: false })));
+        setFrames((current) => {
+          const top = topFrame(current);
+          return top ? [{ ...top, key: String(Date.now()), loaded: false }] : current;
+        });
       } else if (event.key === "h" || event.key === "H") {
         setShowList((shown) => !shown);
       } else if (event.key === "f" || event.key === "F") {
@@ -368,10 +442,24 @@ export function Stage() {
   }, [goTo, index, resetDemo, showPersonCard]);
 
   const cast = castOf(beat.persona);
+  const topScreen = topFrame(frames);
+  // The next beat's screen, loading hidden under this one (see Beat.prefetch).
+  // A prefetching beat's own screen stays rendered under that key until the beat takes it over.
+  const aheadSrcs = [prefetchSrc, beat.prefetch && beatSrc && handedOffTo !== beatSrc ? beatSrc : null].filter(
+    (src): src is string => src !== null && !frames.some((frame) => frame.src === src || frame.key === prefetchKey(src)),
+  );
+  const shownFrames: Frame[] = [...frames, ...aheadSrcs.map((src) => ({ src, key: prefetchKey(src), loaded: false, z: 0, prefetch: true }))];
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-clip bg-page text-ink">
-      {beat.kind === "slide" || beat.kind === "film" ? (
+    // The opening is near-black like its decks (#08090D), with nothing over it; the skit is Facebook's white page.
+    <div className={`fixed inset-0 z-[100] flex flex-col overflow-clip ${opening ? "bg-[#08090d] text-white" : "bg-page text-ink"}`}>
+      {opening && !showDeck && !playFilm && beat.sections ? (
+        openingChecked ? (
+          <SectionSlides key={`${beat.id}-${enteredBack}`} lines={beat.sections.map((section) => section.line)} startAtEnd={enteredBack} controls={filmRef} />
+        ) : (
+          <section className="flex-1" />
+        )
+      ) : beat.kind === "slide" || opening ? (
         <section className="flex min-h-0 flex-1 flex-col justify-center gap-[3vh] px-[8vw]">
           <h1 className="font-display text-[clamp(44px,6.2vw,104px)] leading-[1.02] font-bold tracking-[-0.02em]">{beat.title}</h1>
           <p className="max-w-[30ch] text-[clamp(22px,2.3vw,40px)] leading-[1.3] font-medium text-muted">{beat.caption}</p>
@@ -385,16 +473,28 @@ export function Stage() {
             <div className="relative" style={{ width: PHONE_WIDTH, height: PHONE_HEIGHT, transform: `scale(${scale})`, transformOrigin: "top left" }}>
               {showPlaceholder && beat.staged ? (
                 <StagedScreenView screen={beat.staged} onHandoff={() => goTo(index + 1)} />
-              ) : frames.length > 0 ? (
-                frames.map((frame, frameIndex) => (
+              ) : topScreen ? (
+                shownFrames.map((frame) => (
                   <iframe
                     key={frame.key}
                     src={frame.src}
-                    title={`${castLine(cast)}: phone`}
+                    title={frame.prefetch ? "Next screen, loading" : `${castLine(cast)}: phone`}
                     allow="microphone; geolocation; autoplay"
-                    onLoad={() => frameLoaded(frame.key)}
+                    ref={frame === topScreen ? lastFrameRef : undefined}
+                    data-prefetch={frame.prefetch ? "" : undefined}
+                    onLoad={() => {
+                      if (frame.prefetch) setLoadedAhead((done) => (done.includes(frame.src) ? done : [...done, frame.src]));
+                      else frameLoaded(frame.key);
+                    }}
+                    aria-hidden={frame.prefetch || undefined}
+                    tabIndex={frame.prefetch ? -1 : undefined}
                     className="absolute inset-0 h-full w-full border-0 bg-card transition-opacity ease-out motion-reduce:transition-none"
-                    style={{ opacity: frame.loaded || frameIndex < frames.length - 1 ? 1 : 0, transitionDuration: `${FADE_MS}ms` }}
+                    style={{
+                      zIndex: frame.z,
+                      opacity: frame.prefetch ? 0 : frame !== topScreen || frame.loaded ? 1 : 0,
+                      pointerEvents: frame === topScreen ? undefined : "none",
+                      transitionDuration: `${FADE_MS}ms`,
+                    }}
                   />
                 ))
               ) : (
@@ -413,10 +513,21 @@ export function Stage() {
         </section>
       )}
 
-      <footer className="flex shrink-0 items-center justify-center px-[16px]" style={{ height: FOOTER_HEIGHT }}>
-        <StageProgress index={index} />
-      </footer>
+      {!opening && (
+        <footer className="flex shrink-0 items-center justify-center px-[16px]" style={{ height: FOOTER_HEIGHT }}>
+          <StageProgress index={index} />
+        </footer>
+      )}
 
+      {showDeck && deck && <DeckHost
+          key={`${deck}-${enteredBack}`}
+          src={deck}
+          startAtEnd={enteredBack}
+          controls={filmRef}
+          onEnd={deckEnd}
+          onStart={deckStart}
+          onStep={(step) => channelRef.current?.postMessage({ type: "deck-step", beatId: beat.id, step } satisfies StageMessage)}
+        />}
       {playFilm && film && filmCues && <FilmPlayer key={film.video} src={film.video} cues={filmCues} controls={filmRef} />}
 
       {personCard && (

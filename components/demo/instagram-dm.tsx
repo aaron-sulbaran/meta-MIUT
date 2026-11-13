@@ -6,10 +6,14 @@ import { DrawnAvatar, IG, IgIcons, StagedScreen } from "@/components/demo/instag
 import { MuseMark } from "@/components/ui/icons";
 import { Poster } from "@/components/ui/poster";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
+import { CAST } from "@/lib/demo/beats";
 import { HANDOFF, handOff } from "@/lib/demo/staged";
 
-// U2a: Lisa's Instagram thread with Aaron. The first two lines are the skit;
-// the invite is real: it shows up when Aaron's Muse sends it from the map,
+// The friend who sends the invite: User 1 in the cast.
+const SENDER = CAST.user1.name;
+
+// U2a: Lisa's Instagram thread with User 1. The first two lines are the skit;
+// the invite is real: it shows up when User 1's Muse sends it from the map,
 // in Muse's own words, with a card that opens the event on Facebook (U2b).
 // If no invite has arrived a moment after the screen opens (the re-plan beat
 // was skipped, or Muse did not send one), the thread settles on the story
@@ -19,7 +23,7 @@ type Invite = { id: string; eventId: string; from: string; message: string; href
 type EventSummary = { title: string; start: string; place: { name: string }; free: boolean; organizer: { name: string }; source?: { imagePath?: string } };
 
 const POLL_MS = 2000;
-// How long the thread waits for Aaron's real invite before it shows the story event's.
+// How long the thread waits for the real invite before it shows the story event's.
 const SETTLE_MS = 1800;
 
 function when(iso: string): string {
@@ -57,10 +61,10 @@ export function InstagramDm({ to }: { to: string }) {
             current ?? {
               id: `story-${story.id}`,
               eventId: story.id,
-              from: "Aaron",
+              from: SENDER,
               message: `Found us something on the way: ${story.title} at ${story.place.name}. Want to come?`,
               href: null,
-              // About when Aaron would have sent it: just after class, before the event.
+              // About when it would have been sent: just after class, before the event.
               at: new Date(Date.parse(story.start) - 20 * 60_000).toISOString(),
             },
         );
@@ -96,9 +100,9 @@ export function InstagramDm({ to }: { to: string }) {
     <StagedScreen label="Staged Instagram message">
       <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-[#efefef] px-3">
         <span aria-hidden>{IgIcons.back()}</span>
-        <DrawnAvatar name="Aaron" size={32} />
+        <DrawnAvatar name={SENDER} size={32} />
         <div className="min-w-0 flex-1 leading-[17px]">
-          <p className="text-[15px] font-semibold">Aaron</p>
+          <p className="text-[15px] font-semibold">{SENDER}</p>
           <p className="text-[12px]" style={{ color: IG.muted }}>
             Active now
           </p>
@@ -117,7 +121,7 @@ export function InstagramDm({ to }: { to: string }) {
           still on for later?
         </p>
         <div className="flex items-end gap-2">
-          <DrawnAvatar name="Aaron" size={26} />
+          <DrawnAvatar name={SENDER} size={26} />
           <p className="max-w-[75%] rounded-[20px] px-[14px] py-[9px] text-[15px]" style={{ background: IG.bubble }}>
             yes, just got out of class. finding us something
           </p>
@@ -125,7 +129,7 @@ export function InstagramDm({ to }: { to: string }) {
 
         {!invite && (
           <p className="ml-[34px] mt-1 text-[12px]" style={{ color: IG.muted }} aria-live="polite">
-            Aaron is typing...
+            {SENDER} is typing...
           </p>
         )}
         {invite && (
@@ -136,7 +140,7 @@ export function InstagramDm({ to }: { to: string }) {
               Sent by {invite.from}&apos;s Muse
             </p>
             <div className="flex items-end gap-2">
-              <DrawnAvatar name="Aaron" size={26} />
+              <DrawnAvatar name={SENDER} size={26} />
               <div className="flex max-w-[78%] flex-col gap-[6px]">
                 <p className="rounded-[20px] px-[14px] py-[9px] text-[15px] leading-[20px]" style={{ background: IG.bubble }}>
                   {invite.message}

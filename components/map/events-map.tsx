@@ -19,6 +19,7 @@ import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 import type { Route } from "@/lib/map/crawl-route";
 import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
+import { placeNamedIn } from "@/lib/muse/crawl-places";
 
 // Full-screen map for the Events tab: a clean, quiet base map with each event
 // as a round bubble showing the organizer's logo (the club, association or
@@ -483,7 +484,7 @@ function LogoTile({ card }: { card: MapCard }) {
 /** A walk Ask Muse planned on the Ask Muse page, opened here from its link. */
 export type AskPlanLink = { note: string; toEventId: string | null; invite?: boolean };
 
-/** To the event asked about, else to a friend named in the request, else home. */
+/** To the event asked about, else to a friend or campus spot named in the request, else home. */
 function startFromAsk(link: AskPlanLink, events: CampusEvent[]): CrawlStart {
   const event = link.toEventId ? events.find((candidate) => candidate.id === link.toEventId) : undefined;
   const friend = friendNamedIn(link.note);
@@ -499,9 +500,10 @@ function startFromAsk(link: AskPlanLink, events: CampusEvent[]): CrawlStart {
       friendId: friend?.id ?? null,
       sendInvite: friend !== null && link.invite === true,
     };
-  return friend
-    ? { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name, friendId: friend.id, sendInvite: link.invite === true }
-    : { kind: "home", note: link.note };
+  if (friend)
+    return { kind: "friend", to: friend, label: friendLabel(friend), note: link.note, friendName: friend.name, friendId: friend.id, sendInvite: link.invite === true };
+  const place = placeNamedIn(link.note);
+  return place ? { kind: "place", to: place, label: place.name, note: link.note } : { kind: "home", note: link.note };
 }
 
 export function EventsMap({
@@ -557,14 +559,33 @@ export function EventsMap({
   // Open once, a beat after the first walk is drawn, so the room sees the plan change.
   const autoAskOpened = useRef(false);
   const hasRoute = route !== null;
+  // The /demo stage can ask from inside the walk already on screen (U1b to U1c) instead of
+  // reloading the map: it posts {type: "demo-ask", line}. Only when this page is the stage's phone.
+  const [askLine, setAskLine] = useState<{ line: string; at: number } | null>(() => (autoAsk ? { line: autoAsk, at: 0 } : null));
   useEffect(() => {
-    if (!autoAsk || autoAskOpened.current || (!hasRoute && autoPlan === "home")) return;
-    const timer = setTimeout(() => {
-      autoAskOpened.current = true;
-      setAskOpen(true);
-    }, 1400);
+    if (window.parent === window) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      const data = event.data as { type?: unknown; line?: unknown } | null;
+      if (data?.type !== "demo-ask" || typeof data.line !== "string") return;
+      autoAskOpened.current = false;
+      setAskOpen(false);
+      setAskLine({ line: data.line, at: Date.now() });
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  useEffect(() => {
+    if (!askLine || autoAskOpened.current || (!hasRoute && autoPlan === "home")) return;
+    const timer = setTimeout(
+      () => {
+        autoAskOpened.current = true;
+        setAskOpen(true);
+      },
+      askLine.at ? 300 : 1400,
+    );
     return () => clearTimeout(timer);
-  }, [autoAsk, hasRoute, autoPlan]);
+  }, [askLine, hasRoute, autoPlan]);
   const routeMarkersRef = useRef<Marker[]>([]);
   // The stop whose popup is open, tied to the route it belongs to, so a new
   // route (or none) closes it without an effect.
@@ -918,7 +939,7 @@ export function EventsMap({
 
       {!crawlOpen && !askOpen && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
 
-      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} autoAsk={autoAsk ?? undefined} />}
+      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} autoAsk={askLine?.line} />}
 
       {peekStop && peekPoint && peekIndex !== null && route && (() => {
         const left = Math.min(Math.max(peekPoint.x - PEEK_WIDTH / 2, 10), peekPoint.width - PEEK_WIDTH - 10);

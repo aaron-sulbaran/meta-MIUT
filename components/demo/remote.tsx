@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CastAvatar } from "@/components/demo/cast-avatar";
+import { PresenterNotes } from "@/components/demo/presenter-notes";
 import { BEATS, castLine, castOf } from "@/lib/demo/beats";
 
 // A presenter's phone as a clicker for the /demo stage on the laptop. Next and
@@ -89,11 +90,11 @@ export function StageRemote() {
         </p>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col justify-center gap-[8px] px-[20px]">
+      <main className="flex min-h-0 flex-1 flex-col justify-center gap-[8px] overflow-y-auto px-[20px]">
         {beat ? (
           <>
-            {beat.kind === "slide" || beat.kind === "film" ? (
-              <p className="text-meta font-semibold text-muted">Slide</p>
+            {beat.kind === "slide" || beat.kind === "film" || beat.kind === "deck" ? (
+              <p className="text-meta font-semibold text-muted">Opening</p>
             ) : (
               <p className="inline-flex items-center gap-[8px] self-start rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-[13px] font-bold text-link">
                 <CastAvatar id={castOf(beat.persona)} size={22} />
@@ -102,6 +103,7 @@ export function StageRemote() {
             )}
             <h1 className="font-display text-root-title leading-[31px] font-bold">{beat.title}</h1>
             <p className="text-body text-muted">{beat.caption}</p>
+            <PresenterNotes beat={beat} />
             <p className="mt-[10px] text-venue text-muted">{upNext ? `Next: ${upNext.title}` : "Last beat"}</p>
           </>
         ) : (

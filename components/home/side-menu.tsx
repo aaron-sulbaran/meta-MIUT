@@ -10,6 +10,7 @@ import {
   MuseMark,
   PlusSquareIcon,
 } from "@/components/ui/icons";
+import { getFacebookHref } from "@/components/ui/header";
 import { ProfileAvatar } from "@/components/ui/tab-bar";
 
 type Item = {
@@ -90,12 +91,16 @@ export function SideMenu() {
                   <CloseIcon className="h-[20px] w-[20px]" />
                 </button>
               </div>
-              <div className="mx-[12px] flex items-center gap-[10px] rounded-card bg-wash px-[12px] py-[10px]">
-                <ProfileAvatar size={36} />
+              <Link
+                href={getFacebookHref("profile")}
+                onClick={() => setOpen(false)}
+                className="mx-[8px] flex items-center gap-[12px] rounded-card bg-wash px-[8px] py-[10px]"
+              >
+                <ProfileAvatar size={38} />
                 <span className="font-display text-label font-bold">
                   Your profile
                 </span>
-              </div>
+              </Link>
               <ul className="mt-[12px] flex flex-col gap-[4px] px-[8px]">
                 {ITEMS.map(({ label, detail, href, Icon }) => (
                   <li key={label}>
