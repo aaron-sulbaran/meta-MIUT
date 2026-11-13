@@ -105,11 +105,15 @@ export function StageRemote() {
             )}
             <h1 className="font-display text-root-title leading-[31px] font-bold">{beat.title}</h1>
             <p className="text-body text-muted">{beat.caption}</p>
+            {/* On the first beat the fresh run comes first: it is the thing to do before the pitch. */}
+            {position?.index === 0 && <FreshRun compact />}
             <PresenterNotes beat={beat} deckStep={position?.deck && position.deck.name === beat.deck ? position.deck.step : null} currentOnly />
             <p className="mt-[10px] text-venue text-muted">{upNext ? `Next: ${upNext.title}` : "Last beat"}</p>
-            <div className="mt-[12px]">
-              <FreshRun compact />
-            </div>
+            {position && position.index > 0 && (
+              <div className="mt-[12px]">
+                <FreshRun compact />
+              </div>
+            )}
           </>
         ) : (
           <p className="text-body text-muted">
