@@ -21,7 +21,11 @@ const inStagePhone = () => window.self !== window.top;
 export function NearbyWatcherGate() {
   const pathname = usePathname();
   // Never over the Muse card on the map: the nudge would sit on its mic.
-  const [museCard, setMuseCard] = useState(false);
+  // Screens that open with the Muse card (the map's alert path, ?plan=home) start with the nudge
+  // hidden, before the card has said anything; the card says when it closes.
+  const [museCard, setMuseCard] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("plan") === "home",
+  );
   useEffect(() => {
     const onCard = (event: Event) => setMuseCard((event as CustomEvent<boolean>).detail === true);
     window.addEventListener(MUSE_CARD, onCard);

@@ -567,7 +567,11 @@ export function MuseConversation({
           : "Thinking about that",
         startedAt: askStarted,
       });
-      if (friend) onPreviewSpot(friend);
+      if (friend) {
+        // The old walk leaves the map; the friend's spot comes in while Muse works.
+        onRoute(null);
+        onPreviewSpot(friend);
+      }
       // Shaped input, real call: with a friend named, Muse also hears which events sit between the
       // two of them and start soon, the demo's story event first when it is one of them.
       const between = (spot: Point) =>
@@ -728,7 +732,7 @@ export function MuseConversation({
           : brief(reply.answer),
       );
     },
-    [eventsById, onPreviewSpot, say, show, startMs, studentSpot],
+    [events, eventsById, onPreviewSpot, onRoute, say, show, startMs, storyEventId, studentSpot],
   );
 
   useEffect(() => {
@@ -881,7 +885,8 @@ export function MuseConversation({
         : phase.kind === "failed"
           ? phase.line
           : line;
-  const replanning = phase.kind === "working" && route !== null;
+  // While Muse works, the card shows what it is doing, never the old plan.
+  const replanning = phase.kind === "working" || phase.kind === "transcribing";
   const stamp =
     phase.kind === "ready" && legs
       ? legs.source === "fixture"
@@ -955,7 +960,7 @@ export function MuseConversation({
               museLine && (
                 <p
                   key={museLine}
-                  className={`mc-rise line-clamp-2 text-body ${working ? "font-display font-bold" : "font-medium"} text-ink`}
+                  className={`mc-rise text-body ${working ? "font-display font-bold" : "font-medium"} text-ink`}
                 >
                   {museLine}
                 </p>
@@ -1018,26 +1023,26 @@ export function MuseConversation({
 
       {/* Stops: the only part that scrolls. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4">
-        {route && route.stops.length > 0 ? (
+        {replanning ? (
+          <ol className="mt-[4px]">
+            {[0, 1, 2].map((index) => (
+              <Placeholder key={index} index={index} />
+            ))}
+          </ol>
+        ) : route && route.stops.length > 0 ? (
           <ol key={routeKey} className="mt-[4px]">
             {route.stops.map((stop, index) => (
               <StopRow
                 key={`${routeKey}-${stop.title}`}
                 stop={stop}
                 index={index}
-                dim={replanning}
+                dim={false}
                 delay={(index + 1) * STOP_STAGGER_MS}
               />
             ))}
           </ol>
-        ) : !route && phase.kind === "working" ? (
-          <ol className="mt-[4px]">
-            {[0, 1, 2].map((index) => (
-              <Placeholder key={index} index={index} />
-            ))}
-          </ol>
         ) : null}
-        {end && (
+        {end && !replanning && (
           <div
             className={`flex h-[44px] items-center gap-[10px] border-t border-hairline transition-opacity duration-300 ${replanning ? "opacity-40" : ""}`}
           >
