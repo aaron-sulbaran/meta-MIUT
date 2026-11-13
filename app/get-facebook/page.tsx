@@ -10,7 +10,7 @@ const FOR: Record<string, string> = {
   notifications: "For real notifications:",
   messenger: "For the real Messenger:",
   profile: "For your real profile:",
-  photo: "For real photo posts:",
+  post: "To make a real post:",
 };
 
 export default async function GetFacebookPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {

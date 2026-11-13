@@ -37,9 +37,16 @@ export default async function HomePage() {
       />
 
       <div className="flex items-center gap-[9px] px-[11.4px] pb-[14px] pt-[10px]">
-        <ProfileAvatar size={39} />
-        <span className="flex h-[38px] flex-1 items-center rounded-full bg-wash px-[14px] text-body font-semibold">What&apos;s on your mind?</span>
-        <Link href={getFacebookHref("photo")} aria-label="Photo" className="mr-[5.9px] text-muted">
+        <Link href={getFacebookHref("profile")} aria-label="Your profile">
+          <ProfileAvatar size={39} />
+        </Link>
+        <Link
+          href={getFacebookHref("post")}
+          className="flex h-[38px] flex-1 items-center rounded-full bg-wash px-[14px] text-body font-semibold"
+        >
+          What&apos;s on your mind?
+        </Link>
+        <Link href={getFacebookHref("post")} aria-label="Photo" className="mr-[5.9px] text-muted">
           <PhotoIcon className="h-[24px] w-[24px]" />
         </Link>
       </div>
