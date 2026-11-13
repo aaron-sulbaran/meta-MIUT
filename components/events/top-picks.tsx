@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { monogram } from "@/components/map/category-icons";
 import { Poster } from "@/components/ui/poster";
+import { SourceBadge } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
@@ -17,9 +18,11 @@ import { demoViewer } from "@/lib/social/viewer";
 // when there is none), the organizer's logo sits in the top corner, and the
 // title, time and walk sit on a dark band. When today has fewer than three
 // picks, the next events in Muse's For you order fill the row. Why each event
-// was picked stays inside the agent and is not shown. Who picked them
-// (Muse or the local fallback) is not shown either. Under it, every other upcoming event,
-// the ones the student is likely to care about first.
+// was picked stays inside the agent and is not shown. When Muse answered, who
+// picked them is not shown either; when Muse could not (no key, a failed call),
+// the heading says "Recorded answer", so the live link never passes a fallback
+// off as Muse (t-y3dg). Under it, every other upcoming event, the ones the
+// student is likely to care about first (ordered by interest, not by Muse).
 
 // Single-line text that ends in an ellipsis, set inline so it holds in the
 // narrow tiles.
@@ -37,7 +40,11 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
   return (
     <>
       <section aria-labelledby="top-picks-heading" className="pt-[22px]">
-        <SectionHeading id="top-picks-heading" title={fill.length > 0 ? "Top 3 for you" : "Top 3 for you today"} />
+        <SectionHeading
+          id="top-picks-heading"
+          title={fill.length > 0 ? "Top 3 for you" : "Top 3 for you today"}
+          aside={ranking.source === "muse" ? undefined : <SourceBadge source="fixture" />}
+        />
         {tiles.length === 0 ? (
           <p className="mt-2 px-3 text-body text-muted">Muse could not pick right now. Everything free today is below.</p>
         ) : (
