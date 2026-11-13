@@ -520,7 +520,7 @@ export function EventsMap({
   askEvents: CampusEvent[];
   nowIso: string;
   /** "home": open with the walk from class to home planned (the alert link). */
-  autoPlan?: "home" | null;
+  autoPlan?: "home" | "choose" | null;
   askPlan?: AskPlanLink | null;
   /** A set campus time (ISO) every walk plans from, for the demo (?time=). */
   planAt?: string | null;
@@ -546,7 +546,7 @@ export function EventsMap({
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [lastDismissed, setLastDismissed] = useState<MapCard | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [crawlOpen, setCrawlOpen] = useState(autoPlan === "home" || askPlan !== null);
+  const [crawlOpen, setCrawlOpen] = useState(autoPlan !== null || askPlan !== null);
   // A walk the planner makes as it opens; the key gives each one a fresh sheet.
   const [crawlStart, setCrawlStart] = useState<{ key: number; start: CrawlStart } | null>(() =>
     askPlan ? { key: 0, start: startFromAsk(askPlan, askEvents) } : autoPlan === "home" ? { key: 0, start: { kind: "home" } } : null,

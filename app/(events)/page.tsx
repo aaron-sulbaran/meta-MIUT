@@ -52,7 +52,7 @@ export default async function EventsTabPage({
             <MapHome
               events={events}
               now={now}
-              autoPlan={params.plan === "home" ? "home" : null}
+              autoPlan={params.plan === "home" ? "home" : params.plan === "crawl" ? "choose" : null}
               askPlan={
                 params.plan === "ask" && params.note
                   ? { note: params.note.slice(0, 300), toEventId: params.to ?? null, invite: params.invite === "1" }
