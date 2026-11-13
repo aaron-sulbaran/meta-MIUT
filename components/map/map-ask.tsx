@@ -14,11 +14,13 @@ export function MapAsk({
   nowIso,
   onPlan,
   onClose,
+  autoAsk,
 }: {
   events: CampusEvent[];
   nowIso: string;
   onPlan: (plan: AskPlan, question: string, options: { invite: boolean }) => void;
   onClose: () => void;
+  autoAsk?: string;
 }) {
   return (
     <div
@@ -39,7 +41,7 @@ export function MapAsk({
         </button>
       </div>
       <div className="min-h-0 overflow-y-auto pb-3 [&>section]:px-3">
-        <AskBar events={events} nowIso={nowIso} docked="panel" onPlan={onPlan} />
+        <AskBar events={events} nowIso={nowIso} docked="panel" onPlan={onPlan} autoAsk={autoAsk} />
       </div>
     </div>
   );
