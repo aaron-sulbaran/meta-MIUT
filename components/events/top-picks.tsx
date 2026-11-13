@@ -59,7 +59,7 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
                   <Link href={`/events/${event.id}`} className="relative block h-[200px] overflow-hidden rounded-[14px] bg-wash">
                     {event.source.imagePath ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={event.source.imagePath} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                      <img loading="lazy" decoding="async" src={event.source.imagePath} alt="" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
                       <Poster seed={event.id} title="" size="small" className="absolute inset-0 h-full !aspect-auto" />
                     )}
