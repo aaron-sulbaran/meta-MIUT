@@ -7,6 +7,10 @@ import { claimOnce, loadState, saveState } from "@/lib/store/state";
 // reader runs the real call; whoever asks second gets that live answer, and one who
 // asks while the first is still running waits for it. Kept in this process and in the
 // shared store (Redis), cleared by the demo reset. Failed answers are never kept.
+//
+// The honesty stamp travels with the answer: the first call's own time is stored on it
+// as `museMs` (its `source` is already in it), so every reader, the second screen or a
+// reload, stamps the real call ("picked 4.8 s"), never the time it took to read a cache.
 
 export const SHARED_ANSWER_MS = 2 * 60_000;
 export const SHARED_ANSWER_PREFIX = "shared-answer:";
@@ -18,6 +22,18 @@ const Stored = z.object({ at: z.number(), body: z.unknown() });
 const memory = globalThis as typeof globalThis & { __sharedAnswers?: Map<string, { at: number; body: Promise<unknown> }> };
 const stateName = (name: string) => `${SHARED_ANSWER_PREFIX}${name}`;
 const fresh = (at: number, now: number) => now - at < SHARED_ANSWER_MS;
+
+/**
+ * The answer with the time its own call took as `museMs`, for an object answer. A time
+ * already on it (a job that measured itself) is kept. Other values pass through.
+ */
+export function withCallTime(value: unknown, ms: number): unknown {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+  const answer = value as { museMs?: unknown; source?: unknown };
+  if (typeof answer.museMs === "number") return value;
+  // Only a live answer has a Muse time; a recorded one has none to show.
+  return { ...answer, museMs: answer.source === "muse" ? ms : null };
+}
 
 /** Forgets this process's answers (the demo reset; the stored copies go with their prefix). */
 export function resetSharedAnswers(): void {
@@ -49,7 +65,8 @@ export async function sharedAnswer(
     }
   }
 
-  const body = run();
+  const startedAt = performance.now();
+  const body = run().then((value) => withCallTime(value, Math.round(performance.now() - startedAt)));
   local.set(name, { at: now, body });
   const value = await body.catch((error: unknown) => {
     local.delete(name);

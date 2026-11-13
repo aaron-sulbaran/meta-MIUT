@@ -19,6 +19,8 @@ import type { KnownPlace } from "@/lib/organizer/place";
 // becomes the posted Facebook event. Nothing here is timed to look busy: the
 // working state lasts exactly as long as the call.
 
+// The shortest the reading plays (dress rehearsal median of a live read: 2.3 s).
+const MIN_READING_MS = 2500;
 const REVEAL_MS = 620;
 const GUESS = "#c27c00";
 
@@ -109,7 +111,7 @@ export function FlyerMoment({
   caption,
   regions,
   now,
-  state,
+  state: given,
   places,
   organizer,
   onEdit,
@@ -126,6 +128,17 @@ export function FlyerMoment({
   onEdit: () => void;
   onPosted?: (published: Published) => void;
 }) {
+  // An answer the stage started early can land at once: Muse's reading still plays for a
+  // moment, never longer than the real call took, so the clock never runs past it.
+  const [readingSince] = useState(() => (given.phase === "reading" ? given.startedAt : null));
+  const [released, setReleased] = useState<MakingState | null>(null);
+  useEffect(() => {
+    if (given.phase !== "done" || readingSince === null) return;
+    const hold = Math.min(MIN_READING_MS, given.live ? given.tookMs : MIN_READING_MS);
+    const timer = setTimeout(() => setReleased(given), Math.max(0, hold - (Date.now() - readingSince)));
+    return () => clearTimeout(timer);
+  }, [given, readingSince]);
+  const state: MakingState = given.phase === "done" && readingSince !== null && released !== given ? { phase: "reading", startedAt: readingSince } : given;
   const draft = state.phase === "done" ? state.draft : null;
   const fields = useMemo(() => (draft ? readFields(draft, regions, formatWhen(now)) : null), [draft, regions, now]);
   const [shown, setShown] = useState(0);
