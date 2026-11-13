@@ -5,7 +5,10 @@ import { isStoryCaption } from "@/lib/demo/story-fixtures";
 import { walkHomeRequest } from "@/lib/demo/walk-home";
 import { readJsonBody } from "@/lib/http";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
+import { getEventStore } from "@/lib/events/store";
 import { ExtractInputSchema } from "@/lib/muse/extract";
+import { DEMO_USER_ID, loadInterestMemory } from "@/lib/muse/memory";
+import { personalizeEvents } from "@/lib/muse/rank";
 import { PERSONA_COOKIE } from "@/lib/social/persona";
 
 // POST: the /demo stage asks one of the demo's slow live questions a few beats early
@@ -42,6 +45,9 @@ export async function POST(request: Request) {
     path = "/api/curate";
     headers.cookie = `${PERSONA_COOKIE}=user3`;
   }
+  // The map under the walk home and Trish's first Events renders its Top 3 first (lib/muse/rank.ts,
+  // shared across instances), and its Muse card only after that: warm it alongside.
+  const picks = job.job === "flyer" ? Promise.resolve(null) : warmTopPicks().catch(() => null);
   try {
     const response = await fetch(new URL(path, request.url), {
       method: "POST",
@@ -50,10 +56,18 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
     const answer = (await response.json()) as { source?: string; museMs?: number | null };
+    await picks;
     legs.done({ job: job.job, status: response.status, source: answer.source, museMs: answer.museMs });
     return Response.json({ data: { job: job.job, source: answer.source ?? null, museMs: answer.museMs ?? null }, error: null });
   } catch (error) {
     legs.done({ job: job.job, failed: true });
     return Response.json({ data: null, error: error instanceof Error ? error.message : "Head start failed" }, { status: 502 });
   }
+}
+
+/** The Top 3 the map page asks for (components/map/map-home.tsx), the same inputs. */
+async function warmTopPicks() {
+  const now = new Date();
+  const events = await getEventStore().listEvents();
+  return personalizeEvents(loadDemoStudent(), events, now, await loadInterestMemory(DEMO_USER_ID, now));
 }

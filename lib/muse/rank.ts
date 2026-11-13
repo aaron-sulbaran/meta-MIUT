@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import type { CampusEvent, RankedPick } from "@/lib/events/schema";
@@ -9,6 +10,7 @@ import { rankFixture } from "@/lib/muse/fixtures/rank";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 import { DEMO_USER_ID, getInterestMemory, type InterestMemory } from "@/lib/muse/memory";
 import { minimumAge, origin, type StudentContext } from "@/lib/muse/profile";
+import { loadState, saveState } from "@/lib/store/state";
 import type { LikelyEvent } from "@/lib/muse/types";
 
 // Student profile, interest memory, and events to the top 3 picks for today,
@@ -169,7 +171,30 @@ export async function personalizeEvents(
     return event !== undefined && Date.parse(event.end) > now.getTime();
   };
   if (cached?.data && cached.data.picks.every((pick) => stillOn(pick.eventId))) return cached;
+  // The same Top 3 from another server instance (the shared store), or the call already running here:
+  // the map's Muse card renders only after this, so a cold instance must not ask Muse again.
+  const storeName = `${PICKS_PREFIX}${createHash("sha1").update(cacheKey).digest("hex").slice(0, 24)}`;
+  const stored = (await loadState(storeName, z.unknown()).catch(() => null)) as CachedPicks | null;
+  if (stored?.data && stored.data.picks.every((pick) => stillOn(pick.eventId))) {
+    picksCache().set(cacheKey, stored);
+    return stored;
+  }
+  const running = picksRunning().get(cacheKey);
+  if (running) return running;
+  const call = askForPicks();
+  picksRunning().set(cacheKey, call);
+  try {
+    const personalized = await call;
+    if (personalized.source === "muse" && personalized.data) {
+      picksCache().set(cacheKey, personalized);
+      await saveState(storeName, personalized);
+    }
+    return personalized;
+  } finally {
+    picksRunning().delete(cacheKey);
+  }
 
+  async function askForPicks(): Promise<CachedPicks> {
   const result = await runMuseJob({
     request: {
       system:
@@ -196,9 +221,16 @@ export async function personalizeEvents(
     const event = eventsById.get(pick.eventId);
     return event ? [{ eventId: pick.eventId, reason: pick.reason, walkMinutes: walkMinutes(origin(profile), event.place) }] : [];
   });
-  const personalized = { ...result, data: { picks, likely, ratings: Object.fromEntries(relevance) } };
-  if (result.source === "muse") picksCache().set(cacheKey, personalized);
-  return personalized;
+  return { ...result, data: { picks, likely, ratings: Object.fromEntries(relevance) } };
+  }
+}
+
+// Top 3 answers kept in the shared store, so every server instance shows the same one (cleared by the demo reset).
+export const PICKS_PREFIX = "muse-picks:";
+
+function picksRunning(): Map<string, Promise<CachedPicks>> {
+  const scope = globalThis as typeof globalThis & { __musePicksRunning?: Map<string, Promise<CachedPicks>> };
+  return (scope.__musePicksRunning ??= new Map());
 }
 
 type CachedPicks = MuseJobResult<PersonalizedEvents>;
