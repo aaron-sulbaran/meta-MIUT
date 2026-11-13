@@ -133,6 +133,7 @@ describe("personalizeEvents without a key", () => {
 
 describe("forYouFeed, the order the list and the map share", () => {
   afterEach(() => {
+    delete (globalThis as { __musePicks?: unknown }).__musePicks;
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     resetInterestMemory();
@@ -160,6 +161,24 @@ describe("forYouFeed, the order the list and the map share", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(map.tiles).toEqual(list.tiles);
     expect(list.tiles[0]?.eventId).toBe("evt-acm-pizza-gdc");
+  });
+
+  it("keeps the Top 3 until a picked event ends", async () => {
+    vi.stubEnv("MUSE_API_KEY", "test-key-not-real");
+    const picks = { picks: [{ eventId: "evt-acm-pizza-gdc", reason: "You follow ACM." }] };
+    const fetchMock = vi.fn(async () =>
+      Response.json({ choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify(picks) }, finish_reason: "stop" }] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const memory = getInterestMemory("demo", now);
+    await personalizeEvents(student, events, now, memory);
+    await personalizeEvents(student, events, new Date(now.getTime() + 20 * 60_000), memory);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const ended = events.map((event) =>
+      event.id === "evt-acm-pizza-gdc" ? { ...event, end: new Date(now.getTime() - 60_000).toISOString() } : event,
+    );
+    await personalizeEvents(student, ended, now, memory);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 

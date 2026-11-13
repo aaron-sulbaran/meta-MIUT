@@ -130,15 +130,16 @@ export async function personalizeEvents(
     creators: memory.creators.slice(0, 5),
   };
 
-  // The list and the map ask in the same request and again on refresh: reuse Muse's picks
-  // for a few minutes while the candidates and the memory stay the same, so both show one Top 3.
-  const cacheKey = JSON.stringify([
-    Math.floor(now.getTime() / PICKS_REUSE_MS),
-    candidates.map((candidate) => candidate.id),
-    interestMemory,
-  ]);
+  // Keep the same Top 3 until something real changes: a new candidate or one leaving
+  // today's pool, the interest memory (hiding an event updates it), or a picked event ending.
+  // The list and the map then always show one Top 3.
+  const cacheKey = JSON.stringify([candidates.map((candidate) => candidate.id), interestMemory]);
   const cached = picksCache().get(cacheKey);
-  if (cached && cached.expires > now.getTime()) return cached.result;
+  const stillOn = (eventId: string) => {
+    const event = eventsById.get(eventId);
+    return event !== undefined && Date.parse(event.end) > now.getTime();
+  };
+  if (cached?.data && cached.data.picks.every((pick) => stillOn(pick.eventId))) return cached;
 
   const result = await runMuseJob({
     request: {
@@ -162,12 +163,11 @@ export async function personalizeEvents(
     return event ? [{ eventId: pick.eventId, reason: pick.reason, walkMinutes: walkMinutes(origin(profile), event.place) }] : [];
   });
   const personalized = { ...result, data: { picks, likely } };
-  if (result.source === "muse") picksCache().set(cacheKey, { expires: now.getTime() + PICKS_REUSE_MS, result: personalized });
+  if (result.source === "muse") picksCache().set(cacheKey, personalized);
   return personalized;
 }
 
-const PICKS_REUSE_MS = 5 * 60_000;
-type CachedPicks = { expires: number; result: MuseJobResult<PersonalizedEvents> };
+type CachedPicks = MuseJobResult<PersonalizedEvents>;
 
 // On globalThis, because Next dev compiles pages and route handlers as separate module graphs.
 function picksCache(): Map<string, CachedPicks> {
