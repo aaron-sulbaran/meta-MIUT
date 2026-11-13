@@ -135,7 +135,7 @@ export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () =>
   return (
     <>
       {open && <button type="button" aria-label="Close the Muse menu" tabIndex={-1} onClick={() => setOpen(false)} className="absolute inset-0 z-20 cursor-default bg-ink/10" />}
-      <div className="absolute right-3 top-3 z-30 flex flex-col items-end">
+      <div className="pointer-events-none absolute right-3 top-3 z-30 flex flex-col items-end">
         <ul
           id={menuId}
           role="menu"
