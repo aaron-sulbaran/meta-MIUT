@@ -48,7 +48,7 @@ const LABEL_ZOOM = 16.2;
 // The card strip's size. Everything that floats just above the strip (recenter,
 // the Undo toast, the map credit) is placed from these, so a taller card moves
 // them up with it instead of overlapping.
-const CARD_HEIGHT = 144;
+const CARD_HEIGHT = 126;
 const STRIP_BOTTOM = 10;
 function aboveStrip(gap: number): string {
   return `calc(var(--tabbar-height) + var(--tabbar-gap) + ${STRIP_BOTTOM + CARD_HEIGHT + gap}px)`;
@@ -491,7 +491,7 @@ function LogoTile({ card }: { card: MapCard }) {
   const tint = CATEGORY_TINTS[card.category];
   const showLogo = card.logoUrl !== null && !failed;
   return (
-    <div className="relative h-[72px] w-[72px] shrink-0" aria-hidden>
+    <div className="relative h-[60px] w-[60px] shrink-0" aria-hidden>
       {showLogo ? (
         // Logos arrive as remote links or small stored images, so a plain img
         // (not next/image) keeps both working without config.
@@ -501,11 +501,17 @@ function LogoTile({ card }: { card: MapCard }) {
           alt=""
           referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
-          className="h-full w-full rounded-[16px] border border-hairline bg-white object-contain p-[6px]"
+          // A generated logo (data URL) is its own colored circle, so it fills the
+          // tile; a real logo sits on white with a hairline edge (Lisa: less border).
+          className={
+            card.logoUrl?.startsWith("data:")
+              ? "h-full w-full rounded-full object-cover"
+              : "h-full w-full rounded-[14px] border border-hairline bg-white object-contain p-[3px]"
+          }
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-[16px] text-[19px] font-semibold tracking-[0.02em]"
+          className="flex h-full w-full items-center justify-center rounded-[14px] text-[17px] font-semibold tracking-[0.02em]"
           style={{ backgroundColor: tint.fill, color: tint.ink }}
         >
           {monogram(card.organizerName)}
@@ -1196,7 +1202,7 @@ export function EventsMap({
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
             <article
-              className="relative flex items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
+              className="relative flex items-center gap-[10px] rounded-[16px] bg-card px-[10px] py-[8px] pr-[28px] shadow-md"
               style={{ height: CARD_HEIGHT }}
             >
               <LogoTile card={card} />
