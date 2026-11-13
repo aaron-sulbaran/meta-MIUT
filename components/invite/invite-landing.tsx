@@ -222,12 +222,19 @@ export function InviteLanding({
             <StagedNote />
             {step === "invite" ? (
               <div key="invite">
-                <h2 className="mx-auto max-w-[290px] text-center font-display text-[31px] leading-[38px] font-light tracking-[-0.01em]">
-                  Your Meta Account is here
+                {/* Two balanced lines, as on Meta's sheet: "Your Meta Account" over "is here". */}
+                <h2 className="mx-auto text-center font-display text-[31px] leading-[38px] font-light tracking-[-0.01em] text-balance">
+                  Your Meta Account
+                  <br />
+                  is here
                 </h2>
-                <div className="mx-[8px] mt-[26px] flex flex-col items-center rounded-[28px] bg-[#f2f2f2] px-[20px] pt-[20px] pb-[22px]">
+                {/* Meta's account card: one profile per app, each with its badge; Facebook's joins her Instagram one. */}
+                <div className="mx-[23px] mt-[26px] flex flex-col items-center rounded-[26px] bg-[#f5f5f5] px-[20px] pt-[18px] pb-[22px]">
                   <MetaLockup />
-                  <ProfileCircle name={viewerName} size={76} badge="instagram" className="mt-[16px]" />
+                  <div className="mt-[16px] flex items-center justify-center">
+                    <ProfileCircle name={viewerName} size={68} badge="instagram" />
+                    <ProfileCircle name={viewerName} size={68} badge="facebook" className="-ml-[10px]" />
+                  </div>
                   <p className="mt-[12px] text-[18px] leading-[23px] font-semibold">{viewerName}</p>
                   {handle && <p className="text-[15px] leading-[20px] text-[#65676b]">{handle} on Instagram</p>}
                 </div>
@@ -237,7 +244,7 @@ export function InviteLanding({
                 <button
                   type="button"
                   onClick={join}
-                  className="mt-[18px] h-[50px] w-full rounded-full bg-[#0866ff] text-[17px] font-semibold text-white active:scale-[0.99]"
+                  className="mt-[18px] h-[46px] w-full rounded-full bg-[#2a61d9] text-[17px] font-medium text-white active:scale-[0.99]"
                 >
                   Continue as {viewerName}
                 </button>
@@ -249,7 +256,7 @@ export function InviteLanding({
               </div>
             ) : (
               <div key="made" className="motion-safe:animate-[ma-swap_260ms_ease-out]">
-                <h2 className="mx-auto max-w-[300px] text-center font-display text-[31px] leading-[38px] font-light tracking-[-0.01em]">
+                <h2 className="mx-auto max-w-[300px] text-center font-display text-[31px] leading-[38px] font-light tracking-[-0.01em] text-balance">
                   {viewerName}, you&apos;re on Facebook
                 </h2>
                 {/* Meta's own picture of an account: one card, a profile per app, each with its badge. */}
@@ -269,9 +276,9 @@ export function InviteLanding({
                 </p>
                 <div
                   role="status"
-                  className="mt-[18px] flex h-[50px] w-full items-center justify-center gap-[10px] rounded-full bg-[#e7f0ff] text-[16px] font-semibold text-[#0866ff]"
+                  className="mt-[18px] flex h-[46px] w-full items-center justify-center gap-[10px] rounded-full bg-[#e9effb] text-[16px] font-medium text-[#2a61d9]"
                 >
-                  <span aria-hidden className="h-[16px] w-[16px] animate-spin rounded-full border-2 border-[#0866ff] border-t-transparent motion-reduce:animate-none" />
+                  <span aria-hidden className="h-[16px] w-[16px] animate-spin rounded-full border-2 border-[#2a61d9] border-t-transparent motion-reduce:animate-none" />
                   Joining {eventTitle}
                 </div>
               </div>
