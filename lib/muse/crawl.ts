@@ -63,6 +63,8 @@ export type CrawlPlan = {
 };
 
 export const CRAWL_STRUCTURED_OUTPUT = museStructuredOutput("food_crawl", CrawlPickSchema);
+const CrawlWordsSchema = CrawlPickSchema.omit({ stops: true });
+const CRAWL_WORDS_STRUCTURED_OUTPUT = museStructuredOutput("food_crawl_words", CrawlWordsSchema);
 
 // Free events on now or soon whose detour off the straight walk is small, closest first.
 export function crawlCandidates(input: { from: Point; to: Point }, events: CampusEvent[], now: Date): CampusEvent[] {
@@ -223,12 +225,16 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
   const legOf = new Map<string, number>();
   const candidates: CampusEvent[] = [];
   let legStart: Point = input.from;
+  // The earliest each leg can start, to skip stops that could never fit before a "by" time.
+  let earliest = now.getTime();
   ends.forEach((end, leg) => {
     for (const event of crawlCandidates({ from: legStart, to: end }, events, now)) {
       if (legOf.has(event.id)) continue;
+      if (orderLeg(legStart, end, [{ event, kind: "event" }], earliest, end.deadline).stops.length === 0) continue;
       legOf.set(event.id, leg);
       candidates.push(event);
     }
+    earliest += walkMinutes(legStart, end) * MINUTE;
     legStart = end;
   });
   const byId = new Map(candidates.map((event) => [event.id, event]));
@@ -295,16 +301,54 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
     here = end;
   });
   const last = ends[ends.length - 1]!;
+  const words = await wordCrawl(input, result.data, stops, byId, route);
   const firstStop = stops.find((stop) => stop.eventId !== null)?.eventId ?? null;
-  const inviteId = result.data.invite.eventId ?? firstStop;
+  const inviteId = words.invite.eventId ?? firstStop;
   return {
     ...result,
     data: {
       stops,
       destination: { name: last.name, lat: last.lat, lng: last.lng, arriveAt: new Date(at).toISOString() },
       totalWalkMinutes: walk,
-      pitch: result.data.pitch,
-      invite: { eventId: inviteId, message: result.data.invite.message, path: inviteId ? `/events/${encodeURIComponent(inviteId)}` : null },
+      pitch: words.pitch,
+      invite: { eventId: inviteId, message: words.invite.message, path: inviteId ? `/events/${encodeURIComponent(inviteId)}` : null },
     },
   };
+}
+
+// Muse's pitch names the stops it picked, in its order. When the walk keeps a different set or
+// order (a stop did not fit the time), Muse rewords the pitch and invite for the real walk.
+async function wordCrawl(
+  input: CrawlInput,
+  pick: CrawlPick,
+  stops: CrawlStop[],
+  byId: Map<string, CampusEvent>,
+  route: string,
+): Promise<z.infer<typeof CrawlWordsSchema>> {
+  const walked = stops.flatMap((stop) => (stop.eventId === null ? [] : [stop.eventId]));
+  if (walked.join() === pick.stops.map((stop) => stop.eventId).join()) return pick;
+  const kept = walked.flatMap((id) => {
+    const event = byId.get(id);
+    return event ? [event] : [];
+  });
+  const fallback = () => crawlFixture(kept, input);
+  const result = await runMuseJob({
+    request: {
+      system: [
+        "Write the line for a student's walk after class through free campus stops, already planned.",
+        'Return JSON only: {"pitch":"one line under 120 characters, like Out of class and hungry? ..., naming the stops in the order given",',
+        '"invite":{"eventId": the stop best to share with a friend, or null,"message":"a short text the student sends a friend to join, naming the event, under 200 characters"}}.',
+        "Use only ids from the list. If the student mentions a friend, write the invite to that friend. Plain words, no emoji.",
+      ].join(" "),
+      prompt: `Route: ${route}\nStudent said: ${input.note ?? "nothing"}\nStops in walking order: ${JSON.stringify(
+        stops.map((stop) => ({ id: stop.eventId, title: stop.title, kind: stop.kind, at: campusClock(stop.arriveAt) })),
+      )}`,
+      structuredOutput: CRAWL_WORDS_STRUCTURED_OUTPUT,
+    },
+    outputSchema: CrawlWordsSchema,
+    fixture: fallback,
+    accept: (output) =>
+      output.invite.eventId !== null && !walked.includes(output.invite.eventId) ? "Muse invited to a stop not on the walk" : null,
+  });
+  return result.data ?? fallback();
 }
