@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { buttonClass } from "@/components/ui/button";
-import { InstagramPostIcon } from "@/components/ui/icons";
-import { friendsGoingLine, sharedLine, type WhoIsGoing } from "@/lib/social/types";
+import { CloseIcon, InstagramPostIcon } from "@/components/ui/icons";
+import { friendsGoingLine, sharedLine, type GoingPerson, type WhoIsGoing } from "@/lib/social/types";
 
 // The event page's Who's going section: friends going first, then students
 // going who are open to company, with Say hi. Going and Open to company are
@@ -53,6 +53,7 @@ export function WhosGoing({
   const [note, setNote] = useState(initial.viewer.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
 
   async function run(url: string, body: unknown) {
     setBusy(true);
@@ -81,7 +82,14 @@ export function WhosGoing({
               <Avatar key={friend.id} name={friend.name} />
             ))}
           </div>
-          <p className="text-body font-semibold">{friendsGoingLine(who.friends)}</p>
+          <button
+            type="button"
+            onClick={() => setFriendsOpen(true)}
+            aria-haspopup="dialog"
+            className="font-display text-body font-bold text-link"
+          >
+            {friendsGoingLine(who.friends)}
+          </button>
         </div>
       ) : (
         <p className="mt-[8px] text-body text-muted">None of your friends yet. Be the first.</p>
@@ -157,7 +165,59 @@ export function WhosGoing({
         </p>
       )}
       {error && <p className="mt-[8px] text-meta text-muted">{error}</p>}
+      {friendsOpen && <FriendsSheet friends={who.friends} close={() => setFriendsOpen(false)} />}
     </section>
+  );
+}
+
+function FriendsSheet({ friends, close }: { friends: GoingPerson[]; close: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={close}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="friends-going-heading"
+        onClick={(click) => click.stopPropagation()}
+        className="max-h-[70%] w-full max-w-[390px] overflow-y-auto rounded-t-[18px] bg-card px-4 pb-[calc(var(--tabbar-height)+var(--tabbar-gap)+16px)] pt-3"
+      >
+        <div className="flex items-center justify-between">
+          <h2 id="friends-going-heading" className="font-display text-title font-bold">
+            {friendsGoingLine(friends)}
+          </h2>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close friends going"
+            className="-mr-1 flex h-8 w-8 items-center justify-center rounded-full text-muted"
+          >
+            <CloseIcon className="h-[14px] w-[14px]" />
+          </button>
+        </div>
+        <ul className="mt-[8px] flex flex-col divide-y divide-hairline">
+          {friends.map((friend) => (
+            <li key={friend.id} className="flex items-center gap-[10px] py-[10px]">
+              <Avatar name={friend.name} />
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-label font-bold">{friend.name}</p>
+                <p className="text-meta font-semibold text-muted">
+                  {friend.year} · {friend.major}
+                </p>
+              </div>
+              {friend.instagram && (
+                <a
+                  href={`https://instagram.com/${encodeURIComponent(friend.instagram)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex shrink-0 items-center gap-[5px] text-meta font-semibold text-link"
+                >
+                  <InstagramPostIcon className="h-[15px] w-[15px]" />@{friend.instagram}
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
 
