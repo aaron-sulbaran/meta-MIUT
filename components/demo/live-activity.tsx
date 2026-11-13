@@ -4,13 +4,27 @@ import { useRouter } from "next/navigation";
 import { StagedMark } from "@/components/demo/instagram";
 import { BrandMark } from "@/components/demo/brand-mark";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
-import type { FreeBite } from "@/lib/demo/free-bite";
+import { shortBitePlace, type FreeBite } from "@/lib/demo/free-bite";
 import { handOff } from "@/lib/demo/staged";
 
 // U1a: a phone's lock screen with a Live Activity from Muse, the moment User 1 (Jolyn)
-// walks out of class. Drawn for the demo (no system logos, a gradient instead of
-// a photo; the app icon is Facebook's official logo); its words come from real data. One tap opens the map with the walk
+// walks out of class. Drawn for the demo (no system logos, a wallpaper drawn in code
+// instead of a photo; the app icon is Facebook's official logo); its words come from real data. One tap opens the map with the walk
 // home planned.
+
+// A lock screen wallpaper drawn in code: soft light from the top left, a rose glow on
+// the right, a warm low glow, and a darker floor so the alert reads. Grain keeps the
+// gradients from banding on a projector.
+const WALLPAPER = [
+  "linear-gradient(180deg, rgba(8,10,30,0) 50%, rgba(8,10,30,0.35) 100%)",
+  "radial-gradient(85% 45% at 22% 12%, rgba(150,178,255,0.55) 0%, rgba(150,178,255,0) 70%)",
+  "radial-gradient(70% 50% at 100% 34%, rgba(224,120,196,0.5) 0%, rgba(224,120,196,0) 70%)",
+  "radial-gradient(80% 45% at 0% 68%, rgba(255,160,128,0.32) 0%, rgba(255,160,128,0) 70%)",
+  "radial-gradient(120% 60% at 60% 100%, rgba(30,16,70,0.85) 0%, rgba(30,16,70,0) 75%)",
+  "linear-gradient(168deg, #17306e 0%, #2d3486 34%, #4a3289 62%, #2a1c5c 100%)",
+].join(", ");
+const GRAIN =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 function campus(iso: string, options: Intl.DateTimeFormatOptions): string {
   return new Date(iso).toLocaleString("en-US", { ...options, timeZone: CAMPUS_TIME_ZONE });
@@ -45,8 +59,9 @@ export function LiveActivityLockScreen({
     <div
       aria-label="Staged lock screen with a Live Activity"
       className="fixed inset-y-0 left-1/2 z-40 flex w-full max-w-[390px] -translate-x-1/2 flex-col overflow-hidden text-white"
-      style={{ background: "linear-gradient(165deg, #10204a 0%, #2b2a6b 45%, #6d3a7d 75%, #c76b6b 110%)", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif" }}
+      style={{ background: WALLPAPER, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-[0.07] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
       <style>{"@keyframes la-in{from{opacity:0;transform:translateY(14px) scale(0.98)}to{opacity:1;transform:none}}"}</style>
       <StagedMark />
 
@@ -72,7 +87,7 @@ export function LiveActivityLockScreen({
           {bite ? (
             <>
               <span className="mt-1 block text-[15px] leading-[20px] text-white/85">
-                {bite.perk} at {bite.title}, {bite.walkMinutes} min walk, until {until}
+                {bite.perk} at {shortBitePlace(bite)}, {bite.walkMinutes} min walk, until {until}
               </span>
               <span className="mt-3 flex items-center gap-2 text-[12px] font-semibold text-white/80" aria-hidden>
                 <span className="h-[10px] w-[10px] rounded-full bg-[#4da3ff] ring-4 ring-[#4da3ff]/25" />

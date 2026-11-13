@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CampusEvent } from "@/lib/events/schema";
-import { nearestFreeBite } from "@/lib/demo/free-bite";
+import { nearestFreeBite, shortBitePlace } from "@/lib/demo/free-bite";
 
 const NOW = new Date("2026-11-13T21:00:00Z");
 const HERE = { lat: 42.3616, lng: -71.0906 };
@@ -38,5 +38,16 @@ describe("nearestFreeBite", () => {
     const paid = event("paid", { free: false });
     const seats = event("seats", { access: { kind: "rsvp", capacity: 30 } });
     expect(nearestFreeBite([ending, later, paid, seats], HERE, NOW)).toBeNull();
+  });
+});
+
+describe("shortBitePlace", () => {
+  it("uses the place the title already names, so the line reads Pizza at Stata", () => {
+    expect(shortBitePlace({ title: "Pizza Study Break at Stata", placeName: "Stata Center lobby, 32 Vassar St" })).toBe("Stata");
+  });
+
+  it("otherwise keeps the place name up to its first comma", () => {
+    expect(shortBitePlace({ title: "Ice Cream Social", placeName: "Lobby 10, 77 Massachusetts Ave" })).toBe("Lobby 10");
+    expect(shortBitePlace({ title: "Tacos at Kendall", placeName: "Student Center" })).toBe("Student Center");
   });
 });
