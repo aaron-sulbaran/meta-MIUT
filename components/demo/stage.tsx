@@ -9,7 +9,7 @@ import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type BeatContext, type CastId } from "@/lib/demo/beats";
-import { beatCast, beatScreen, inFrameMessage } from "@/lib/demo/beat-context";
+import { beatCast, beatScreen, inFrameMessage, nextActStart } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
 import { phoneChromeFor } from "@/lib/demo/phone-chrome";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
@@ -27,12 +27,16 @@ import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
 // show too: the stage keeps its beat in the shared store (/api/demo/stage) and
 // follows any newer move within about a second. The laptop stays the master:
 // if that store or the network fails, the stage keeps running on its keys.
-// When the person changes, a short card says who is on now (Next skips it);
+// When the person changes, a card says who is on now for about two seconds (Next skips it);
 // within one person the phone cross-fades. Reset and the beat list stay off
 // the projected view: they live on /demo/console and the remote (keys still work).
 
 const FOOTER_HEIGHT = 72;
-const PERSON_CARD_MS = 700;
+// The card holds fully readable for PERSON_CARD_HOLD_MS, with a fade on each side.
+const PERSON_CARD_FADE_MS = 300;
+const PERSON_CARD_HOLD_MS = 1500;
+const PERSON_CARD_MS = PERSON_CARD_HOLD_MS + 2 * PERSON_CARD_FADE_MS;
+const CARD_FADE_PCT = Math.round((PERSON_CARD_FADE_MS / PERSON_CARD_MS) * 100);
 const FADE_MS = 200;
 const CHANNEL = "demo-stage";
 const TOKEN_KEY = "demo-reset-token";
@@ -441,7 +445,13 @@ export function Stage() {
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      const data = event.data as { type?: unknown; path?: unknown } | null;
+      const data = event.data as { source?: unknown; type?: unknown; path?: unknown } | null;
+      // A screen passes the show to the next person (Lisa's "Open to company", Jolyn's "Sent to Lisa").
+      if (data?.source === "demo-screen" && data.type === "pass") {
+        const start = nextActStart(index);
+        if (start !== null) goTo(start);
+        return;
+      }
       if (data?.type !== "demo-handoff" || typeof data.path !== "string" || !data.path.startsWith("/")) return;
       locationRef.current = data.path;
       setHandedOffTo(data.path);
@@ -576,9 +586,10 @@ export function Stage() {
       {personCard && (
         <div
           role="status"
-          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-[24px] bg-page motion-safe:animate-[stage-card_700ms_ease-out_both]"
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-[24px] bg-page motion-safe:animate-[stage-card_var(--card-ms)_linear_both]"
+          style={{ ["--card-ms" as string]: `${PERSON_CARD_MS}ms` }}
         >
-          <style>{"@keyframes stage-card{0%{opacity:0}20%{opacity:1}80%{opacity:1}100%{opacity:0}}"}</style>
+          <style>{`@keyframes stage-card{0%{opacity:0}${CARD_FADE_PCT}%{opacity:1}${100 - CARD_FADE_PCT}%{opacity:1}100%{opacity:0}}`}</style>
           <CastAvatar id={personCard} size={128} />
           <p className="font-display text-[clamp(28px,3.4vw,56px)] font-bold">Now: {castLine(personCard)}</p>
         </div>

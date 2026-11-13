@@ -104,7 +104,7 @@ lib/map/heat.ts      event weights that order the map cards: Muse picks first, t
 lib/map/organizer-logos.ts  organizer logos by handle (from their own sites) until the seed carries organizer.logoUrl
 lib/map/category.ts  guesses an event's kind (pizza, film, climb...) from its words; components/map/category-icons.ts draws its badge and the organizer monogram
 data/seed/           placeholder events and student profile
-public/brand/        official logo files (Meta lockup, Facebook f, Instagram glyph), each with where it came from; use these, never a redrawn mark
+public/brand/        official logo files (Meta lockup, Facebook f, Instagram glyph, Meta AI mark), each with where it came from; use these, never a redrawn mark. Every small AI indicator is `MetaAiMark` (components/ui/meta-ai-mark.tsx); Sprout is the mascot, not an AI badge
 ```
 
 ## Lanes and the folders each owns

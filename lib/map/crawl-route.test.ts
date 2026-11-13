@@ -26,6 +26,15 @@ const base: Route = {
 };
 
 describe("crawl route", () => {
+  it("takes the T for a long hop when re-timed for transit, and walks it otherwise", () => {
+    const far: Route = { ...base, stops: [], destination: { ...maseeh, name: "Boston Common", lat: 42.355, lng: -71.0657 } };
+    const walked = retime(far, start);
+    const ridden = retime(far, start, "transit");
+    expect(walked.destination.mode).toBe("walk");
+    expect(ridden.destination.mode).toBe("transit");
+    expect(ridden.totalWalkMinutes).toBeLessThan(walked.totalWalkMinutes);
+  });
+
   it("re-times every hop from the start, with time at each stop", () => {
     const route = retime(base, start);
     const [first, second] = route.stops;

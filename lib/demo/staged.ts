@@ -1,4 +1,5 @@
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
+import { withAppSwitch } from "@/lib/demo/app-switch";
 import { STORY, STORY_ORGANIZER } from "@/lib/demo/story-data";
 
 // The staged screens of the demo (hub t-y329): screens that imitate another
@@ -54,7 +55,7 @@ export function storyTimeLine(now: Date): string {
 
 /** The organizer's Instagram caption, with today's times. */
 export function storyCaption(now: Date): string {
-  return `Board Game Night today at the MIT Museum (314 Main St), ${storyTimeLine(now)}: free dumplings while they last and 40 board games. Open to everyone, no experience needed. Come by after class!`;
+  return `${STORY.title} today at the MIT Museum (314 Main St), ${storyTimeLine(now)}: free dumplings while they last and 40 board games. Open to everyone, no experience needed. Come by after class!`;
 }
 
 /** U1c's scripted line (hub shot list, shot 7), asked as typed text when no mic is used. */
@@ -86,11 +87,14 @@ export const HANDOFF = {
   replanLisa: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}&auto=1`,
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
   organizer: ORGANIZER_HANDOFF,
-  // U2b: the no-account landing (t-1lup).
-  lisaLanding: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`,
+  // U2b: the no-account landing (t-1lup), opened from her Instagram messages, so Facebook visibly opens first.
+  lisaLanding: (eventId: string, inviter: string) => withAppSwitch(`/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`),
   // U3d: the story event, with Muse asked who to go with on arrival.
   whosGoing: (eventId: string) => `/events/${encodeURIComponent(eventId)}?auto=1`,
-  // U2c: Lisa's landing already joined: the event and "Aaron knows you're going".
+  // U2c to U2e: Lisa's landing on one step (the account sheet, the account ready, the event unlocked).
+  lisaStep: (eventId: string, inviter: string, step: "account" | "ready" | "event") =>
+    `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}&state=${step}`,
+  // U2f: Lisa's landing joined: "You're going", "Jolyn knows you're going", Open to company.
   lisaJoined: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}&state=joined`,
   // U3b: the curate step (t-s8eh).
   curate: "/curate",

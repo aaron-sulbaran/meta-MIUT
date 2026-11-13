@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 
 // Sprout, the Muse character (a Blender render), sits in the Events header
 // where the search icon was, as a full body with no circle (Lisa, hub t-94t4).
@@ -81,12 +82,9 @@ export function MuseBody({ size, className = "", animated = false }: { size: num
   );
 }
 
-/** The official Meta symbol (from the Meta lockup in muse-friends), for Ask Muse. */
+/** Meta AI's real mark for Ask Muse: the AI indicator (components/ui/meta-ai-mark.tsx). */
 function MetaGlyph({ className }: { className?: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src="/brand/meta-symbol.png" alt="" aria-hidden draggable={false} className={`object-contain ${className ?? ""}`} />
-  );
+  return <MetaAiMark size={22} className={className} />;
 }
 
 function readIntroSeen(): boolean {
