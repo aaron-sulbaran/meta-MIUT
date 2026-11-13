@@ -1,5 +1,6 @@
 {
-  "_note": "Real upcoming MIT events (public calendar.mit.edu, Eventbrite, club pages), gathered 2026-11-12. Times are relative to 7:00 PM Eastern on Nov 12 (the loader counts from the nearest quarter hour), so they stay current when the demo loads. Organizer handles are short slugs, not verified Instagram accounts.",
+  "_note": "Real upcoming MIT events (public calendar.mit.edu, Eventbrite, club pages), gathered 2026-11-12. startsInMinutes counts from 7:00 PM campus time on the day nearest to load, so every event keeps its real clock time and only the date moves with the demo day. Organizer handles are short slugs, not verified Instagram accounts.",
+  "anchorCampusTime": "19:00",
   "events": [
     {
       "id": "evt-hsa-movie-night",

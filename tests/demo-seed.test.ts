@@ -23,6 +23,11 @@ describe("demo seed", () => {
     expect(events.some((event) => !event.free)).toBe(true);
   });
 
+  it("counts from 7:00 PM campus time, so real events keep their clock times", () => {
+    expect(eventsFile.anchorCampusTime).toBe("19:00");
+    expect(eventsFile.events.every((event) => event.startsInMinutes % 15 === 0)).toBe(true);
+  });
+
   it("the student parses", () => {
     expect(StudentProfileSchema.safeParse(studentFile.profile).success).toBe(true);
   });
