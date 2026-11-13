@@ -10,6 +10,7 @@ import { heatPoints } from "@/lib/map/heat";
 import { organizerLogo } from "@/lib/map/organizer-logos";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { DEMO_USER_ID, loadInterestMemory } from "@/lib/muse/memory";
+import { withoutMuse } from "@/lib/muse/client";
 import { forYouFeed } from "@/lib/muse/rank";
 
 // Server half of the map home: takes the same For you order as the list
@@ -32,6 +33,7 @@ export async function MapHome({
   holdReveal = false,
   openAsk = false,
   firstVisit = false,
+  liveMuse = true,
 }: {
   events: CampusEvent[];
   now: Date;
@@ -49,9 +51,16 @@ export async function MapHome({
   openAsk?: boolean;
   /** A first visit to Events (?first=1): Muse curates her top events over the map. */
   firstVisit?: boolean;
+  /**
+   * False on a first visit (?first=1, the demo's U3b): nothing is picked for her yet, so the map
+   * orders its cards without a live Muse call and renders at once instead of up to RANK_BUDGET_MS later.
+   */
+  liveMuse?: boolean;
 }) {
   const student = loadDemoStudent();
-  const { ranking, tiles, rest } = await forYouFeed(student, events, now, await loadInterestMemory(DEMO_USER_ID, now));
+  const memory = await loadInterestMemory(DEMO_USER_ID, now);
+  const feed = () => forYouFeed(student, events, now, memory);
+  const { ranking, tiles, rest } = liveMuse ? await feed() : await withoutMuse("first visit: nothing picked for her yet", feed);
   const likely = ranking.error === null ? ranking.data.likely : undefined;
   const eventsById = new Map(events.map((event) => [event.id, event]));
   // Cards in the list's order: its Top 3 tiles, then the rest of For you. Heat only sizes bubbles.

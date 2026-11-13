@@ -13,6 +13,7 @@ import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Bea
 import { beatCast, beatScreen, inFrameMessage, stageOnLoad, nextActStart } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
 import { phoneChromeFor } from "@/lib/demo/phone-chrome";
+import { shouldReveal } from "@/lib/demo/reveal";
 import { clearClientDemoState, isStaleRun, lastMoveLabel, requestFreshRun } from "@/lib/demo/run";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
 import { PERSONA_COOKIE, type PersonaId } from "@/lib/social/persona";
@@ -173,6 +174,10 @@ export function Stage() {
   const [storyEventId, setStoryEventId] = useState<string | null>(null);
   // The phone's screens: the newest fades in over the one before, which is dropped once it shows.
   const [frames, setFrames] = useState<Frame[]>([]);
+  const framesRef = useRef(frames);
+  useEffect(() => {
+    framesRef.current = frames;
+  });
   const scale = useSyncExternalStore(subscribeToResize, phoneScale, () => 0.8);
   const [showList, setShowList] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -190,6 +195,8 @@ export function Stage() {
   const lastFrameRef = useRef<HTMLIFrameElement | null>(null);
   // A held screen (Beat.prefetchPath) waiting for "reveal" once it is on top.
   const revealKeyRef = useRef<string | null>(null);
+  // Screens that said they are ready (by frame key).
+  const readyKeysRef = useRef(new Set<string>());
   // The newest phone signal already passed into the stage's phone.
   const lastSignalRef = useRef<string | null>(null);
   // True once the phone on screen was asked a request in its own words (spoken here or
@@ -396,33 +403,66 @@ export function Stage() {
     }
   }, [beat, beatSrc, storyEventId, runStartedAt, frameLoaded, loadedAhead]);
 
-  // Show a new screen as soon as its page is parsed and painted, not when every image and
-  // map tile has arrived (the iframe's load event): the old screen stays up until then, so
-  // a slow load reads as Next doing nothing. A held screen still waits for load, so its
-  // "reveal" reaches a page that is listening.
+  // Show a new screen by the rule in lib/demo/reveal.ts: once its page is parsed and painted, its
+  // load event fired, or it said it is ready, and never later than REVEAL_CEILING_MS after it was
+  // put in. Until then the old screen stays up, so a cut never shows a blank frame, and a logo or
+  // map tile hanging on a slow network never keeps the last screen up.
   const pendingTop = topFrame(frames);
   const pendingKey = pendingTop && !pendingTop.loaded ? pendingTop.key : null;
   useEffect(() => {
-    if (!pendingKey || pendingKey === revealKeyRef.current) return;
+    if (!pendingKey) return;
+    const startedAt = Date.now();
+    const held = pendingKey === revealKeyRef.current;
     let shown = false;
     const timer = window.setInterval(() => {
-      const frame = lastFrameRef.current;
+      let domReady = false;
       try {
+        const frame = lastFrameRef.current;
         const doc = frame?.contentDocument;
         const href = frame?.contentWindow?.location.href;
-        if (!doc || !href || href === "about:blank" || doc.readyState === "loading" || !doc.body?.childElementCount) return;
+        domReady = Boolean(doc && href && href !== "about:blank" && doc.readyState !== "loading" && doc.body?.childElementCount);
       } catch {
-        return;
+        domReady = false;
       }
+      const ready = shouldReveal({ domReady, loaded: false, screenReady: readyKeysRef.current.has(pendingKey), elapsedMs: Date.now() - startedAt, held });
+      if (!ready) return;
       window.clearInterval(timer);
       shown = true;
       // Two frames for the first paint after parsing.
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => frameLoaded(pendingKey)));
+      // A held screen shown before its load event may miss its "reveal": say it again once the page has loaded.
+      if (held) {
+        const again = window.setInterval(() => {
+          try {
+            const frame = lastFrameRef.current;
+            if (frame?.contentDocument?.readyState !== "complete") return;
+            frame.contentWindow?.postMessage({ source: "demo-stage", type: "reveal" }, window.location.origin);
+          } catch {
+            // Not readable yet: try again.
+            return;
+          }
+          window.clearInterval(again);
+        }, 200);
+        window.setTimeout(() => window.clearInterval(again), 30_000);
+      }
     }, 40);
     return () => {
       if (!shown) window.clearInterval(timer);
     };
   }, [pendingKey, frameLoaded]);
+
+  // A screen that says it is ready ({source: "demo-screen", type: "ready"}) shows at once.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== lastFrameRef.current?.contentWindow) return;
+      const data = event.data as { source?: unknown; type?: unknown } | null;
+      if (data?.source !== "demo-screen" || data.type !== "ready") return;
+      const top = topFrame(framesRef.current);
+      if (top && !top.loaded) readyKeysRef.current.add(top.key);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   // A held screen taken over from loading ahead: tell it to show its work once it is on top and loaded.
   const topForReveal = topFrame(frames);
