@@ -8,6 +8,8 @@ import { Suspense, useEffect, type ReactNode } from "react";
 // so a back arrow returns to the section you came from, not just the last page.
 // Kept in sessionStorage, which is per tab like history.
 const KEY = "nav-trail";
+const SCROLL = "nav-scroll:";
+const RESTORE = "nav-restore";
 
 function mainPage(pathname: string, search: URLSearchParams): string | null {
   if (pathname === "/home") return "/home";
@@ -37,6 +39,35 @@ function TrailRecorder() {
     try {
       sessionStorage.setItem(KEY, JSON.stringify([...trail, page].slice(-2)));
     } catch {}
+
+    // Back to this page puts you where you were scrolled, even once the list has loaded.
+    let restoring = false;
+    let timer: number | undefined;
+    try {
+      const saved = Number(sessionStorage.getItem(SCROLL + page));
+      if (sessionStorage.getItem(RESTORE) === page && saved > 0) {
+        restoring = true;
+        const started = Date.now();
+        const settle = () => {
+          window.scrollTo(0, saved);
+          if (Math.abs(window.scrollY - saved) > 2 && Date.now() - started < 2000) timer = window.setTimeout(settle, 50);
+          else restoring = false;
+        };
+        settle();
+      }
+      sessionStorage.removeItem(RESTORE);
+    } catch {}
+    const onScroll = () => {
+      if (restoring) return;
+      try {
+        sessionStorage.setItem(SCROLL + page, String(Math.round(window.scrollY)));
+      } catch {}
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, [pathname, search]);
 
   return null;
@@ -67,7 +98,10 @@ export function BackLink({ href, label, className, children }: { href: string; l
           .at(-1);
         if (!target) return;
         event.preventDefault();
-        router.push(target);
+        try {
+          sessionStorage.setItem(RESTORE, target);
+        } catch {}
+        router.push(target, { scroll: false });
       }}
     >
       {children}
