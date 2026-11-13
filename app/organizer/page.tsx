@@ -7,8 +7,9 @@ import { SAMPLE_FLYER_CAPTION } from "@/lib/muse/fixtures/extract";
 import { knownPlacesFrom } from "@/lib/organizer/place";
 
 // Organizer side: a flyer photo or a spoken line to a published event in one tap.
-// Places, organizers, and titles come from the events already listed, so the screen
-// follows whichever campus the seed is set to. ?say= is a spoken line handed over
+// Places and titles come from the events already listed, so the screen follows
+// whichever campus the seed is set to. The organizer posts as their signed-in
+// club only, and the manual inputs are a greyed-out placeholder (Lisa). ?say= is a spoken line handed over
 // from Ask Muse; Muse drafts it right away. ?handoff=story is the demo's staged
 // Instagram post (O1, O2), also reached as ?from=instagram from the /demo stage: its
 // flyer and caption go straight to Muse, no picker;
@@ -22,20 +23,14 @@ export default async function OrganizerPage({
   await connection();
   const events = await getEventStore().listEvents();
 
-  const organizers: OrganizerOption[] = [];
-  const seenHandles = new Set<string>();
-  for (const { organizer } of events) {
-    const key = organizer.handle.toLowerCase();
-    if (seenHandles.has(key)) continue;
-    seenHandles.add(key);
-    organizers.push({ name: organizer.name, handle: organizer.handle });
-  }
-  organizers.sort((first, second) => first.name.localeCompare(second.name));
+  // The organizer posts only as the club they are signed in as on Instagram
+  // (Lisa): for the demo that is the story post's club, never a list of clubs.
+  const signedIn: OrganizerOption = { ...STORY_POST.organizer };
+  const organizers: OrganizerOption[] = [signedIn];
 
   const now = at && Number.isFinite(Date.parse(at)) ? new Date(at) : new Date();
   const story: OrganizerHandoff | null =
     handoff === "story" || from === "instagram" ? { flyerSrc: flyerUrl(now), caption: storyCaption(now), organizer: { ...STORY_POST.organizer } } : null;
-  if (story && !seenHandles.has(story.organizer.handle)) organizers.unshift(story.organizer);
 
   return (
     <OrganizerFlow

@@ -52,11 +52,19 @@ export function storyCaption(now: Date): string {
  * beat paths (lib/demo/beats.ts). They must match exactly, or the stage reloads
  * the phone (and the organizer's Muse call would run twice).
  */
+const ORGANIZER_HANDOFF = "/organizer?handoff=story";
+const withClock = (path: string, atIso: string | null) => (atIso ? `${path}${path.includes("?") ? "&" : "?"}at=${encodeURIComponent(atIso)}` : path);
+
 export const HANDOFF = {
+  // O1 to O2: the post stays on screen, on the demo clock (?at=) so its flyer
+  // and the organizer's draft show the same times.
+  instagramPost: (atIso: string | null) => withClock(`${STAGED_PREFIX}/post`, atIso),
+  // O3 on the same clock as the post.
+  organizerAt: (atIso: string | null) => withClock(ORGANIZER_HANDOFF, atIso),
   // U1b: the map with Muse's walk home planned from the demo clock (?time= pins it).
   walkHome: (timeIso: string) => `/?plan=home&time=${encodeURIComponent(timeIso)}`,
   // O3: the organizer flow drafts the story flyer with a real Muse call, no file picker.
-  organizer: "/organizer?handoff=story",
+  organizer: ORGANIZER_HANDOFF,
   // U2b: the no-account landing (t-1lup).
   lisaLanding: (eventId: string, inviter: string) => `/invite/${encodeURIComponent(eventId)}?from=${encodeURIComponent(inviter)}`,
   // U3b: the curate step (t-s8eh).
