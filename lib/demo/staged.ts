@@ -54,7 +54,7 @@ export function storyTimeLine(now: Date): string {
 
 /** The organizer's Instagram caption, with today's times. */
 export function storyCaption(now: Date): string {
-  return `Board Game Night today at the MIT Museum (314 Main St), ${storyTimeLine(now)}: free dumplings while they last and 40 board games. Open to everyone, no experience needed. Come by after class!`;
+  return `${STORY.title} today at the MIT Museum (314 Main St), ${storyTimeLine(now)}: free dumplings while they last and 40 board games. Open to everyone, no experience needed. Come by after class!`;
 }
 
 /** U1c's scripted line (hub shot list, shot 7), asked as typed text when no mic is used. */

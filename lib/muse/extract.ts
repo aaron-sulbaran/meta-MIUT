@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { CAMPUS_NAME, CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { AccessSchema, ConfidenceSchema } from "@/lib/events/schema";
-import { isStoryCaption, storyExtractFixture } from "@/lib/demo/story-fixtures";
+import { isStoryCaption, storyExtractFixture, withStoryTitle } from "@/lib/demo/story-fixtures";
 import { extractFixture } from "@/lib/muse/fixtures/extract";
 import type { MuseRequest } from "@/lib/muse/client";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
@@ -164,7 +164,7 @@ export async function extractEventDrafts(
   if (result.source === "fixture" && result.fallbackReason === SCHEMA_MISMATCH) result = await job();
   if (result.data === null || result.source !== "muse") return result;
   const finish = (draft: ExtractOutput) => {
-    const grounded = groundDraft(draft, input.caption);
+    const grounded = groundDraft(withStoryTitle(draft, input.caption), input.caption);
     return input.spoken ? applySpokenDefaults(grounded, now) : grounded;
   };
   return { ...result, data: { events: result.data.events.map(finish) } };

@@ -61,7 +61,19 @@ export function findStoryEvent(events: CampusEvent[]): CampusEvent | undefined {
 
 /** What User 1's Muse sends User 2 for the story event. */
 export function storyInviteMessage(): string {
-  return `Hi ${CAST.user2.name}! Want to come to ${STORY.title} at the ${PLACE} with me? Free ${STORY.foodNote.toLowerCase()} while they last, and 40 board games.`;
+  return `Hi ${CAST.user2.name}! Want to come to ${STORY.title} at the ${PLACE} with me? 40 board games, and the ${STORY.foodNote.toLowerCase()} go fast.`;
+}
+
+/**
+ * The story's title is fixed for the pitch ("Board Game Night + Free Dumplings").
+ * A live Muse read of the story's caption that names it another way ("Board Game
+ * Night", "Board Game Night with Free Dumplings") gets the story's title, grounded
+ * in the caption, so every later screen shows the same words. Other posts pass through.
+ */
+export function withStoryTitle<Draft extends Pick<ExtractOutput, "title" | "evidence">>(draft: Draft, caption: string): Draft {
+  if (!isStoryCaption(caption) || draft.title === STORY.title) return draft;
+  if (!/board\s*game/i.test(draft.title)) return draft;
+  return { ...draft, title: STORY.title, evidence: { ...draft.evidence, title: { quote: STORY.title, from: "caption" } } };
 }
 
 const names = (text: string, name: string) => new RegExp(`\\b${name}\\b`, "i").test(text);
