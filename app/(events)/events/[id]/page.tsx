@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { EventShareAction } from "@/components/events/event-actions";
-import { EventDetails } from "@/components/events/event-details";
+import { EventDetails, EventTitleBlock } from "@/components/events/event-details";
 import { EventCommentsSection } from "@/components/social/event-comments";
 import { WhosGoing } from "@/components/social/whos-going";
 import { posterKicker } from "@/components/events/event-card";
@@ -9,7 +9,6 @@ import { SubPageHeader } from "@/components/ui/header";
 import { Poster } from "@/components/ui/poster";
 import { getAttendanceStore } from "@/lib/attendance/store";
 import { getEventStore } from "@/lib/events/store";
-import { formatDateLine } from "@/lib/events/time";
 import { eventComments, loadComments } from "@/lib/social/comments";
 import { loadSocial, whoIsGoing } from "@/lib/social/going";
 import { currentViewer } from "@/lib/social/viewer";
@@ -53,13 +52,7 @@ export default async function EventPage({
       />
       <Poster seed={event.id} title={event.title} kicker={posterKicker(event)} imagePath={event.source.imagePath} />
 
-      <section className="px-3 pt-[14px]">
-        <p className="text-meta font-semibold text-muted">{formatDateLine(event, now)}</p>
-        <h1 className="mt-[3px] font-display text-[22px] leading-[26px] font-bold">{event.title}</h1>
-        <p className="mt-[4px] text-venue font-semibold text-ink">
-          {event.place.name} · Hosted by {event.organizer.name}
-        </p>
-      </section>
+      <EventTitleBlock event={event} now={now} />
 
       {/* One going button under the title, like Facebook's action row (RSVP on
           RSVP events; no Interested, lisa), then Who's going. */}

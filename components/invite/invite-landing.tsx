@@ -2,10 +2,11 @@
 
 import { HANDOFF, handOff } from "@/lib/demo/staged";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ClockIcon, FoodIcon, MapPinIcon, PeopleIcon } from "@/components/ui/icons";
+import { ClockIcon, MapPinIcon, PeopleIcon } from "@/components/ui/icons";
+import { WhosGoing } from "@/components/social/whos-going";
+import type { WhoIsGoing } from "@/lib/social/types";
 import type { InviteStep } from "@/components/invite/steps";
 import { AccountRow, META_SYSTEM_FONT, MetaLockup, ProfileCircle } from "@/components/invite/meta-account";
-import { SAVE_FAILED } from "@/lib/http";
 
 // Where an invite lands for someone with no Facebook account (Lisa's act, beats
 // U2b to U2f). Every step is her own tap, and each tells the /demo stage (or her
@@ -15,14 +16,18 @@ import { SAVE_FAILED } from "@/lib/http";
 //             she needs a Facebook account to see the rest. One button.
 // 2. account: Meta's own "Your Meta Account is here" sheet (the hub's
 //             kb/meta-accounts-reference), her Instagram account, one blue pill.
-// 3. ready:   "Your Facebook account is ready", her Instagram name and photo carried over.
-// 4. event:   the sheet lifts and the event unlocks, with an I'm going button (the event page's own words).
-// 5. joined:  only now the accept call runs: "You're going", "<inviter> knows
-//             you're going", and Open to company, which hands the show to the next person.
+// 3. ready:   "Your Facebook account is ready", her Instagram name and photo carried
+//             over, over the real event page (she is in the app from here).
+// 4. event:   the sheet lifts on the event page itself (its header, title block, I'm
+//             going and Who's going, Details), with "<inviter> invited you".
+// 5. joined:  only her I'm going runs the accept call: "You're going", "<inviter> knows
+//             you're going", the Open to company switch (turning it on hands the show to
+//             the next person), and what came over from Instagram below the page.
 // The account is staged (and says so); Going and Open to company are real.
 
 
 const SHEET_EXIT_MS = 320;
+const COMPANY_SETTLE_MS = 260;
 
 const KEYFRAMES =
   "@keyframes ma-sheet-up{from{transform:translateY(100%)}to{transform:none}}" +
@@ -38,15 +43,6 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /** Tell the /demo stage or a presenter phone (the parent frame), if there is one. */
 function tellParent(message: object) {
   if (typeof window !== "undefined" && window.parent !== window) window.parent.postMessage(message, window.location.origin);
-}
-
-function Detail({ Icon, children }: { Icon: (props: { className?: string }) => ReactNode; children: ReactNode }) {
-  return (
-    <li className="flex items-start gap-[10px] text-body">
-      <Icon className="mt-[1px] h-[18px] w-[18px] shrink-0 text-muted" />
-      <span className="min-w-0">{children}</span>
-    </li>
-  );
 }
 
 /** A detail she cannot see yet: its icon, and a grey bar where the words would be. */
@@ -93,25 +89,19 @@ export function InviteLanding({
   eventId,
   eventTitle,
   organizerName,
-  dateLine,
-  timeLine,
-  placeName,
-  perk,
   inviterId,
   inviterName,
   viewerName,
   viewerInstagram,
   friendNames,
   poster,
+  page,
+  who,
   initialStep = "locked",
 }: {
   eventId: string;
   eventTitle: string;
   organizerName: string;
-  dateLine: string;
-  timeLine: string;
-  placeName: string;
-  perk: string | null;
   inviterId: string | null;
   inviterName: string | null;
   viewerName: string;
@@ -119,14 +109,19 @@ export function InviteLanding({
   /** Her friends already on Facebook, the inviter first. */
   friendNames: string[];
   poster: ReactNode;
+  /** The real event page's own parts, drawn on the server: its header, title block, and Details. */
+  page: { header: ReactNode; title: ReactNode; details: ReactNode };
+  /** Who's going, for the event page's going button and Who's going section. */
+  who: WhoIsGoing;
   /** The step to open on (?state=, one per beat); joined runs the accept on arrival, so it is true. */
   initialStep?: InviteStep;
 }) {
   const [step, setStep] = useState<InviteStep>(initialStep);
   const [sheetLeaving, setSheetLeaving] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [company, setCompany] = useState(false);
+  // Bumped once the arrival accept lands, so Who's going reads the new state.
+  const [whoKey, setWhoKey] = useState(0);
+  const passed = useRef(false);
   const inviter = inviterName ?? "A friend";
   const handle = viewerInstagram ? `@${viewerInstagram}` : null;
 
@@ -144,7 +139,7 @@ export function InviteLanding({
   useEffect(() => {
     if (initialStep !== "joined" || acceptedOnArrival.current) return;
     acceptedOnArrival.current = true;
-    void accept();
+    void accept().then((ok) => ok && setWhoKey((key) => key + 1));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
   }, []);
 
@@ -186,202 +181,34 @@ export function InviteLanding({
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  async function join(tell = true) {
-    setBusy(true);
+  // Her I'm going (the event page's own button), or the stage asking for the joined step:
+  // the accept marks her and the inviter going.
+  async function join(tell = true): Promise<boolean> {
     setError(null);
     const ok = await accept();
-    setBusy(false);
-    if (!ok) {
-      setError(SAVE_FAILED);
-      return;
-    }
+    if (!ok) return false;
     if (tell && inviterId) handOff(HANDOFF.lisaJoined(eventId, inviterId), () => {});
+    // Asked by the stage, the page's own I'm going was not tapped: Who's going reads the new state.
+    if (!tell) setWhoKey((key) => key + 1);
     setStep("joined");
+    return true;
   }
 
-  async function openToCompany() {
-    if (company || busy) return;
-    setBusy(true);
-    setError(null);
-    const response = await fetch(`/api/social/events/${encodeURIComponent(eventId)}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ going: true, open: true }),
-    }).catch(() => null);
-    setBusy(false);
-    if (!response?.ok) {
-      setError(SAVE_FAILED);
-      return;
-    }
-    setCompany(true);
-    // Her act is done: the stage moves on to the next person.
-    tellParent({ source: "demo-screen", type: "pass" });
+  // Open to company saved and the switch drawn on: her act is done, the stage moves on.
+  function onCompany(open: boolean) {
+    if (!open || passed.current) return;
+    passed.current = true;
+    // Long enough for the switch to visibly settle, short enough to feel instant.
+    window.setTimeout(() => tellParent({ source: "demo-screen", type: "pass" }), COMPANY_SETTLE_MS);
   }
 
-  const unlocked = step === "event" || step === "joined";
+  // From the account being ready she is inside Facebook: the real event page.
+  const unlocked = step === "ready" || step === "event" || step === "joined";
   const joined = step === "joined";
   const sheetUp = step === "account" || step === "ready";
 
-  return (
-    // Covers the app frame and its chrome (tab bar, banners, the nearby opt-in):
-    // someone with no account sees none of it.
-    <div className="fixed inset-0 z-[60] mx-auto w-full max-w-[390px] overflow-y-auto bg-page">
-      <style>{KEYFRAMES}</style>
-      <header className="flex h-[52px] shrink-0 items-center px-[14px]">
-        <span className="pb-[3px] font-display text-[29px] leading-[34px] font-extrabold tracking-[-0.05em] text-primary">facebook</span>
-      </header>
-
-      {joined ? (
-        <div role="status" className="mx-[12px] mb-[10px] overflow-hidden rounded-card bg-primary-soft motion-safe:animate-[ma-swap_300ms_ease-out]">
-          <p className="flex items-center gap-[10px] px-[12px] pt-[10px] font-display text-[17px] font-bold text-link">
-            <span aria-hidden className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-primary text-on-primary motion-safe:animate-[ma-pop_420ms_ease-out_both]">
-              <Check className="h-[13px] w-[13px]" />
-            </span>
-            You&apos;re going
-          </p>
-          <p className="flex items-center gap-[8px] px-[12px] pt-[6px] pb-[10px] pl-[46px] text-body text-ink motion-safe:animate-[ma-swap_300ms_ease-out_380ms_both]">
-            <ProfileCircle name={inviter} size={20} />
-            {inviter} knows you&apos;re going
-          </p>
-        </div>
-      ) : (
-        <div className="mx-[12px] mb-[10px] flex items-center gap-[10px] rounded-card bg-wash px-[12px] py-[10px]">
-          <ProfileCircle name={inviter} size={34} badge="instagram" />
-          <p className="min-w-0 text-body leading-[19px]">
-            <span className="block font-display text-label font-bold">{inviter} invited you</span>
-            <span className="block text-meta text-muted">From your Instagram messages</span>
-          </p>
-        </div>
-      )}
-
-      {/* The flyer prints the time and place, so it stays blurred until she can see them. */}
-      <div className="relative overflow-hidden">
-        <div className={`transition-[filter,transform] duration-700 ease-out ${unlocked ? "" : "scale-[1.08] blur-[14px] saturate-50"}`}>{poster}</div>
-        {!unlocked && (
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white/90 text-ink shadow-[0_2px_10px_rgba(0,0,0,0.15)]">
-              <LockIcon className="h-[20px] w-[20px]" />
-            </span>
-          </span>
-        )}
-      </div>
-
-      <section className="px-[14px] pt-[14px]">
-        {unlocked ? (
-          <p className="text-meta font-semibold text-muted">{dateLine}</p>
-        ) : (
-          <span aria-label="Date hidden" className="block h-[11px] w-[120px] rounded-full bg-[#e4e6eb]" />
-        )}
-        <h1 className="mt-[5px] font-display text-[22px] leading-[26px] font-bold">{eventTitle}</h1>
-        <p className="mt-[4px] text-venue font-semibold text-ink">Hosted by {organizerName}</p>
-      </section>
-
-      {unlocked ? (
-        <section className="px-[14px] pt-[16px] motion-safe:animate-[ma-swap_380ms_ease-out]">
-          <ul className="flex flex-col gap-[12px]">
-            <Detail Icon={ClockIcon}>{timeLine}</Detail>
-            <Detail Icon={MapPinIcon}>{placeName}</Detail>
-            {perk && <Detail Icon={FoodIcon}>Free · {perk}</Detail>}
-            <Detail Icon={PeopleIcon}>{joined ? `You and ${inviter} are going` : `${inviter} is going`}</Detail>
-          </ul>
-        </section>
-      ) : (
-        <section className="px-[14px] pt-[16px]">
-          <ul className="flex flex-col gap-[14px]">
-            <HiddenDetail Icon={ClockIcon} width={150} label="Time" />
-            <HiddenDetail Icon={MapPinIcon} width={190} label="Place" />
-            <HiddenDetail Icon={PeopleIcon} width={130} label="Who's going" />
-          </ul>
-          <div className="mt-[16px] rounded-card border border-hairline px-[14px] py-[14px]">
-            <p className="flex items-center gap-[8px] font-display text-label font-bold">
-              <LockIcon className="h-[16px] w-[16px] text-muted" />
-              The rest is on Facebook
-            </p>
-            <p className="mt-[4px] text-body leading-[19px] text-muted">
-              To see the time, the place, and who&apos;s going, and to join {inviter}, you need a Facebook account.
-            </p>
-            <button
-              type="button"
-              onClick={() => advance("account")}
-              className="mt-[12px] h-[42px] w-full rounded-[8px] bg-primary font-display text-label font-bold text-on-primary active:scale-[0.99]"
-            >
-              Create Facebook account
-            </button>
-          </div>
-        </section>
-      )}
-
-      {step === "event" && (
-        <section className="px-[14px] pt-[18px] pb-[24px]">
-          <button
-            type="button"
-            onClick={() => void join()}
-            disabled={busy}
-            className="flex h-[44px] w-full items-center justify-center gap-[8px] rounded-[8px] bg-primary font-display text-label font-bold text-on-primary active:scale-[0.99] disabled:opacity-70"
-          >
-            I&apos;m going
-          </button>
-          <p className="mt-[8px] text-center text-meta text-muted">{inviter} will know you&apos;re going.</p>
-        </section>
-      )}
-
-      {joined && (
-        <>
-          <section className="mx-[12px] mt-[18px] rounded-card border border-hairline px-[14px] py-[12px]">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={company}
-              onClick={openToCompany}
-              disabled={busy}
-              className="flex w-full items-center gap-[12px] text-left"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block font-display text-label font-bold">Open to company</span>
-                <span className="block text-meta leading-[16px] text-muted">
-                  {company ? "On. Students going can see your first name and the interests you share, and say hi." : "Let other students going say hi. They see your first name and the interests you share."}
-                </span>
-              </span>
-              <span aria-hidden className={`relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors duration-200 ${company ? "bg-primary" : "bg-[#d8dadf]"}`}>
-                <span className={`absolute top-[3px] left-[3px] h-[24px] w-[24px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-transform duration-200 ${company ? "translate-x-[20px]" : ""}`} />
-              </span>
-            </button>
-          </section>
-
-          {/* What came over, in Accounts Center's shape: white grouped rows on a pale wash. */}
-          <section
-            className="mt-[18px] px-[12px] py-[14px] motion-safe:animate-[ma-swap_380ms_ease-out_120ms_both]"
-            style={{ background: "linear-gradient(135deg, #fdf2f6 0%, #eef3ff 100%)", fontFamily: META_SYSTEM_FONT }}
-          >
-            <div className="flex items-center justify-between px-[4px] pb-[10px]">
-              <p className="text-[15px] font-semibold text-[#1c2b33]">Came with you from Instagram</p>
-              <MetaLockup height={13} />
-            </div>
-            <ul className="overflow-hidden rounded-[16px] bg-white">
-              <AccountRow
-                icon={
-                  <span className="relative inline-flex">
-                    <ProfileCircle name={viewerName} size={30} badge="instagram" />
-                    <ProfileCircle name={viewerName} size={30} badge="facebook" className="-ml-[12px]" />
-                  </span>
-                }
-                label="Profile"
-                detail={handle ? `Your name and photo from ${handle}` : "Your name and photo from Instagram"}
-              />
-              {friendNames.length > 0 && <AccountRow icon={<PeopleIcon className="h-[24px] w-[24px]" />} label="Friends" detail={`${namesLine(friendNames)} are already here`} />}
-            </ul>
-          </section>
-        </>
-      )}
-
-      {error && (
-        <p role="alert" className="px-[14px] pt-[8px] pb-[16px] text-center text-meta font-semibold text-badge">
-          {error}
-        </p>
-      )}
-
-      {sheetUp && (
-        <div className="fixed inset-y-0 left-1/2 z-50 w-full max-w-[390px] -translate-x-1/2" style={{ fontFamily: META_SYSTEM_FONT }}>
+  const sheet = sheetUp && (
+        <div className="fixed inset-y-0 left-1/2 z-[70] w-full max-w-[390px] -translate-x-1/2" style={{ fontFamily: META_SYSTEM_FONT }}>
           <div
             aria-hidden
             className={`absolute inset-0 bg-black/45 ${sheetLeaving ? "motion-safe:animate-[ma-dim-out_320ms_ease-in_both] motion-reduce:opacity-0" : "motion-safe:animate-[ma-dim-in_300ms_ease-out]"}`}
@@ -459,7 +286,125 @@ export function InviteLanding({
             )}
           </section>
         </div>
+  );
+
+  if (!unlocked) {
+    return (
+      // Covers the app frame and its chrome (tab bar, banners, the nearby opt-in):
+      // someone with no account sees none of it.
+      <div className="fixed inset-0 z-[60] mx-auto w-full max-w-[390px] overflow-y-auto bg-page">
+        <style>{KEYFRAMES}</style>
+        <header className="flex h-[52px] shrink-0 items-center px-[14px]">
+          <span className="pb-[3px] font-display text-[29px] leading-[34px] font-extrabold tracking-[-0.05em] text-primary">facebook</span>
+        </header>
+        <div className="mx-[12px] mb-[10px] flex items-center gap-[10px] rounded-card bg-wash px-[12px] py-[10px]">
+          <ProfileCircle name={inviter} size={34} badge="instagram" />
+          <p className="min-w-0 text-body leading-[19px]">
+            <span className="block font-display text-label font-bold">{inviter} invited you</span>
+            <span className="block text-meta text-muted">From your Instagram messages</span>
+          </p>
+        </div>
+
+      {/* The flyer prints the time and place, so it stays blurred until she can see them. */}
+      <div className="relative overflow-hidden">
+        <div className="scale-[1.08] blur-[14px] saturate-50">{poster}</div>
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white/90 text-ink shadow-[0_2px_10px_rgba(0,0,0,0.15)]">
+            <LockIcon className="h-[20px] w-[20px]" />
+          </span>
+        </span>
+      </div>
+
+      <section className="px-[14px] pt-[14px]">
+        <span aria-label="Date hidden" className="block h-[11px] w-[120px] rounded-full bg-[#e4e6eb]" />
+        <h1 className="mt-[5px] font-display text-[22px] leading-[26px] font-bold">{eventTitle}</h1>
+        <p className="mt-[4px] text-venue font-semibold text-ink">Hosted by {organizerName}</p>
+      </section>
+
+        <section className="px-[14px] pt-[16px]">
+          <ul className="flex flex-col gap-[14px]">
+            <HiddenDetail Icon={ClockIcon} width={150} label="Time" />
+            <HiddenDetail Icon={MapPinIcon} width={190} label="Place" />
+            <HiddenDetail Icon={PeopleIcon} width={130} label="Who's going" />
+          </ul>
+          <div className="mt-[16px] rounded-card border border-hairline px-[14px] py-[14px]">
+            <p className="flex items-center gap-[8px] font-display text-label font-bold">
+              <LockIcon className="h-[16px] w-[16px] text-muted" />
+              The rest is on Facebook
+            </p>
+            <p className="mt-[4px] text-body leading-[19px] text-muted">
+              To see the time, the place, and who&apos;s going, and to join {inviter}, you need a Facebook account.
+            </p>
+            <button
+              type="button"
+              onClick={() => advance("account")}
+              className="mt-[12px] h-[42px] w-full rounded-[8px] bg-primary font-display text-label font-bold text-on-primary active:scale-[0.99]"
+            >
+              Create Facebook account
+            </button>
+          </div>
+        </section>
+        {sheet}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-page">
+      <style>{KEYFRAMES}</style>
+      {page.header}
+      {poster}
+      {page.title}
+      {/* Her one line on top of the product's page: who brought her here. */}
+      {joined ? (
+        <p role="status" className="flex items-center gap-[8px] px-3 pt-[10px] text-body font-semibold text-ink motion-safe:animate-[ma-swap_300ms_ease-out]">
+          <span aria-hidden className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-primary text-on-primary motion-safe:animate-[ma-pop_420ms_ease-out_both]">
+            <Check className="h-[11px] w-[11px]" />
+          </span>
+          {inviter} knows you&apos;re going
+        </p>
+      ) : (
+        <p className="flex items-center gap-[8px] px-3 pt-[10px] text-body font-semibold text-ink">
+          <ProfileCircle name={inviter} size={22} badge="instagram" />
+          {inviter} invited you
+        </p>
       )}
+      <WhosGoing key={whoKey} initial={who} onJoin={() => join()} onCompany={onCompany} />
+      <div aria-hidden className="my-[18px] h-px bg-hairline" />
+      {page.details}
+      {joined && (
+        <>
+          {/* What came over, in Accounts Center's shape: white grouped rows on a pale wash. */}
+          <section
+            className="mt-[22px] px-[12px] py-[14px] motion-safe:animate-[ma-swap_380ms_ease-out_120ms_both]"
+            style={{ background: "linear-gradient(135deg, #fdf2f6 0%, #eef3ff 100%)", fontFamily: META_SYSTEM_FONT }}
+          >
+            <div className="flex items-center justify-between px-[4px] pb-[10px]">
+              <p className="text-[15px] font-semibold text-[#1c2b33]">Came with you from Instagram</p>
+              <MetaLockup height={13} />
+            </div>
+            <ul className="overflow-hidden rounded-[16px] bg-white">
+              <AccountRow
+                icon={
+                  <span className="relative inline-flex">
+                    <ProfileCircle name={viewerName} size={30} badge="instagram" />
+                    <ProfileCircle name={viewerName} size={30} badge="facebook" className="-ml-[12px]" />
+                  </span>
+                }
+                label="Profile"
+                detail={handle ? `Your name and photo from ${handle}` : "Your name and photo from Instagram"}
+              />
+              {friendNames.length > 0 && <AccountRow icon={<PeopleIcon className="h-[24px] w-[24px]" />} label="Friends" detail={`${namesLine(friendNames)} are already here`} />}
+            </ul>
+          </section>
+        </>
+      )}
+      {error && (
+        <p role="alert" className="px-3 pt-[8px] pb-[16px] text-center text-meta font-semibold text-badge">
+          {error}
+        </p>
+      )}
+      {sheet}
     </div>
   );
 }
