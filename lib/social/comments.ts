@@ -146,9 +146,17 @@ export function eventComments(event: CampusEvent, viewerId: string, now = new Da
   return { eventId: event.id, comments };
 }
 
-export function addComment(event: CampusEvent, viewer: { id: string; name: string }, text: string, now = new Date()): EventComment {
+/** Adds the viewer's comment; with replyTo, a reply in that comment's thread. */
+export function addComment(
+  event: CampusEvent,
+  viewer: { id: string; name: string },
+  text: string,
+  now = new Date(),
+  replyTo?: string,
+): EventComment {
   const list = posted(event.id);
   const comment: Stored = { id: `c-${now.getTime().toString(36)}-${list.length}`, authorId: viewer.id, name: viewer.name, text, at: now.toISOString() };
+  if (replyTo) comment.replyTo = replyTo;
   list.push(comment);
   return { ...comment, mine: true };
 }

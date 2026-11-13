@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/social/whos-going";
 import { COMMENT_MAX_LENGTH, type EventComment, type EventComments } from "@/lib/social/comment-types";
 
@@ -26,6 +26,14 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
   const [error, setError] = useState<string | null>(null);
   const [all, setAll] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [replyingTo, setReplyingTo] = useState<EventComment | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+
+  function startReply(to: EventComment) {
+    setReplyingTo(to);
+    setError(null);
+    input.current?.focus();
+  }
 
   useEffect(() => {
     const tick = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -42,13 +50,14 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
       const response = await fetch(`/api/social/events/${encodeURIComponent(initial.eventId)}/comments`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: body }),
+        body: JSON.stringify({ text: body, replyTo: replyingTo?.id }),
       });
       const result = (await response.json()) as { data: EventComments | null; error: string | null };
       if (!response.ok || !result.data) throw new Error(result.error ?? "Could not post");
       setComments(result.data.comments);
       setNow(Date.now());
       setText("");
+      setReplyingTo(null);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Could not post");
     } finally {
@@ -64,13 +73,24 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
       <h2 id="comments-heading" className="font-display text-title font-bold">
         Comments{comments.length > 0 && <span className="ml-[6px] text-label font-semibold text-muted">{comments.length}</span>}
       </h2>
-      <form onSubmit={send} className="mt-[10px] flex items-center gap-2">
+      {replyingTo && (
+        <p className="mt-[10px] flex items-center gap-[6px] text-meta text-muted">
+          <span>
+            Replying to <span className="font-semibold text-ink">{replyingTo.mine ? "yourself" : replyingTo.name}</span>
+          </span>
+          <button type="button" onClick={() => setReplyingTo(null)} className="font-semibold">
+            Cancel
+          </button>
+        </p>
+      )}
+      <form onSubmit={send} className={`${replyingTo ? "mt-[6px]" : "mt-[10px]"} flex items-center gap-2`}>
         <input
+          ref={input}
           value={text}
           onChange={(event) => setText(event.target.value)}
           maxLength={COMMENT_MAX_LENGTH}
-          placeholder="How is it going? Food left?"
-          aria-label="Write a comment"
+          placeholder={replyingTo ? `Reply to ${replyingTo.mine ? "your comment" : replyingTo.name}...` : "How is it going? Food left?"}
+          aria-label={replyingTo ? "Write a reply" : "Write a comment"}
           className="min-w-0 flex-1 rounded-full bg-wash px-[14px] py-[8px] text-body outline-none"
         />
         <button
@@ -90,12 +110,12 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
             const replies = repliesTo(comment.id);
             return (
               <li key={comment.id}>
-                <CommentRow comment={comment} now={now} />
+                <CommentRow comment={comment} now={now} onReply={() => startReply(comment)} />
                 {replies.length > 0 && (
                   <ul className="mt-[8px] flex flex-col gap-[8px] pl-[42px]">
                     {replies.map((reply) => (
                       <li key={reply.id}>
-                        <CommentRow comment={reply} now={now} small />
+                        <CommentRow comment={reply} now={now} small onReply={() => startReply(comment)} />
                       </li>
                     ))}
                   </ul>
@@ -114,7 +134,17 @@ export function EventCommentsSection({ initial }: { initial: EventComments }) {
   );
 }
 
-function CommentRow({ comment, now, small = false }: { comment: EventComment; now: number; small?: boolean }) {
+function CommentRow({
+  comment,
+  now,
+  small = false,
+  onReply,
+}: {
+  comment: EventComment;
+  now: number;
+  small?: boolean;
+  onReply: () => void;
+}) {
   return (
     <div className="flex items-start gap-[10px]">
       <Avatar person={{ id: comment.authorId, name: comment.name }} size={small ? 24 : 32} />
@@ -123,7 +153,12 @@ function CommentRow({ comment, now, small = false }: { comment: EventComment; no
           <p className="text-meta font-semibold text-ink">{comment.mine ? "You" : comment.name}</p>
           <p className="text-body">{comment.text}</p>
         </div>
-        <p className="mt-[3px] pl-[12px] text-meta text-muted">{ago(comment.at, now)}</p>
+        <p className="mt-[3px] flex gap-[12px] pl-[12px] text-meta text-muted">
+          <span>{ago(comment.at, now)}</span>
+          <button type="button" onClick={onReply} aria-label={`Reply to ${comment.mine ? "your comment" : comment.name}`} className="font-semibold">
+            Reply
+          </button>
+        </p>
       </div>
     </div>
   );

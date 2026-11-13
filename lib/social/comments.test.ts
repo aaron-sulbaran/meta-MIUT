@@ -60,4 +60,15 @@ describe("event comments", () => {
     const other = events.find((event) => event.id !== foodEvent.id) as CampusEvent;
     expect(eventComments(other, viewer.id, now).comments.some((comment) => comment.mine)).toBe(false);
   });
+
+  it("puts the viewer's reply under the comment it answers, after the earlier replies", () => {
+    const now = at(foodEvent, 30);
+    const parent = eventComments(foodEvent, viewer.id, now).comments.find((comment) => !comment.replyTo) as { id: string };
+    addComment(foodEvent, viewer, "Count me in", now, parent.id);
+    const { comments } = eventComments(foodEvent, viewer.id, now);
+    const start = comments.findIndex((comment) => comment.id === parent.id);
+    const thread = comments.slice(start + 1).filter((comment, index, rest) => rest.slice(0, index + 1).every((c) => c.replyTo === parent.id));
+    expect(thread.at(-1)).toMatchObject({ text: "Count me in", replyTo: parent.id, mine: true });
+    expect(comments.filter((comment) => !comment.replyTo).some((comment) => comment.text === "Count me in")).toBe(false);
+  });
 });
