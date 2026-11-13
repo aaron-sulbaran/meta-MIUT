@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { startStagePoll } from "@/lib/demo/stage-poll";
 import { BEATS, deckStepsPath, type Beat, type DeckStep } from "@/lib/demo/beats";
 
 // What the presenter says and does, for the remote and the console only (never
@@ -78,23 +79,22 @@ export function StageNotes() {
     };
     return () => channel.close();
   }, []);
+  // Polls on lib/demo/stage-poll.ts's schedule: fast while the skit moves, slow when quiet, never when hidden.
   useEffect(() => {
     let stopped = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    async function poll() {
+    const poll = startStagePoll(async () => {
       try {
         const response = await fetch("/api/demo/stage", { cache: "no-store" });
         const body = (await response.json()) as { data: { index: number } | null };
         if (!stopped && body.data) setIndex(body.data.index);
+        return body.data?.index ?? null;
       } catch {
-        // Try again next tick.
+        return null;
       }
-      if (!stopped) timer = setTimeout(poll, 1_500);
-    }
-    void poll();
+    });
     return () => {
       stopped = true;
-      if (timer) clearTimeout(timer);
+      poll.stop();
     };
   }, []);
   const beat = index === null ? null : BEATS[index];

@@ -34,7 +34,7 @@ export function MapAsk({
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-title font-bold leading-[19px]">Ask Muse</h2>
-          <p className="text-meta font-semibold text-muted">Say where you are headed. Muse draws it on the map.</p>
+          <p className="text-meta font-semibold text-muted">Ask about events near you.</p>
         </div>
         <button type="button" onClick={onClose} aria-label="Close Ask Muse" className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-wash">
           <CloseIcon className="h-[14px] w-[14px]" />

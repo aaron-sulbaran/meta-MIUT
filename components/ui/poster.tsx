@@ -111,9 +111,9 @@ function Flyer({ src, className }: { src: string; className: string }) {
   return (
     <div aria-hidden className={`relative aspect-[2/1] w-full overflow-hidden bg-wash ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-[14px] opacity-70" />
+      <img loading="lazy" decoding="async" src={src} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-[14px] opacity-70" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" className="absolute inset-0 h-full w-full object-contain" />
+      <img loading="lazy" decoding="async" src={src} alt="" className="absolute inset-0 h-full w-full object-contain" />
       <span className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)]" />
     </div>
   );

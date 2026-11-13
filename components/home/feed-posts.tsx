@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   CloseIcon,
@@ -10,6 +11,7 @@ import {
   ShareIcon,
 } from "@/components/ui/icons";
 import { FeedSeparator } from "@/components/ui/card";
+import { getFacebookHref } from "@/components/ui/header";
 
 // PLACEHOLDER: mock News Feed posts so Home reads like Facebook below the
 // events. Invented authors; nature photos from Unsplash (Unsplash License).
@@ -165,20 +167,25 @@ function Avatar({ post }: { post: Post }) {
   );
 }
 
+// "312" becomes "313"; rounded counts like "1.2K" stay as they are, like Facebook.
+function plusOne(count: string): string {
+  return /^\d+$/.test(count) ? String(Number(count) + 1) : count;
+}
+
 function Photos({ photos }: { photos: string[] }) {
   const [first, ...rest] = photos;
   if (!first) return null;
   if (rest.length === 0) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={first} alt="" className="mt-[10px] block max-h-[480px] w-full object-cover" />;
+    return <img loading="lazy" decoding="async" src={first} alt="" className="mt-[10px] block max-h-[480px] w-full object-cover" />;
   }
   return (
     <div className="mt-[10px] grid grid-cols-2 gap-[3px]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={first} alt="" className="col-span-2 block aspect-[3/2] w-full object-cover" />
+      <img loading="lazy" decoding="async" src={first} alt="" className="col-span-2 block aspect-[3/2] w-full object-cover" />
       {rest.map((src) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={src} src={src} alt="" className="block aspect-square w-full object-cover" />
+        <img loading="lazy" decoding="async" key={src} src={src} alt="" className="block aspect-square w-full object-cover" />
       ))}
     </div>
   );
@@ -187,6 +194,14 @@ function Photos({ photos }: { photos: string[] }) {
 export function FeedPosts() {
   const [shown, setShown] = useState(POSTS);
   const [queue, setQueue] = useState(MORE_POSTS);
+  const [liked, setLiked] = useState<Set<string>>(() => new Set());
+
+  function toggleLike(id: string) {
+    const next = new Set(liked);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setLiked(next);
+  }
 
   // The X hides a post and the next one in line takes its place.
   function hide(id: string) {
@@ -229,18 +244,24 @@ export function FeedPosts() {
             <p className="px-[11.4px] pt-[10px] text-body font-medium">{post.text}</p>
             <Photos photos={post.photos} />
             <div className="flex items-center gap-[22px] px-[11.4px] py-[10px] text-[14px] font-semibold text-muted">
-              <span className="flex items-center gap-[6px]">
+              <button
+                type="button"
+                aria-pressed={liked.has(post.id)}
+                aria-label={liked.has(post.id) ? "Unlike" : "Like"}
+                onClick={() => toggleLike(post.id)}
+                className={`flex items-center gap-[6px] ${liked.has(post.id) ? "text-primary" : ""}`}
+              >
                 <LikeIcon className="h-[20px] w-[20px]" />
-                {post.likes}
-              </span>
-              <span className="flex items-center gap-[6px]">
+                {liked.has(post.id) ? plusOne(post.likes) : post.likes}
+              </button>
+              <Link href={getFacebookHref("comment")} aria-label="Comment" className="flex items-center gap-[6px]">
                 <CommentIcon className="h-[20px] w-[20px]" />
                 {post.comments}
-              </span>
-              <span className="flex items-center gap-[6px]">
+              </Link>
+              <Link href={getFacebookHref("share")} aria-label="Share" className="flex items-center gap-[6px]">
                 <ShareIcon className="h-[20px] w-[20px]" />
                 {post.shares}
-              </span>
+              </Link>
             </div>
           </article>
           <FeedSeparator />
