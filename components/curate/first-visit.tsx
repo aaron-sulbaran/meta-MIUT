@@ -31,7 +31,7 @@ const STEP_INDEX = { map: 0, ask: 1, read: 2, list: 3 } as const;
 const STEP_PATH = [HANDOFF.firstEvents, HANDOFF.firstEventsAsk, HANDOFF.firstEventsRead, HANDOFF.firstEventsList];
 const BEAT_STEP: Record<string, number> = { U3b: 0, U3b2: 1, U3b3: 2, U3c: 3 };
 
-// The sheet comes about a second after the map's pins are in view, never later than MAP_WAIT_MS.
+// The sheet comes about a second after the map's pins and base map are in view, never later than MAP_WAIT_MS.
 const ASK_DELAY_MS = 1_000;
 const MAP_WAIT_MS = 6_000;
 // Each source row shows at least this long; the last waits for the answer plus ANSWER_PAD_MS.
@@ -152,7 +152,8 @@ export function FirstVisit({ startStep = null, openedFromApp = false }: { startS
       report(STEP_INDEX.ask);
     };
     const poll = window.setInterval(() => {
-      const pinsUp = document.querySelector(".maplibregl-marker") !== null;
+      // Event pins (anchored bottom; the blue dot is centered) and the base map drawn (events-map.tsx).
+      const pinsUp = document.querySelector(".maplibregl-marker-anchor-bottom") !== null && document.querySelector("[data-map-loaded]") !== null;
       if (!pinsUp && Date.now() < arrived + MAP_WAIT_MS) return;
       window.clearInterval(poll);
       timer = window.setTimeout(ask, Math.max(ASK_DELAY_MS, arrived + ASK_DELAY_MS - Date.now()));

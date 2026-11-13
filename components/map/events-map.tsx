@@ -611,6 +611,8 @@ export function EventsMap({
   const programmaticScroll = useRef(false);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  // The map exists and is framed: its DOM markers can go up before the base map loads.
+  const [pinsReady, setPinsReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const [chip, setChip] = useState<MapChip>("forYou");
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -729,6 +731,11 @@ export function EventsMap({
         });
         dot.setAttribute("aria-label", "You are here");
         new maplibregl.Marker({ element: dot }).setLngLat([studentSpot.lng, studentSpot.lat]).addTo(map);
+        // The bubbles are plain DOM markers: frame the student and put them up now, not on
+        // "load" (style, sprites and the first tiles), so a slow or blocked tile server never
+        // leaves the map without its pins. The base map fills in under them when it arrives.
+        frameStudent(map, studentSpot, cards, false);
+        setPinsReady(true);
 
         map.on("error", (event) => {
           if (String(event.error?.message ?? "").includes("style")) setMapFailed(true);
@@ -740,6 +747,8 @@ export function EventsMap({
           softenBaseMap(map);
           frameStudent(map, studentSpot, cards, false);
           setMapReady(true);
+          // The base map has drawn (first-visit.tsx waits for this before Muse asks).
+          container.dataset.mapLoaded = "1";
         });
       })
       .catch(() => setMapFailed(true));
@@ -759,7 +768,7 @@ export function EventsMap({
   useEffect(() => {
     const map = mapRef.current;
     const MarkerClass = markerClassRef.current;
-    if (!mapReady || !map || !MarkerClass) return;
+    if (!pinsReady || !map || !MarkerClass) return;
 
     const markers = markersRef.current;
     const keep = new Set(visibleCards.map((card) => card.eventId));
@@ -784,13 +793,13 @@ export function EventsMap({
       markers.set(card.eventId, { marker, element });
     }
     setLabelsForZoom(markers, map.getZoom());
-  }, [mapReady, visibleCards]);
+  }, [pinsReady, visibleCards]);
 
   // The active event's bubble grows a little.
   useEffect(() => {
     for (const [id, { element }] of markersRef.current) setMarkerActive(element, id === currentActive);
     if (mapRef.current) setLabelsForZoom(markersRef.current, mapRef.current.getZoom());
-  }, [currentActive, mapReady, visibleCards]);
+  }, [currentActive, pinsReady, visibleCards]);
 
   // The crawl's route on the map: dotted line, numbered stops, the rest hidden.
   useEffect(() => {
