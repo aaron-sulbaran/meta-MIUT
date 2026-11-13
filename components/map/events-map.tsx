@@ -6,11 +6,16 @@ import { useRouter } from "next/navigation";
 import type { Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, monogram } from "@/components/map/category-icons";
-import { CrawlPlanner } from "@/components/map/crawl-planner";
+import type { AskPlan } from "@/components/ask/ask-bar";
+import { CrawlPlanner, type CrawlStart } from "@/components/map/crawl-planner";
+import { MapAsk } from "@/components/map/map-ask";
+import { MuseMenu } from "@/components/map/muse-menu";
 import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
+import type { CampusEvent } from "@/lib/events/schema";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 import type { Route } from "@/lib/map/crawl-route";
+import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
 
 // Full-screen map for the Events tab: a clean, quiet base map with each event
 // as a round bubble showing the organizer's logo (the club, association or
@@ -23,6 +28,9 @@ import type { Route } from "@/lib/map/crawl-route";
 // sits at the bottom: swiping flies the map to that event, tapping a bubble
 // scrolls the strip to its card. X hides an event ("Not for me") and, after
 // the Undo window, Muse learns from it. Directions opens walking directions.
+// One Muse button at the top right fans out to Ask Muse (a popup over the map)
+// and Food crawl (the planner sheet). /?plan=home opens with Muse's walk from
+// class to home already planned, for the "just out of class" alert.
 // Tiles: OpenFreeMap "liberty" (OpenStreetMap data, no key), restyled on load.
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
@@ -331,12 +339,17 @@ function routeLine(route: Route) {
   };
 }
 
-function routeMarkerElement(label: string, home: boolean): HTMLDivElement {
+// The walk's end: a house, or a person when it ends where a friend is.
+const END_GLYPHS = {
+  home: "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10",
+  friend: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0",
+};
+
+function routeMarkerElement(label: string, home: boolean, friend = false): HTMLDivElement {
   const element = document.createElement("div");
   element.textContent = home ? "" : label;
   if (home) {
-    element.innerHTML =
-      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10"/></svg>';
+    element.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${friend ? END_GLYPHS.friend : END_GLYPHS.home}"/></svg>`;
   }
   element.setAttribute("aria-label", home ? "Where the walk ends" : `Stop ${label}`);
   Object.assign(element.style, {
@@ -416,7 +429,24 @@ function LogoTile({ card }: { card: MapCard }) {
   );
 }
 
-export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpot: Point }) {
+export function EventsMap({
+  cards,
+  studentSpot,
+  askEvents,
+  nowIso,
+  autoPlan = null,
+  planAt = null,
+}: {
+  cards: MapCard[];
+  studentSpot: Point;
+  /** Events for Ask Muse's answers (cards and links). */
+  askEvents: CampusEvent[];
+  nowIso: string;
+  /** "home": open with the walk from class to home planned (the alert link). */
+  autoPlan?: "home" | null;
+  /** A set campus time (ISO) every walk plans from, for the demo (?time=). */
+  planAt?: string | null;
+}) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLOListElement>(null);
@@ -434,7 +464,12 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [lastDismissed, setLastDismissed] = useState<MapCard | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [crawlOpen, setCrawlOpen] = useState(false);
+  const [crawlOpen, setCrawlOpen] = useState(autoPlan === "home");
+  // A walk the planner makes as it opens; the key gives each one a fresh sheet.
+  const [crawlStart, setCrawlStart] = useState<{ key: number; start: CrawlStart } | null>(
+    autoPlan === "home" ? { key: 0, start: { kind: "home" } } : null,
+  );
+  const [askOpen, setAskOpen] = useState(false);
   const [route, setRoute] = useState<Route | null>(null);
   const routeMarkersRef = useRef<Marker[]>([]);
 
@@ -588,7 +623,9 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
     const sameAsStart = route.destination.lat === route.from.lat && route.destination.lng === route.from.lng;
     if (!sameAsStart) {
       routeMarkersRef.current.push(
-        new MarkerClass({ element: routeMarkerElement("", true) }).setLngLat([route.destination.lng, route.destination.lat]).addTo(map),
+        new MarkerClass({ element: routeMarkerElement("", true, friendNamedIn(route.destination.name) !== null) })
+          .setLngLat([route.destination.lng, route.destination.lat])
+          .addTo(map),
       );
     }
     const points = [route.from, ...route.stops, route.destination];
@@ -606,6 +643,28 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
   const crawlEvents = useMemo(
     () => cards.map((card) => ({ eventId: card.eventId, title: card.title, place: card.place, startIso: card.startIso, endIso: card.endIso })),
     [cards],
+  );
+
+  const openCrawl = useCallback((start: CrawlStart | null) => {
+    setLastDismissed(null);
+    setAskOpen(false);
+    setCrawlStart(start ? { key: Date.now(), start } : null);
+    setCrawlOpen(true);
+  }, []);
+
+  // Ask Muse planned a walk: draw it here. A friend named in the request ("I'm
+  // meeting Lisa instead") ends the walk where they are, so the stops sit
+  // between the two of them; otherwise the walk goes home.
+  const planFromAsk = useCallback(
+    (_plan: AskPlan, question: string) => {
+      const friend = friendNamedIn(question);
+      openCrawl(
+        friend
+          ? { kind: "friend", to: friend, label: friendLabel(friend), note: question, friendName: friend.name }
+          : { kind: "home", note: question },
+      );
+    },
+    [openCrawl],
   );
 
   const recenter = useCallback(() => {
@@ -732,34 +791,22 @@ export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpo
       </div>
 
 
-      {!crawlOpen && (
-        <button
-          type="button"
-          onClick={() => {
-            setLastDismissed(null);
-            setCrawlOpen(true);
-          }}
-          aria-label="Plan a food crawl"
-          title="Food crawl"
-          className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-card text-ink shadow-md active:scale-95"
-          style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 196px)" }}
-        >
-          <svg viewBox="0 0 24 24" className="h-[21px] w-[21px]" aria-hidden fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="6" cy="19" r="2.2" />
-            <circle cx="18" cy="5" r="2.2" />
-            <path d="M8.2 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.8" />
-          </svg>
-        </button>
-      )}
+      {!crawlOpen && !askOpen && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
+
+      {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} />}
 
       {crawlOpen && (
         <CrawlPlanner
+          key={crawlStart?.key ?? "choose"}
           studentSpot={studentSpot}
           events={crawlEvents}
           dismissed={dismissed}
+          start={crawlStart?.start}
+          at={planAt}
           onRoute={setRoute}
           onClose={() => {
             setRoute(null);
+            setCrawlStart(null);
             setCrawlOpen(false);
           }}
         />

@@ -20,7 +20,19 @@ function mapChips(event: CampusEvent): MapChip[] {
   return event.free && event.access.kind === "open" ? ["forYou", "free"] : ["forYou"];
 }
 
-export async function MapHome({ events, now }: { events: CampusEvent[]; now: Date }) {
+export async function MapHome({
+  events,
+  now,
+  autoPlan = null,
+  planAt = null,
+}: {
+  events: CampusEvent[];
+  now: Date;
+  /** "home": open with Muse's walk from class to home planned (?plan=home, the alert link). */
+  autoPlan?: "home" | null;
+  /** A set campus time (ISO) the map's walks plan from (?time=, for the demo). */
+  planAt?: string | null;
+}) {
   const student = loadDemoStudent();
   const ranking = await personalizeEvents(student, events, now, await loadInterestMemory(DEMO_USER_ID, now));
   const picks = ranking.error === null ? ranking.data.picks : [];
@@ -50,7 +62,7 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
     ];
   });
 
-  return <EventsMap cards={cards} studentSpot={student.home} />;
+  return <EventsMap cards={cards} studentSpot={student.home} askEvents={events} nowIso={now.toISOString()} autoPlan={autoPlan} planAt={planAt} />;
 }
 
 export function MapHomeSkeleton() {

@@ -67,7 +67,21 @@ function linked(answer: string, mentioned: CampusEvent[]): ReactNode {
   });
 }
 
-export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[]; nowIso: string; placeholder: string }) {
+/** What a "plan my night" hands over when a host (the map's Ask popup) draws the plan itself. */
+export type AskPlan = NonNullable<AskReply["plan"]>;
+
+export function AskBar({
+  events,
+  nowIso,
+  placeholder,
+  onPlan,
+}: {
+  events: CampusEvent[];
+  nowIso: string;
+  placeholder: string;
+  /** When set, plan_night goes to the host (the map draws the route) instead of a list here. */
+  onPlan?: (plan: AskPlan, question: string) => void;
+}) {
   const router = useRouter();
   const [question, setQuestion] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -160,6 +174,10 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
           return { note: "Drafting your event" };
         case "plan_night": {
           if (!reply.plan) return { note: null };
+          if (onPlan) {
+            onPlan(reply.plan, question);
+            return { note: "Planning it on the map" };
+          }
           try {
             const response = await fetch("/api/muse/crawl", {
               method: "POST",
@@ -177,7 +195,7 @@ export function AskBar({ events, nowIso, placeholder }: { events: CampusEvent[];
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [router, events],
+    [router, events, onPlan],
   );
 
   const ask = useCallback(

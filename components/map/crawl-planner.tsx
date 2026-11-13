@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CloseIcon } from "@/components/ui/icons";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { walkMinutes } from "@/lib/geo";
+import { friendLabel, friendNamedIn } from "@/lib/map/friend-spots";
 import {
   arrivesTooLate,
   googleDirectionsUrl,
@@ -29,7 +30,16 @@ export type CrawlEvent = {
   endIso: string;
 };
 
-type Ending = { kind: "home" | "friend" | "wander"; label: string; to: Point; note?: string };
+type Ending = { kind: "home" | "friend" | "wander"; label: string; to: Point; note?: string; friendName?: string };
+
+/**
+ * A walk to plan as soon as the sheet opens: home (the alert's "on your way
+ * home" link, /?plan=home), or toward a friend (Ask Muse on the map: "I'm
+ * meeting Lisa instead").
+ */
+export type CrawlStart =
+  | { kind: "home"; note?: string }
+  | { kind: "friend"; to: Point; label: string; note: string; friendName: string | null };
 
 // startMs: when the walk starts (leave now, or the time the student picked).
 type Plan = { route: Route; pitch: string; invite: { message: string; path: string | null }; startMs: number };
@@ -55,6 +65,19 @@ type ApiPlan = {
 
 // Home for the demo student until the profile carries a dorm (asked on the hub).
 const HOME = { name: "Maseeh Hall", lat: 42.3575, lng: -71.0934 };
+
+function endingFor(start: CrawlStart): Ending {
+  if (start.kind === "home") return { kind: "home", label: HOME.name, to: HOME, note: start.note };
+  return { kind: "friend", label: start.label, to: start.to, note: start.note, friendName: start.friendName ?? undefined };
+}
+
+/** The Meet a friend line: a friend the map knows (lib/map/friend-spots.ts) ends the walk where they are. */
+function friendEnding(note: string): Ending {
+  const friend = friendNamedIn(note);
+  return friend
+    ? { kind: "friend", label: friendLabel(friend), to: friend, note, friendName: friend.name }
+    : { kind: "friend", label: "Your friend", to: HOME, note };
+}
 
 const KIND_LABELS: Record<string, string> = {
   main: "Main",
@@ -84,6 +107,7 @@ function Glyph({ path, className = "h-[17px] w-[17px]" }: { path: string; classN
 }
 const HOME_PATH = "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10";
 const FRIEND_PATH = "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM2 21a7 7 0 0 1 14 0M17 8h5M19.5 5.5v5";
+const PERSON_PATH = "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0";
 const LOOP_PATH = "M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5";
 
 // Times in campus time, like every other time in the app.
@@ -103,16 +127,22 @@ export function CrawlPlanner({
   studentSpot,
   events,
   dismissed,
+  start,
+  at,
   onRoute,
   onClose,
 }: {
   studentSpot: Point;
   events: CrawlEvent[];
   dismissed: string[];
+  /** Plan this walk right away instead of asking where the walk ends. */
+  start?: CrawlStart;
+  /** When walks start (ISO) unless the student picks a time: a set campus time for the demo (?time=). Now when left out. */
+  at?: string | null;
   onRoute: (route: Route | null) => void;
   onClose: () => void;
 }) {
-  const [step, setStep] = useState<"choose" | "loading" | "plan" | "error">("choose");
+  const [step, setStep] = useState<"choose" | "loading" | "plan" | "error">(start ? "loading" : "choose");
   const [friendNote, setFriendNote] = useState("");
   const [ending, setEnding] = useState<Ending | null>(null);
   const [mode, setMode] = useState<TravelMode>("walk");
@@ -121,6 +151,8 @@ export function CrawlPlanner({
   const [shared, setShared] = useState(false);
   // Leave now, or depart at a picked time (a datetime-local value), like Google Maps.
   const [leaveAt, setLeaveAt] = useState("");
+  // A set start time from the link (?time=), used while the student has not picked one.
+  const presetStartMs = at ? Date.parse(at) : Number.NaN;
   const eventsById = useMemo(() => new Map(events.map((event) => [event.eventId, event])), [events]);
 
   const showPlan = useCallback(
@@ -135,7 +167,7 @@ export function CrawlPlanner({
     async (target: Ending, travel: TravelMode) => {
       setStep("loading");
       setAdding(false);
-      const startMs = leaveAt ? new Date(leaveAt).getTime() : Date.now();
+      const startMs = leaveAt ? new Date(leaveAt).getTime() : Number.isFinite(presetStartMs) ? presetStartMs : Date.now();
       try {
         const response = await fetch("/api/muse/crawl", {
           method: "POST",
@@ -165,13 +197,25 @@ export function CrawlPlanner({
         setStep("error");
       }
     },
-    [dismissed, eventsById, leaveAt, showPlan, studentSpot],
+    [dismissed, eventsById, leaveAt, presetStartMs, showPlan, studentSpot],
   );
 
   const choose = (target: Ending) => {
     setEnding(target);
     void request(target, mode);
   };
+
+  // Opened with a walk to plan (the alert link, or Ask Muse on the map): plan it once.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!start || started.current) return;
+    started.current = true;
+    const target = endingFor(start);
+    setEnding(target);
+    void request(target, "walk");
+    // The sheet is keyed per start; later changes to request do not re-plan.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start]);
 
   const changeMode = (next: TravelMode) => {
     setMode(next);
@@ -244,7 +288,7 @@ export function CrawlPlanner({
             onSubmit={(event) => {
               event.preventDefault();
               if (!friendNote.trim()) return;
-              choose({ kind: "friend", label: "Your friend", to: HOME, note: friendNote.trim() });
+              choose(friendEnding(friendNote.trim()));
             }}
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-wash" aria-hidden>
@@ -255,7 +299,7 @@ export function CrawlPlanner({
               <input
                 value={friendNote}
                 onChange={(event) => setFriendNote(event.target.value)}
-                placeholder="Meeting Maya at Kendall at 7"
+                placeholder="Meeting Lisa after class"
                 aria-label="Where are you meeting your friend"
                 className="mt-1 w-full rounded-[10px] bg-wash px-3 py-[7px] text-meta outline-none"
               />
@@ -365,7 +409,7 @@ export function CrawlPlanner({
           <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
             <span className="h-3 w-3 rounded-full border-2 border-white bg-primary shadow-[0_0_0_4px_rgba(8,102,255,0.18)]" />
           </span>
-          <span className="text-meta font-semibold">Your spot · leave {leaveAt ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
+          <span className="text-meta font-semibold">Your spot · leave {leaveAt || Number.isFinite(presetStartMs) ? clock(new Date(plan.startMs).toISOString()) : "now"}</span>
         </li>
         {route.stops.map((stop, index) => {
           const event = stop.eventId ? eventsById.get(stop.eventId) : undefined;
@@ -397,7 +441,7 @@ export function CrawlPlanner({
         })}
         <li className="flex items-center gap-3 border-t border-hairline py-[8px]">
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white" aria-hidden>
-            <Glyph path={HOME_PATH} className="h-[13px] w-[13px]" />
+            <Glyph path={ending?.friendName ? PERSON_PATH : HOME_PATH} className="h-[13px] w-[13px]" />
           </span>
           <span className="min-w-0 flex-1 truncate text-label font-semibold">{route.destination.name}</span>
           <span className="shrink-0 text-meta text-muted">
@@ -463,7 +507,7 @@ export function CrawlPlanner({
           Get directions
         </a>
         <button type="button" onClick={() => void share()} className="flex-1 rounded-[10px] bg-wash py-[9px] text-label font-semibold">
-          {shared ? "Invite ready" : "Send to a friend"}
+          {shared ? "Invite ready" : ending?.friendName ? `Send to ${ending.friendName}` : "Send to a friend"}
         </button>
       </div>
     </div>
