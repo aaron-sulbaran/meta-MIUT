@@ -13,11 +13,12 @@ import { STORY } from "@/lib/demo/story-data";
 
 // Who each waiting phone is in the going lists (lib/social/fixtures/people.ts).
 const PERSON_OF_CAST: Partial<Record<CastId, string>> = { user1: "sample-student", user2: "lisa" };
-const POLL_MS = 2000;
 
 type Hello = { eventId: string; from: string; fromName: string; message: string | null; at: number; answered?: boolean };
 
-export function HelloArrival({ cast, watching }: { cast: CastId; watching: boolean }) {
+// How often to check: the phone passes helloPollMs(beat) from lib/demo/beat-context.ts, fast only
+// on Trish's last beats, so Say hi back shows within half a second of the hi being sent.
+export function HelloArrival({ cast, watching, pollMs }: { cast: CastId; watching: boolean; pollMs: number }) {
   const person = PERSON_OF_CAST[cast];
   const [hello, setHello] = useState<Hello | null>(null);
   const [answer, setAnswer] = useState<"idle" | "sending" | "error">("idle");
@@ -50,12 +51,12 @@ export function HelloArrival({ cast, watching }: { cast: CastId; watching: boole
         })
         .catch(() => {});
     void check();
-    const timer = setInterval(check, POLL_MS);
+    const timer = setInterval(check, pollMs);
     return () => {
       live = false;
       clearInterval(timer);
     };
-  }, [person, watching]);
+  }, [person, watching, pollMs]);
 
   if (!hello) return null;
   return (
