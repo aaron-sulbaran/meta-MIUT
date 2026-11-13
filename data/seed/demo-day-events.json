@@ -1,0 +1,663 @@
+{
+  "_note": "MADE-UP test events (not real) for testing late at night and around the demo on Friday afternoon. Times count from 7:30 AM campus time on the nearest day, so any load from 7:30 PM Thursday to 7:30 PM Friday puts the late night ones in the early hours of Friday and the rest on Friday. Set SEED_TEST_EVENTS=off to leave them out.",
+  "anchorCampusTime": "07:30",
+  "events": [
+    {
+      "id": "evt-test-night-simmons-study-break",
+      "title": "Late Night Study Break at Simmons",
+      "description": "Cup noodles, chips, and hot cocoa for anyone studying late. Open to all students.",
+      "startsInMinutes": -450,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Simmons Hall lounge, 229 Vassar St",
+        "lat": 42.357,
+        "lng": -71.1012
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Cup noodles, chips, and cocoa",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Simmons Hall Council",
+        "handle": "simmons_hall"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-night-simmons-study-break.jpg"
+      }
+    },
+    {
+      "id": "evt-test-night-w20-midnight-pizza",
+      "title": "Midnight Pizza in the Student Center",
+      "description": "Hot pizza slices in the Stratton Student Center lobby until it runs out.",
+      "startsInMinutes": -420,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Stratton Student Center lobby, W20",
+        "lat": 42.3591,
+        "lng": -71.0949
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pizza",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Student Activities Office",
+        "handle": "mit_sao"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-night-w20-midnight-pizza.jpg"
+      }
+    },
+    {
+      "id": "evt-test-night-stata-hack-session",
+      "title": "All Night Hack Session at Stata",
+      "description": "Bring a project or join a team. Free coffee, snacks, and laptop stickers all night.",
+      "startsInMinutes": -510,
+      "durationMinutes": 300,
+      "place": {
+        "name": "Stata Center, 32-123",
+        "lat": 42.3616,
+        "lng": -71.0906
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Coffee and snacks",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Hacking Club",
+        "handle": "mit_hacks"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-night-stata-hack-session.jpg"
+      }
+    },
+    {
+      "id": "evt-test-night-baker-pancakes",
+      "title": "Baker House Pancake Night",
+      "description": "Late night pancakes with syrup and fruit in the Baker dining hall.",
+      "startsInMinutes": -390,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Baker House dining, 362 Memorial Dr",
+        "lat": 42.3567,
+        "lng": -71.0955
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pancakes",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Baker House",
+        "handle": "bakerhouse"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-night-baker-pancakes.jpg"
+      }
+    },
+    {
+      "id": "evt-test-night-z-center-bouldering",
+      "title": "Night Bouldering Session",
+      "description": "Open bouldering on the Z-Center wall after hours. Free chalk bags for the first 30.",
+      "startsInMinutes": -540,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Z-Center Climbing Wall, MIT",
+        "lat": 42.3594,
+        "lng": -71.0953
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Outing Club",
+        "handle": "mit_outing"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-night-z-center-bouldering.jpg"
+      }
+    },
+    {
+      "id": "evt-test-night-central-anime",
+      "title": "Midnight Anime Screening",
+      "description": "A double feature of classic anime films. Free popcorn and soda.",
+      "startsInMinutes": -450,
+      "durationMinutes": 150,
+      "place": {
+        "name": "Starlight Square, Central Square",
+        "lat": 42.3654,
+        "lng": -71.1037
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Popcorn and soda",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Central Square Film Club",
+        "handle": "centralfilm"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-night-central-anime.jpg"
+      }
+    },
+    {
+      "id": "evt-test-night-harvard-quesadillas",
+      "title": "Late Night Quesadillas at Harvard",
+      "description": "Free quesadillas outside the Science Center for anyone up late.",
+      "startsInMinutes": -420,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Science Center Plaza, Harvard",
+        "lat": 42.3762,
+        "lng": -71.1163
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Quesadillas",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Harvard Undergraduate Council",
+        "handle": "harvard_uc"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-night-macgregor-ramen",
+      "title": "Night Shift Ramen at MacGregor",
+      "description": "Instant ramen bar and tea for night owls.",
+      "startsInMinutes": -330,
+      "durationMinutes": 120,
+      "place": {
+        "name": "MacGregor House, 450 Memorial Dr",
+        "lat": 42.3554,
+        "lng": -71.0997
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Ramen and tea",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MacGregor House",
+        "handle": "macgregor_house"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-night-kendall-donuts",
+      "title": "Night Owl Donut Drop",
+      "description": "A box of free donuts at Kendall Square for students out late.",
+      "startsInMinutes": -390,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Kendall Plaza, Kendall/MIT station",
+        "lat": 42.3625,
+        "lng": -71.0862
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Donuts",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Kendall Square Association",
+        "handle": "kendallsq"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-night-central-improv",
+      "title": "Late Show Improv",
+      "description": "Late night improv comedy. Tickets $10 at the door.",
+      "startsInMinutes": -450,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Central Square Theater, 450 Massachusetts Ave",
+        "lat": 42.3646,
+        "lng": -71.1033
+      },
+      "free": false,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Central Square Theater",
+        "handle": "cstheater"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-night-walker-karaoke",
+      "title": "Midnight Karaoke at Walker",
+      "description": "Karaoke and snacks. Free for MIT students, $5 for guests.",
+      "startsInMinutes": -420,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Walker Memorial, 142 Memorial Dr",
+        "lat": 42.3597,
+        "lng": -71.0876
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Snacks",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Musical Theatre Guild",
+        "handle": "mit_mtg"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-kendall-bagels",
+      "title": "Free Bagels at Kendall",
+      "description": "Bagels and coffee on the plaza for the morning commute.",
+      "startsInMinutes": 90,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Kendall Plaza, Kendall/MIT station",
+        "lat": 42.3625,
+        "lng": -71.0862
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Bagels and coffee",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Kendall Square Association",
+        "handle": "kendallsq"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-stata-lunch-talk",
+      "title": "Lunch Talk: Building Hackathon Projects That Ship",
+      "description": "Past winners share how they scoped their projects. Free sandwiches.",
+      "startsInMinutes": 270,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Stata Center, 32-141",
+        "lat": 42.3616,
+        "lng": -71.0906
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Sandwiches",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Hacking Club",
+        "handle": "mit_hacks"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-killian-tshirts",
+      "title": "Killian Court Photo Day, Free T-shirts",
+      "description": "Group photo on Killian Court. Everyone who shows up gets a free T-shirt.",
+      "startsInMinutes": 360,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Killian Court, MIT",
+        "lat": 42.3591,
+        "lng": -71.0918
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Class Councils",
+        "handle": "mit_classcouncil"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-demo-killian-tshirts.jpg"
+      }
+    },
+    {
+      "id": "evt-test-demo-stata-pizza",
+      "title": "Pizza Study Break at Stata",
+      "description": "Free pizza in the Stata lobby between afternoon classes.",
+      "startsInMinutes": 390,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Stata Center lobby, 32 Vassar St",
+        "lat": 42.3617,
+        "lng": -71.0905
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pizza",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "EECS Undergraduate Office",
+        "handle": "mit_eecs"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-demo-stata-pizza.jpg"
+      }
+    },
+    {
+      "id": "evt-test-demo-central-tacos",
+      "title": "Taco Truck at Central Square",
+      "description": "A taco truck giving away free tacos to students with any student ID.",
+      "startsInMinutes": 390,
+      "durationMinutes": 180,
+      "place": {
+        "name": "Starlight Square, Central Square",
+        "lat": 42.3654,
+        "lng": -71.1037
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Tacos",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Central Square Business Association",
+        "handle": "centralsq"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-demo-central-tacos.jpg"
+      }
+    },
+    {
+      "id": "evt-test-demo-sloan-founders-coffee",
+      "title": "Coffee Chat With Founders",
+      "description": "Small group chat with student founders. Free coffee and pastries. RSVP, 30 spots.",
+      "startsInMinutes": 390,
+      "durationMinutes": 90,
+      "place": {
+        "name": "MIT Sloan, E62-250",
+        "lat": 42.361,
+        "lng": -71.0835
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Coffee and pastries",
+      "access": {
+        "kind": "rsvp",
+        "capacity": 30
+      },
+      "organizer": {
+        "name": "Sloan Entrepreneurship Club",
+        "handle": "sloan_eclub"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-mit-museum",
+      "title": "MIT Museum Afternoon",
+      "description": "Explore the robots and holography galleries. Free with MIT ID, $15 general admission.",
+      "startsInMinutes": 390,
+      "durationMinutes": 180,
+      "place": {
+        "name": "MIT Museum, 314 Main St",
+        "lat": 42.3622,
+        "lng": -71.087
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Museum",
+        "handle": "mitmuseum"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-kendall-boba",
+      "title": "Free Boba in Kendall Square",
+      "description": "A pop up boba stand with free milk tea for students.",
+      "startsInMinutes": 420,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Kendall Plaza, Kendall/MIT station",
+        "lat": 42.3625,
+        "lng": -71.0862
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Boba milk tea",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Kendall Square Association",
+        "handle": "kendallsq"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-demo-kendall-boba.jpg"
+      }
+    },
+    {
+      "id": "evt-test-demo-lobby10-ice-cream",
+      "title": "Ice Cream in Lobby 10",
+      "description": "Free ice cream cups in Lobby 10 while they last.",
+      "startsInMinutes": 420,
+      "durationMinutes": 60,
+      "place": {
+        "name": "Lobby 10, Building 10",
+        "lat": 42.3594,
+        "lng": -71.0921
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Ice cream",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Undergraduate Association",
+        "handle": "mit_ua"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-stata-hack-info",
+      "title": "Spring Hackathon Info Session",
+      "description": "Meet the organizers, find a team, and grab free pizza and stickers.",
+      "startsInMinutes": 450,
+      "durationMinutes": 60,
+      "place": {
+        "name": "Stata Center, 32-155",
+        "lat": 42.3616,
+        "lng": -71.0906
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Pizza and stickers",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Hacking Club",
+        "handle": "mit_hacks"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-demo-stata-hack-info.jpg"
+      }
+    },
+    {
+      "id": "evt-test-demo-baker-cookies",
+      "title": "Fresh Cookies at Baker House",
+      "description": "Warm cookies out of the Baker kitchen all afternoon.",
+      "startsInMinutes": 450,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Baker House, 362 Memorial Dr",
+        "lat": 42.3567,
+        "lng": -71.0955
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Cookies",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Baker House",
+        "handle": "bakerhouse"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-z-center-bouldering",
+      "title": "Intro to Bouldering",
+      "description": "Learn the basics on the Z-Center wall. Free chalk bags for first timers.",
+      "startsInMinutes": 480,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Z-Center Climbing Wall, MIT",
+        "lat": 42.3594,
+        "lng": -71.0953
+      },
+      "free": true,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Outing Club",
+        "handle": "mit_outing"
+      },
+      "source": {
+        "kind": "manual",
+        "imagePath": "/flyers/evt-test-demo-z-center-bouldering.jpg"
+      }
+    },
+    {
+      "id": "evt-test-demo-harvard-shorts",
+      "title": "Student Short Films at Harvard",
+      "description": "An afternoon of student short films. Free popcorn.",
+      "startsInMinutes": 480,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Harvard Science Center, Hall D",
+        "lat": 42.3765,
+        "lng": -71.1166
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Popcorn",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Harvard Film Society",
+        "handle": "harvardfilm"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-central-improv-workshop",
+      "title": "Improv Workshop",
+      "description": "A beginner improv workshop. $10 to join.",
+      "startsInMinutes": 510,
+      "durationMinutes": 90,
+      "place": {
+        "name": "Central Square Theater, 450 Massachusetts Ave",
+        "lat": 42.3646,
+        "lng": -71.1033
+      },
+      "free": false,
+      "food": false,
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "Central Square Theater",
+        "handle": "cstheater"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    },
+    {
+      "id": "evt-test-demo-w20-dumplings",
+      "title": "Dumpling Night in the Student Center",
+      "description": "Free dumplings from the Chinese Students Club.",
+      "startsInMinutes": 600,
+      "durationMinutes": 120,
+      "place": {
+        "name": "Stratton Student Center, W20",
+        "lat": 42.3591,
+        "lng": -71.0949
+      },
+      "free": true,
+      "food": true,
+      "foodNote": "Dumplings",
+      "access": {
+        "kind": "open"
+      },
+      "organizer": {
+        "name": "MIT Chinese Students Club",
+        "handle": "mit_csc"
+      },
+      "source": {
+        "kind": "manual"
+      }
+    }
+  ]
+}
