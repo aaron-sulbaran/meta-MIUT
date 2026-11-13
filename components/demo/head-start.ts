@@ -11,7 +11,7 @@ import { flyerUrl, storyCaption } from "@/lib/demo/staged";
 // - the organizer's act starts: Muse reads the story flyer (shown at O3)
 // - her post is live (O5): Muse plans the walk home (shown at U1b)
 // - Lisa's act is under way: Muse picks Trish's first events (shown at U3b)
-// - Trish's first Events opens: Muse finds who she could go with (the ending, U3d)
+// - Trish is on her Reels, after Lisa handed over: Muse finds who she could go with (the ending, U3d)
 // Fire and forget: a head start that fails changes nothing, the screen asks as before.
 
 type Job = "flyer" | "walk-home" | "curate" | "going";
@@ -22,8 +22,9 @@ const AFTER_POST_MS = 1500;
 function jobFor(beat: Beat): Job | null {
   if (beat.act === "organizer" && (beat.id === "O1" || beat.id === "O2")) return "flyer";
   if (beat.id === "O5" || beat.id === "U1a") return "walk-home";
-  if (beat.act === "lisa" || beat.id === "U3a1" || beat.id === "U3a2") return "curate";
-  if (beat.id === "U3b") return "going";
+  if (beat.act === "lisa" || beat.id === "U3a1") return "curate";
+  // From Trish's second reel: Lisa has handed over (Open to company is on), so who is going is settled.
+  if (beat.id === "U3a2" || beat.id === "U3a3" || beat.id === "U3a4" || beat.id === "U3b") return "going";
   return null;
 }
 
