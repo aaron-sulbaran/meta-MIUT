@@ -6,7 +6,9 @@ import type { Alert } from "@/lib/alerts/schema";
 import type { CampusEvent } from "@/lib/events/schema";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
 import { getEventStore, type EventStore, type StoreResult } from "@/lib/events/store";
-import { getInterestMemory } from "@/lib/muse/memory";
+import { z } from "zod";
+import { loadInterestMemory } from "@/lib/muse/memory";
+import { loadState, saveState } from "@/lib/store/state";
 import type { StudentContext } from "@/lib/muse/profile";
 
 // Nearby alerts: the student's device reports where they are, and every event
@@ -41,10 +43,12 @@ export async function checkNearby(
 ): Promise<StoreResult<{ alerts: Alert[] }>> {
   const now = check.now ?? new Date();
   const profile = check.profile ?? loadDemoStudent();
-  const memory = getInterestMemory(check.userId, now);
+  const memory = await loadInterestMemory(check.userId, now);
   const events = await (options.store ?? getEventStore()).listEvents();
   const feed = options.feed ?? getAlertFeed();
   const sent = sentFor(check.userId);
+  const sentName = `muse-nearby-sent:${check.userId}`;
+  for (const key of (await loadState(sentName, z.array(z.string()))) ?? []) sent.add(key);
 
   const matches = events
     .filter((event) => !sent.has(sentKey(event)))
@@ -66,6 +70,7 @@ export async function checkNearby(
     sent.add(sentKey(event));
     alerts.push(published.data);
   }
+  if (alerts.length > 0) await saveState(sentName, [...sent]);
   return { data: { alerts }, error: null };
 }
 

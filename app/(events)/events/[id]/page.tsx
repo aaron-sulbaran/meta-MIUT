@@ -9,7 +9,7 @@ import { ClockIcon, FoodIcon, InstagramPostIcon, MapPinIcon, PeopleIcon, TicketI
 import { Poster } from "@/components/ui/poster";
 import { getEventStore } from "@/lib/events/store";
 import { formatDateLine, formatEventTime } from "@/lib/events/time";
-import { whoIsGoing } from "@/lib/social/going";
+import { loadSocial, whoIsGoing } from "@/lib/social/going";
 import { demoViewer } from "@/lib/social/viewer";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,6 +19,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!event) notFound();
   const now = new Date();
   const viewer = demoViewer();
+  await loadSocial([event.id]);
 
   return (
     <>

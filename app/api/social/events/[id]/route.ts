@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getEventStore } from "@/lib/events/store";
 import { readJsonBody } from "@/lib/http";
-import { setGoing, whoIsGoing } from "@/lib/social/going";
+import { loadSocial, saveSocial, setGoing, whoIsGoing } from "@/lib/social/going";
 import { demoViewer } from "@/lib/social/viewer";
 
 // GET: who is going (friends, students open to company, others count).
@@ -19,6 +19,7 @@ export async function GET(_request: NextRequest, context: RouteContext<"/api/soc
   const event = await getEventStore().getEvent(id);
   if (!event) return Response.json({ data: null, error: "Event not found" }, { status: 404 });
   const viewer = demoViewer();
+  await loadSocial([event.id]);
   return Response.json({ data: whoIsGoing(event, viewer.id, viewer.interests), error: null });
 }
 
@@ -29,6 +30,8 @@ export async function POST(request: NextRequest, context: RouteContext<"/api/soc
   const event = await getEventStore().getEvent(id);
   if (!event) return Response.json({ data: null, error: "Event not found" }, { status: 404 });
   const viewer = demoViewer();
+  await loadSocial([event.id]);
   setGoing(event, viewer.id, body.data);
+  await saveSocial(event);
   return Response.json({ data: whoIsGoing(event, viewer.id, viewer.interests), error: null });
 }

@@ -51,8 +51,10 @@ export function EventFeed({
         ))}
       </ChipRow>
 
-      {chip === "forYou" && topPicks}
-
+      {/* For you is only Muse's picks; the unfiltered list is under the other chips. */}
+      {chip === "forYou" ? (
+        topPicks
+      ) : (
       <section aria-labelledby="event-list-heading" className="pt-[21px]">
         <SectionHeading id="event-list-heading" title={EVENT_CHIP_HEADINGS[chip]} />
         <div className="mt-[7px] flex flex-col gap-[7.6px] px-3">
@@ -65,6 +67,7 @@ export function EventFeed({
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }

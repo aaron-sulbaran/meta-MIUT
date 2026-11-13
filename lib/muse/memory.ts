@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { seedSignals } from "@/lib/muse/fixtures/signals";
+import { loadState, saveState } from "@/lib/store/state";
 
 // Interest memory: what a student's Instagram activity and the events they act
 // on say they care about. Signals are raw interactions (how long they watched,
@@ -42,6 +43,8 @@ export type InterestMemory = {
   signalCount: number;
   topics: TopicInterest[];
   creators: CreatorAffinity[];
+  // Topics the student keeps skipping; a followed club alone can't put them back.
+  avoided?: string[];
 };
 
 export const DEMO_USER_ID = "sample-student";
@@ -183,6 +186,10 @@ export function buildInterestMemory(userId: string, signals: InstagramSignal[], 
       .filter(([, raw]) => raw > 0)
       .map(([handle, raw]) => ({ handle, score: round2(raw / topCreator) }))
       .sort((a, b) => b.score - a.score || a.handle.localeCompare(b.handle)),
+    avoided: [...topics.entries()]
+      .filter(([, tally]) => tally.raw < 0)
+      .map(([topic]) => topic)
+      .sort(),
   };
 }
 
@@ -210,6 +217,23 @@ export function recordSignals(userId: string, signals: InstagramSignal[], now = 
 
 export function getInterestMemory(userId = DEMO_USER_ID, now = new Date()): InterestMemory {
   return buildInterestMemory(userId, signalsFor(userId, now), now);
+}
+
+const signalsKey = (userId: string) => `muse-signals:${userId}`;
+
+/** The memory as last saved in the shared store (Redis), else as held in this process. */
+export async function loadInterestMemory(userId = DEMO_USER_ID, now = new Date()): Promise<InterestMemory> {
+  const stored = await loadState(signalsKey(userId), z.array(InstagramSignalSchema));
+  if (stored) signalLog(now).set(userId, stored);
+  return getInterestMemory(userId, now);
+}
+
+/** recordSignals on top of the latest saved memory, then saved back to the shared store. */
+export async function saveSignals(userId: string, signals: InstagramSignal[], now = new Date()): Promise<InterestMemory> {
+  await loadInterestMemory(userId, now);
+  const memory = recordSignals(userId, signals, now);
+  await saveState(signalsKey(userId), signalsFor(userId, now));
+  return memory;
 }
 
 export function resetInterestMemory(): void {

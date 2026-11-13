@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getEventStore } from "@/lib/events/store";
 import { readJsonBody } from "@/lib/http";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
-import { DEMO_USER_ID, getInterestMemory } from "@/lib/muse/memory";
+import { DEMO_USER_ID, loadInterestMemory } from "@/lib/muse/memory";
 import { StudentContextSchema } from "@/lib/muse/profile";
 import { personalizeEvents } from "@/lib/muse/rank";
 
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   if (body.error !== null) return Response.json({ data: null, error: body.error }, { status: 400 });
   const now = new Date();
   const events = await getEventStore().listEvents();
-  const memory = getInterestMemory(body.data.userId ?? DEMO_USER_ID, now);
+  const memory = await loadInterestMemory(body.data.userId ?? DEMO_USER_ID, now);
   const base = body.data.profile ?? loadDemoStudent();
   const profile = body.data.location ? { ...base, location: body.data.location } : base;
   const result = await personalizeEvents(profile, events, now, memory);
