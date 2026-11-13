@@ -158,9 +158,12 @@ export function withStoryCompany<Pick extends CompanyPick>(pick: Pick, event: Ca
   if (sameIds && strangers.length === 0 && everyoneNamed) return pick;
   const why = new Map(pick.people.map((person) => [person.id, person.why]));
   const people = company.map((person) => ({ id: person.id, why: why.get(person.id) ?? sharedLine(person.shared) }));
+  // Muse's own words stay when they already name just these people.
+  if (strangers.length === 0 && everyoneNamed) return { ...pick, people };
   const list = company.map((person) => person.name);
   const joined = list.length <= 1 ? (list[0] ?? "") : `${list.slice(0, -1).join(", ")} and ${list.at(-1)}`;
   const line = `${joined} ${company.length > 1 ? "are" : "is"} going and looking for company. Say hi!`;
+  console.info(`[story company] Muse named ${JSON.stringify(pick.people.map((person) => person.id))} in "${pick.line}"; showing ${joined}`);
   return { ...pick, line, people };
 }
 
