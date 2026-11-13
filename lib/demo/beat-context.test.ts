@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canJoinAt, castFromSlug, decidePhoneMove, nextActStart, inFrameMessage, nextCast, phoneView } from "@/lib/demo/beat-context";
+import { canJoinAt, castFromSlug, decidePhoneMove, helloPollMs, HELLO_FAST_POLL_MS, HELLO_SLOW_POLL_MS, moveAlreadyMade, nextActStart, inFrameMessage, nextCast, phoneView } from "@/lib/demo/beat-context";
 import { BEATS, type CastId } from "@/lib/demo/beats";
 
 const at = (id: string) => BEATS.findIndex((beat) => beat.id === id);
@@ -107,5 +107,37 @@ describe("Lisa's invite steps", () => {
       expect(inFrameMessage(beat, before.path!(context), context)).toEqual({ type: "demo-step", step });
       expect(inFrameMessage(beat, "/demo/instagram/dm", context)).toBeNull();
     }
+  });
+});
+
+describe("a refused phone move that the show already made", () => {
+  const at = BEATS.findIndex((beat) => beat.id === "U3b3");
+  it("stays quiet when the stage is already on the beat the phone asked for, or past it", () => {
+    expect(moveAlreadyMade("next", at, at + 1)).toBe(true);
+    expect(moveAlreadyMade("next", at, at + 2)).toBe(true);
+    expect(moveAlreadyMade("back", at, at - 1)).toBe(true);
+  });
+  it("still speaks up when the stage is behind where the phone asked", () => {
+    expect(moveAlreadyMade("next", at, at)).toBe(false);
+    expect(moveAlreadyMade("next", at, at - 3)).toBe(false);
+    expect(moveAlreadyMade("back", at, at)).toBe(false);
+  });
+  it("counts a pass as made once the next person's act has started", () => {
+    const at = BEATS.findIndex((beat) => beat.id === "U2c");
+    const start = nextActStart(at)!;
+    expect(moveAlreadyMade("pass", at, start)).toBe(true);
+    expect(moveAlreadyMade("pass", at, start - 1)).toBe(false);
+  });
+});
+
+describe("how often a waiting phone checks for Trish's hi", () => {
+  const index = (id: string) => BEATS.findIndex((beat) => beat.id === id);
+  it("checks fast on Trish's last beats, where the hi arrives", () => {
+    for (const id of ["U3d", "U3e", "U3f"]) expect(helloPollMs(index(id))).toBe(HELLO_FAST_POLL_MS);
+    expect(HELLO_FAST_POLL_MS).toBeLessThanOrEqual(500);
+  });
+  it("checks slowly everywhere else", () => {
+    for (const id of ["U3a1", "U3c"]) expect(helloPollMs(index(id))).toBe(HELLO_SLOW_POLL_MS);
+    expect(helloPollMs(null)).toBe(HELLO_SLOW_POLL_MS);
   });
 });

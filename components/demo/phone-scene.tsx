@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/demo/brand-mark";
 import { CastAvatar } from "@/components/demo/cast-avatar";
 import { HelloArrival } from "@/components/demo/hello-arrival";
-import { PHONE_SLUG, beatScreen, inFrameMessage, nextActStart, phoneView, storyDue, type PhoneView } from "@/lib/demo/beat-context";
+import { PHONE_SLUG, beatScreen, helloPollMs, inFrameMessage, moveAlreadyMade, nextActStart, phoneView, storyDue, type PhoneView } from "@/lib/demo/beat-context";
 import { CAST, type CastId } from "@/lib/demo/beats";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { demoClock } from "@/lib/demo/clock";
@@ -139,7 +139,9 @@ export function PhoneScene({ cast }: { cast: CastId }) {
         });
         const body = (await response.json()) as { data: Position | null; error: string | null };
         pendingRef.current = false;
-        if (!response.ok && body.error) setNotice(body.error);
+        // A 409 because the show is already where this tap asked, or past it, is no error: stay quiet.
+        const alreadyMade = response.status === 409 && body.data !== null && moveAlreadyMade(action, at, body.data.index);
+        if (!response.ok && body.error && !alreadyMade) setNotice(body.error);
         adopt(body.data);
       } catch {
         pendingRef.current = false;
@@ -302,7 +304,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
           </nav>
         </>
       ) : (
-        <Waiting cast={cast} view={view} online={online} now={now} onJoin={() => void move("join")} />
+        <Waiting cast={cast} view={view} online={online} now={now} helloPoll={helloPollMs(index)} onJoin={() => void move("join")} />
       )}
       {notice && (
         <p role="status" className="absolute top-[max(12px,env(safe-area-inset-top))] left-1/2 z-10 w-max max-w-[90vw] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-body text-card">
@@ -313,7 +315,7 @@ export function PhoneScene({ cast }: { cast: CastId }) {
   );
 }
 
-function Waiting({ cast, view, online, now, onJoin }: { cast: CastId; view: PhoneView | null; online: boolean; now: Date; onJoin: () => void }) {
+function Waiting({ cast, view, online, now, helloPoll, onJoin }: { cast: CastId; view: PhoneView | null; online: boolean; now: Date; helloPoll: number; onJoin: () => void }) {
   const waiting = view?.kind === "waiting" ? view : null;
   const arrived = useArrival(cast, waiting?.canJoin === true);
   return (
@@ -329,7 +331,7 @@ function Waiting({ cast, view, online, now, onJoin }: { cast: CastId; view: Phon
       <section className="mt-[32px] flex flex-col gap-[12px]">
         {arrived && <JoinMoment cast={cast} now={now} onJoin={onJoin} />}
         {/* Trish's act ends with her hi reaching Jolyn and Lisa here. */}
-        <HelloArrival cast={cast} watching={waiting?.onNow === "user3" || waiting?.phase === "after"} />
+        <HelloArrival cast={cast} watching={waiting?.onNow === "user3" || waiting?.phase === "after"} pollMs={helloPoll} />
         {waiting?.upNext && !arrived && (
           <p role="status" className="rounded-card bg-primary-soft px-[16px] py-[14px] text-center font-display text-title font-bold text-link">
             You&apos;re up next

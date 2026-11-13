@@ -134,3 +134,26 @@ export function decidePhoneMove(current: number, move: PhoneMove, beats: Beat[] 
 export function stageOnLoad(stored: { index: number } | null): { kind: "join"; index: number } | { kind: "claim" } {
   return stored === null ? { kind: "claim" } : { kind: "join", index: stored.index };
 }
+
+/**
+ * True when a phone's refused move asked for something the show already did: the
+ * stage is where the phone asked to go, or past it (the laptop or the screen moved
+ * first). The phone stays quiet then; any other refusal is shown.
+ */
+export function moveAlreadyMade(action: PhoneMove["action"], at: number, stageIndex: number, beats: Beat[] = BEATS): boolean {
+  if (action === "back") return stageIndex <= at - 1;
+  const target = action === "pass" ? (nextActStart(at, beats) ?? at + 1) : at + 1;
+  return stageIndex >= target;
+}
+
+// Jolyn's and Lisa's waiting phones check for Trish's hi (components/demo/hello-arrival.tsx):
+// often on the beats where it can arrive, so Say hi back shows within half a second of
+// the hi being sent, and rarely the rest of the time.
+export const HELLO_FAST_POLL_MS = 400;
+export const HELLO_SLOW_POLL_MS = 2_000;
+const HELLO_BEATS = new Set(["U3d", "U3e", "U3f"]);
+
+export function helloPollMs(index: number | null, beats: Beat[] = BEATS): number {
+  const beat = index === null ? undefined : beats[index];
+  return beat && HELLO_BEATS.has(beat.id) ? HELLO_FAST_POLL_MS : HELLO_SLOW_POLL_MS;
+}
