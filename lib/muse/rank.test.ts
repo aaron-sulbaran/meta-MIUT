@@ -3,7 +3,7 @@ import type { StudentProfile } from "@/lib/events/schema";
 import { loadSeedEvents, loadSeedStudent } from "@/lib/events/seed";
 import { compileCandidates, scheduleClash } from "@/lib/muse/candidates";
 import { buildInterestMemory, getInterestMemory, resetInterestMemory } from "@/lib/muse/memory";
-import { forYouFeed, forYouOrder, personalizeEvents, soonestFirst } from "@/lib/muse/rank";
+import { RANK_BUDGET_MS, forYouFeed, forYouOrder, personalizeEvents, soonestFirst } from "@/lib/muse/rank";
 import { isInWindow } from "@/lib/events/time";
 
 // Thursday 10:00 in Austin.
@@ -137,6 +137,19 @@ describe("forYouFeed, the order the list and the map share", () => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     resetInterestMemory();
+  });
+
+  it("renders the recorded Top 3 when Muse is slower than the budget, never waiting on it", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("MUSE_API_KEY", "test-key-not-real");
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+    const pending = forYouFeed(student, events, now, getInterestMemory("demo", now));
+    await vi.advanceTimersByTimeAsync(RANK_BUDGET_MS + 10);
+    const feed = await pending;
+    vi.useRealTimers();
+    expect(feed.ranking.source).toBe("fixture");
+    expect(feed.ranking.fallbackReason).toContain("did not answer");
+    expect(feed.tiles).toHaveLength(3);
   });
 
   it("gives three Top 3 tiles, then every other upcoming event once", async () => {

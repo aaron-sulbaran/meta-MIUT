@@ -7,6 +7,7 @@ import { isInWindow } from "@/lib/events/time";
 import { walkMinutes } from "@/lib/geo";
 import { compileCandidates, eventText, eventTopics, scheduleClash } from "@/lib/muse/candidates";
 import { rankFixture } from "@/lib/muse/fixtures/rank";
+import { museSwitchedOff, withoutMuse } from "@/lib/muse/client";
 import { museStructuredOutput, runMuseJob, type MuseJobResult } from "@/lib/muse/job";
 import { DEMO_USER_ID, getInterestMemory, type InterestMemory } from "@/lib/muse/memory";
 import { minimumAge, origin, type StudentContext } from "@/lib/muse/profile";
@@ -179,7 +180,7 @@ export async function personalizeEvents(
     picksCache().set(cacheKey, stored);
     return stored;
   }
-  const running = picksRunning().get(cacheKey);
+  const running = museSwitchedOff() ? undefined : picksRunning().get(cacheKey);
   if (running) return running;
   const call = askForPicks();
   picksRunning().set(cacheKey, call);
@@ -243,6 +244,24 @@ function picksCache(): Map<string, CachedPicks> {
   return scope.__musePicks;
 }
 
+// The map and list render only after the Top 3: the demo's walk home and Trish's first Events
+// cannot wait on a slow Muse. Past this the page renders the recorded Top 3 (the code-scored
+// pool, labeled as before); the live call keeps running and fills the cache for the next render.
+export const RANK_BUDGET_MS = 4_000;
+
+async function withinRankBudget(ask: () => Promise<CachedPicks>): Promise<CachedPicks> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const live = ask();
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), RANK_BUDGET_MS);
+  });
+  const first = await Promise.race([live, late]);
+  clearTimeout(timer);
+  if (first) return first;
+  live.catch(() => null);
+  return withoutMuse(`Muse did not answer within ${RANK_BUDGET_MS / 1000} s`, ask);
+}
+
 export type ForYouTile = { eventId: string; walkMinutes: number; reason: string | null };
 export type ForYouFeed = { ranking: MuseJobResult<PersonalizedEvents>; tiles: ForYouTile[]; rest: CampusEvent[] };
 
@@ -257,7 +276,7 @@ export async function forYouFeed(
   now: Date,
   memory: InterestMemory,
 ): Promise<ForYouFeed> {
-  const ranking = await personalizeEvents(profile, events, now, memory);
+  const ranking = await withinRankBudget(() => personalizeEvents(profile, events, now, memory));
   const picks = ranking.data?.picks ?? [];
   const pickedIds = new Set(picks.map((pick) => pick.eventId));
   const ordered = forYouOrder(compileCandidates(profile, memory, events, now, "upcoming"), events, now, pickedIds, ranking.data?.ratings);
