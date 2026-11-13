@@ -25,6 +25,14 @@ export function personaFromCookieString(cookies: string): PersonaId | null {
   return null;
 }
 
+// The profile initial each phone shows in the tab bar: Jolyn (the sample student), Lisa, Trish, Jing.
+const PERSONA_INITIALS: Record<PersonaId | "default", string> = { default: "J", lisa: "L", user3: "T", organizer: "J" };
+
+/** The tab bar's profile initial for a persona (null is the sample student, Jolyn). */
+export function personaInitial(persona: PersonaId | null): string {
+  return PERSONA_INITIALS[persona ?? "default"];
+}
+
 /** The viewer id the social layer and targeted alerts use for a persona. */
 export function viewerIdFor(persona: PersonaId | null): string {
   return persona ?? DEFAULT_VIEWER_ID;
