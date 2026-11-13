@@ -96,3 +96,16 @@ describe("what a presenter phone shows", () => {
     expect(castFromSlug("nobody")).toBeNull();
   });
 });
+
+describe("Lisa's invite steps", () => {
+  it("continue in place from the step before, and load the page any other way in", () => {
+    const context = { storyEventId: "e1", now: new Date("2026-11-13T20:05:00Z") };
+    const pairs: [string, string, string][] = [["U2b", "U2c", "account"], ["U2c", "U2d", "ready"], ["U2d", "U2e", "event"], ["U2e", "U2f", "joined"]];
+    for (const [from, to, step] of pairs) {
+      const before = BEATS[at(from)]!;
+      const beat = BEATS[at(to)]!;
+      expect(inFrameMessage(beat, before.path!(context), context)).toEqual({ type: "demo-step", step });
+      expect(inFrameMessage(beat, "/demo/instagram/dm", context)).toBeNull();
+    }
+  });
+});

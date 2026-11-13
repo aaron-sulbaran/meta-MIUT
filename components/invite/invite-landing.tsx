@@ -148,21 +148,45 @@ export function InviteLanding({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
   }, []);
 
-  /** Her tap: tell the stage where she is now (it is the next beat's path, so the phone stays), then show it. */
-  function advance(next: Exclude<InviteStep, "locked" | "joined">) {
+  /**
+   * Her tap: tell the stage where she is now (it is the next beat's path, so the phone stays), then show it.
+   * `tell` is false when the stage itself moved on and asked for the step ({type: "demo-step"}).
+   */
+  function advance(next: Exclude<InviteStep, "locked" | "joined">, tell = true) {
     setError(null);
-    if (inviterId) handOff(HANDOFF.lisaStep(eventId, inviterId, next), () => {});
+    if (tell && inviterId) handOff(HANDOFF.lisaStep(eventId, inviterId, next), () => {});
     setStep(next);
   }
 
-  async function seeEvent() {
+  async function seeEvent(tell = true) {
     setSheetLeaving(true);
     await wait(SHEET_EXIT_MS);
     setSheetLeaving(false);
-    advance("event");
+    advance("event", tell);
   }
 
-  async function join() {
+  // The stage (or her phone's wrapper) moved to the next beat with a key or Next:
+  // it asks for the step in place instead of loading the page again.
+  const moveRef = useRef<(step: InviteStep) => void>(() => {});
+  useEffect(() => {
+    moveRef.current = (next: InviteStep) => {
+      if (next === step) return;
+      if (next === "joined") void join(false);
+      else if (next === "event") void seeEvent(false);
+      else if (next !== "locked") advance(next, false);
+    };
+  });
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      const data = event.data as { type?: unknown; step?: unknown } | null;
+      if (data?.type === "demo-step" && typeof data.step === "string") moveRef.current(data.step as InviteStep);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  async function join(tell = true) {
     setBusy(true);
     setError(null);
     const ok = await accept();
@@ -171,7 +195,7 @@ export function InviteLanding({
       setError(SAVE_FAILED);
       return;
     }
-    if (inviterId) handOff(HANDOFF.lisaJoined(eventId, inviterId), () => {});
+    if (tell && inviterId) handOff(HANDOFF.lisaJoined(eventId, inviterId), () => {});
     setStep("joined");
   }
 
@@ -291,7 +315,7 @@ export function InviteLanding({
         <section className="px-[14px] pt-[18px] pb-[24px]">
           <button
             type="button"
-            onClick={join}
+            onClick={() => void join()}
             disabled={busy}
             className="flex h-[44px] w-full items-center justify-center gap-[8px] rounded-[8px] bg-primary font-display text-label font-bold text-on-primary active:scale-[0.99] disabled:opacity-70"
           >
@@ -425,7 +449,7 @@ export function InviteLanding({
                 </div>
                 <button
                   type="button"
-                  onClick={seeEvent}
+                  onClick={() => void seeEvent()}
                   disabled={sheetLeaving}
                   className="mt-[22px] h-[46px] w-full rounded-full bg-[#2a61d9] text-[17px] font-medium text-white active:scale-[0.99]"
                 >

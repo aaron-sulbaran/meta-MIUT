@@ -382,6 +382,34 @@ export function Stage() {
     }
   }, [beat, beatSrc, storyEventId, runStartedAt, frameLoaded, loadedAhead]);
 
+  // Show a new screen as soon as its page is parsed and painted, not when every image and
+  // map tile has arrived (the iframe's load event): the old screen stays up until then, so
+  // a slow load reads as Next doing nothing. A held screen still waits for load, so its
+  // "reveal" reaches a page that is listening.
+  const pendingTop = topFrame(frames);
+  const pendingKey = pendingTop && !pendingTop.loaded ? pendingTop.key : null;
+  useEffect(() => {
+    if (!pendingKey || pendingKey === revealKeyRef.current) return;
+    let shown = false;
+    const timer = window.setInterval(() => {
+      const frame = lastFrameRef.current;
+      try {
+        const doc = frame?.contentDocument;
+        const href = frame?.contentWindow?.location.href;
+        if (!doc || !href || href === "about:blank" || doc.readyState === "loading" || !doc.body?.childElementCount) return;
+      } catch {
+        return;
+      }
+      window.clearInterval(timer);
+      shown = true;
+      // Two frames for the first paint after parsing.
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => frameLoaded(pendingKey)));
+    }, 40);
+    return () => {
+      if (!shown) window.clearInterval(timer);
+    };
+  }, [pendingKey, frameLoaded]);
+
   // A held screen taken over from loading ahead: tell it to show its work once it is on top and loaded.
   const topForReveal = topFrame(frames);
   useEffect(() => {
