@@ -78,3 +78,37 @@ describe("the demo's head start", () => {
     expect(walkHomeKey({ ...walk, at: "2026-11-13T20:06:00.000Z" })).not.toBe(walkHomeKey(walk));
   });
 });
+
+describe("a head start whose call failed", () => {
+  beforeEach(() => {
+    resetHeadStart();
+    resetClaims();
+  });
+
+  it("lets the screen ask again at once, inside the budget, instead of waiting on the failed claim", async () => {
+    let calls = 0;
+    const run = vi.fn(async () => {
+      calls += 1;
+      return calls === 1 ? { data: { picks: "fixture" }, error: null, source: "fixture" } : live("second");
+    });
+    const recorded = vi.fn(async () => recordedBody);
+    await shareAnswer({ key: "x", request: ask(true), run, recorded });
+    const started = Date.now();
+    const screen = await shareAnswer({ key: "x", request: ask(), run, recorded, budgetMs: 2000 });
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(screen.body.source).toBe("muse");
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the budget while it waits on someone else's call", async () => {
+    const never = vi.fn(() => new Promise<{ source: string; data: unknown }>(() => {}));
+    const recorded = vi.fn(async () => recordedBody);
+    void shareAnswer({ key: "y", request: ask(true), run: never, recorded });
+    await sleep(5);
+    resetHeadStart();
+    const started = Date.now();
+    const screen = await shareAnswer({ key: "y", request: ask(), run: never, recorded, budgetMs: 60 });
+    expect(Date.now() - started).toBeLessThan(500);
+    expect(screen.how).toBe("recorded-budget");
+  });
+});

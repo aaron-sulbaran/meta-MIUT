@@ -49,8 +49,11 @@ type Held = { at: number; answer: Promise<Answer<SharedBody>> };
 const memory = globalThis as typeof globalThis & {
   __headStart?: Map<string, Held>;
   __headStartRecorded?: Map<string, { at: number; body: SharedBody }>;
+  __headStartFailed?: Map<string, number>;
 };
 const running = () => (memory.__headStart ??= new Map());
+// Calls that ended without a live answer in this process, so a waiting screen asks again at once.
+const failedHere = () => (memory.__headStartFailed ??= new Map<string, number>());
 const recordedKept = () => (memory.__headStartRecorded ??= new Map());
 
 const digest = (key: string) => createHash("sha1").update(key).digest("hex").slice(0, 20);
@@ -68,6 +71,7 @@ export function isLiveAnswer(body: SharedBody | null | undefined): boolean {
 export function resetHeadStart(): void {
   memory.__headStart?.clear();
   memory.__headStartRecorded?.clear();
+  memory.__headStartFailed?.clear();
 }
 
 async function storedAnswer(key: string, now: number): Promise<z.infer<typeof Stored> | null> {
@@ -87,33 +91,44 @@ async function sharedCall<Body extends SharedBody>(
   const stored = await storedAnswer(key, now);
   if (stored?.live) return { answer: Promise.resolve({ body: stored.body as Body, museMs: stored.museMs }), how: "stored" };
 
-  // Another server instance is already asking: wait for its answer instead of asking twice.
-  if (!(await claimOnce(answerName(key), Math.ceil(WAIT_FOR_FIRST_MS / 1000), now))) {
+  const start = (): Promise<Answer<Body>> => {
+    const startedAt = performance.now();
+    const answer = run().then(async (body): Promise<Answer<Body>> => {
+      const live = isLiveAnswer(body);
+      // A time the answer already carries (lib/store/shared-answer.ts measured its own call) wins.
+      const own = (body as { museMs?: unknown }).museMs;
+      const museMs = !live ? null : typeof own === "number" ? own : Math.round(performance.now() - startedAt);
+      if (!live) {
+        running().delete(key);
+        failedHere().set(key, Date.now());
+      }
+      await saveState(answerName(key), { at: now, body, museMs, live });
+      return { body, museMs };
+    });
+    running().set(key, { at: now, answer });
+    answer.catch(() => running().delete(key));
+    return answer;
+  };
+
+  if (await claimOnce(answerName(key), Math.ceil(WAIT_FOR_FIRST_MS / 1000), now)) return { answer: start(), how: "started" };
+
+  // Someone else is already asking (another server instance, or a call here that failed):
+  // wait for that answer instead of asking twice, inside the answer, so the budget still runs.
+  const waited = (async (): Promise<Answer<Body>> => {
     const until = Date.now() + WAIT_FOR_FIRST_MS;
     while (Date.now() < until) {
       const inProcess = running().get(key);
-      if (inProcess && fresh(inProcess.at, now)) return { answer: inProcess.answer as Promise<Answer<Body>>, how: "joined" };
+      if (inProcess && fresh(inProcess.at, now)) return inProcess.answer as Promise<Answer<Body>>;
       const first = await storedAnswer(key, now);
-      if (first?.live) return { answer: Promise.resolve({ body: first.body as Body, museMs: first.museMs }), how: "stored" };
-      // Its call failed: ask Muse here instead.
-      if (first && !first.live) break;
+      if (first?.live) return { body: first.body as Body, museMs: first.museMs };
+      // Its call failed (seen here or in the store): ask Muse here instead.
+      if ((first && !first.live) || failedHere().has(key)) break;
       await sleep(POLL_MS * 2);
     }
-  }
-
-  const startedAt = performance.now();
-  const answer = run().then(async (body): Promise<Answer<Body>> => {
-    const live = isLiveAnswer(body);
-    // A time the answer already carries (lib/store/shared-answer.ts measured its own call) wins.
-    const own = (body as { museMs?: unknown }).museMs;
-    const museMs = !live ? null : typeof own === "number" ? own : Math.round(performance.now() - startedAt);
-    if (!live) running().delete(key);
-    await saveState(answerName(key), { at: now, body, museMs, live });
-    return { body, museMs };
-  });
-  running().set(key, { at: now, answer });
-  answer.catch(() => running().delete(key));
-  return { answer, how: "started" };
+    failedHere().delete(key);
+    return start();
+  })();
+  return { answer: waited, how: "joined" };
 }
 
 /**
