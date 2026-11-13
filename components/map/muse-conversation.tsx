@@ -8,12 +8,16 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useVoiceRecorder } from "@/components/ask/use-voice-recorder";
 import type { CrawlEvent } from "@/components/map/crawl-planner";
 import { MuseFace } from "@/components/map/muse-menu";
 import { speakAsMuse, stopSpeaking } from "@/components/map/muse-voice";
 import { Avatar } from "@/components/social/whos-going";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
+import { USER3_CONNECTORS } from "@/lib/curate/connectors";
+import { HANDOFF, handOff } from "@/lib/demo/staged";
 import { walkMinutes } from "@/lib/geo";
 import {
   arrivesTooLate,
@@ -37,7 +41,8 @@ import type { AskReply, MuseRouteResponse } from "@/lib/muse/types";
 // from the real call's source and time.
 //
 // Stage contract (only when framed by the /demo stage or a phone wrapper):
-//   screen to parent: {source: "demo-screen", type: "listening", on} and {source: "demo-screen", type: "said", text}
+//   screen to parent: {source: "demo-screen", type: "listening", on}, {source: "demo-screen", type: "said", text},
+//                     and {source: "demo-screen", type: "pass"} (the Sent chip passes the show to the friend)
 //   parent to screen: {source: "demo-stage", type: "heard", text}, {type: "listening", on}, {type: "reveal"},
 //                     and the older {type: "demo-ask", line} (typed).
 
@@ -60,7 +65,18 @@ type Legs = {
   askMs?: number;
   planMs: number;
   museSuggested?: string;
+  /** The first-visit curate call (opening "curate"). */
+  curateMs?: number;
 };
+
+// The first-visit opening (opening "curate"): Muse's top events from what she already follows.
+type Pick = { eventId: string; title: string; placeName: string; reason: string };
+type CurateApi = {
+  data: { summary: string; picks: { event: { id: string; title: string; place: { name: string } }; reason: string }[] } | null;
+  source?: Source;
+};
+// How long each source line shows while the curate call runs, so people can read it.
+const SOURCE_STEP_MS = 820;
 
 type Phase =
   | { kind: "working"; line: string; startedAt: number }
@@ -89,6 +105,11 @@ function postToParent(message: Record<string, unknown>) {
       { source: "demo-screen", ...message },
       window.location.origin,
     );
+}
+
+/** In a demo frame, the "Sent to" chip passes the show to the next person's act. */
+function handOverToFriend() {
+  postToParent({ type: "pass" });
 }
 
 function clock(iso: string): string {
@@ -398,6 +419,8 @@ export function MuseConversation({
   storyEventId,
   onRoute,
   onPreviewSpot,
+  opening = "home",
+  onPicks,
 }: {
   studentSpot: Point;
   events: CrawlEvent[];
@@ -416,7 +439,16 @@ export function MuseConversation({
   onRoute: (route: Route | null) => void;
   /** A friend's spot to show on the map while Muse plans toward them. */
   onPreviewSpot: (spot: FriendSpot | null) => void;
+  /**
+   * What Muse does as the card opens: "home" plans the walk home (the alert path);
+   * "curate" is a first visit to Events (?first=1): Muse reads what she already
+   * follows (/api/curate, seeded sources) and lists her top events on the map.
+   */
+  opening?: "home" | "curate";
+  /** The curate opening's picks, best first, for the map to number. */
+  onPicks?: (eventIds: string[]) => void;
 }) {
+  const router = useRouter();
   const eventsById = useMemo(
     () => new Map(events.map((event) => [event.eventId, event])),
     [events],
@@ -424,9 +456,13 @@ export function MuseConversation({
   const [open, setOpen] = useState(true);
   const [phase, setPhase] = useState<Phase>({
     kind: "working",
-    line: "Finding free food on your way home",
+    line:
+      opening === "curate"
+        ? USER3_CONNECTORS[0]!.reading
+        : "Finding free food on your way home",
     startedAt: 0,
   });
+  const [picks, setPicks] = useState<Pick[] | null>(null);
   const [line, setLine] = useState<string | null>(null);
   const [legs, setLegs] = useState<Legs | null>(null);
   const [route, setRoute] = useState<Route | null>(null);
@@ -540,13 +576,59 @@ export function MuseConversation({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A first visit: Muse reads each source on screen while the real curate call runs,
+  // then lists her top events (the demo's story event first) and says one line.
+  const curate = useCallback(async () => {
+    const call = timed<CurateApi>(() =>
+      fetch("/api/curate", { method: "POST" }),
+    );
+    const started = Date.now();
+    for (const source of USER3_CONNECTORS) {
+      setPhase({ kind: "working", line: source.reading, startedAt: started });
+      await wait(SOURCE_STEP_MS);
+    }
+    setPhase({
+      kind: "working",
+      line: "Picking your top events",
+      startedAt: started,
+    });
+    const result = await call;
+    const found = (result.body?.data?.picks ?? []).map((pick) => ({
+      eventId: pick.event.id,
+      title: pick.event.title,
+      placeName: pick.event.place.name,
+      reason: pick.reason,
+    }));
+    if (found.length === 0) {
+      setPhase({
+        kind: "failed",
+        line: "I couldn't read your feed. Try again?",
+        retry: () => void planHomeRef.current(),
+      });
+      return;
+    }
+    setPicks(found);
+    onPicks?.(found.map((pick) => pick.eventId));
+    setLegs({
+      source: result.body?.source ?? "muse",
+      planMs: 0,
+      curateMs: result.ms,
+    });
+    setPhase({ kind: "ready" });
+    // Muse's own line about her, from the real answer; her picks are the rows below.
+    const summary = result.body?.data?.summary?.trim();
+    say(summary ? brief(summary) : `${found[0]!.title} is your top pick.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const planned = useRef(false);
   useEffect(() => {
-    planHomeRef.current = planHome;
+    const first = opening === "curate" ? curate : planHome;
+    planHomeRef.current = first;
     if (planned.current) return;
     planned.current = true;
-    void planHome();
-  }, [planHome]);
+    void first();
+  }, [planHome, curate, opening]);
 
   // A request, spoken or typed: Muse ask, then the re-plan toward a friend, then the invite.
   const ask = useCallback(
@@ -895,6 +977,7 @@ export function MuseConversation({
             legs.transcribeMs ? `heard ${seconds(legs.transcribeMs)}` : null,
             legs.askMs ? `asked ${seconds(legs.askMs)}` : null,
             legs.planMs ? `planned ${seconds(legs.planMs)}` : null,
+            legs.curateMs ? `picked ${seconds(legs.curateMs)}` : null,
           ]
             .filter(Boolean)
             .join(" · ")
@@ -983,10 +1066,15 @@ export function MuseConversation({
         </div>
         {/* Status chips, only when true. */}
         {phase.kind === "ready" &&
-          (invite || legs?.source === "fixture" || legs?.museSuggested) && (
+          (invite || legs?.source === "fixture" || legs?.museSuggested || picks) && (
             <div className="mt-[6px] flex flex-wrap gap-[6px] pl-[42px]">
               {invite && (
-                <span className="mc-rise flex items-center gap-[6px] rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-meta font-bold text-link">
+                // On the demo stage, tapping "Sent to Lisa" passes the show to her act (the stage and the presenter phone both listen).
+                <span
+                  role={invite.state === "sent" && isFramed() ? "button" : undefined}
+                  tabIndex={invite.state === "sent" && isFramed() ? 0 : undefined}
+                  onClick={invite.state === "sent" ? handOverToFriend : undefined}
+                  className="mc-rise flex items-center gap-[6px] rounded-full bg-primary-soft py-[3px] pr-[10px] pl-[3px] font-display text-meta font-bold text-link">
                   <Avatar
                     person={{ id: invite.friend.id, name: invite.friend.name }}
                     size={20}
@@ -1001,6 +1089,11 @@ export function MuseConversation({
               {legs?.museSuggested && (
                 <span className="rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
                   Set for the demo · Muse suggested {legs.museSuggested}
+                </span>
+              )}
+              {picks && !said && (
+                <span className="rounded-full bg-button px-[10px] py-[3px] font-display text-meta font-bold text-muted">
+                  Sample email, calendar, Instagram and Reels
                 </span>
               )}
               {legs?.source === "fixture" && (
@@ -1028,6 +1121,40 @@ export function MuseConversation({
             {[0, 1, 2].map((index) => (
               <Placeholder key={index} index={index} />
             ))}
+          </ol>
+        ) : picks && !route ? (
+          <ol className="mt-[4px]">
+            {picks.map((pick, index) => {
+              const path = HANDOFF.whosGoing(pick.eventId);
+              return (
+                <li
+                  key={pick.eventId}
+                  className="mc-rise"
+                  style={{ animationDelay: `${(index + 1) * STOP_STAGGER_MS}ms` }}
+                >
+                  <Link
+                    href={path}
+                    onClick={(click) => {
+                      click.preventDefault();
+                      handOff(path, router.push);
+                    }}
+                    className="flex min-h-[52px] items-center gap-[10px] py-[4px]"
+                  >
+                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary font-display text-[12px] font-bold text-on-primary">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-display text-label font-bold">
+                        {pick.title}
+                      </span>
+                      <span className="block truncate text-meta text-muted">
+                        {pick.reason}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ol>
         ) : route && route.stops.length > 0 ? (
           <ol key={routeKey} className="mt-[4px]">

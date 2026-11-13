@@ -7,7 +7,7 @@ export const STORY_ORGANIZER = { name: "MIT Board Game Club", handle: "mit_board
 export const STORY_FALLBACK_ID = "evt-demo-story";
 
 export const STORY = {
-  title: "Board Game Night",
+  title: "Board Game Night + Free Dumplings",
   description: "Drop in after class: free dumplings while they last, 40 board games, no experience needed. Open to everyone.",
   placeName: "MIT Museum, 314 Main St",
   startsInMinutes: 25,

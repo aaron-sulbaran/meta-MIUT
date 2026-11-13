@@ -30,6 +30,8 @@ export async function MapHome({
   askPlan = null,
   autoAsk = null,
   holdReveal = false,
+  openAsk = false,
+  firstVisit = false,
 }: {
   events: CampusEvent[];
   now: Date;
@@ -43,6 +45,10 @@ export async function MapHome({
   autoAsk?: string | null;
   /** Loaded ahead by the /demo stage (?reveal=wait): Muse's plan waits for the stage's reveal message. */
   holdReveal?: boolean;
+  /** Open with the Ask Muse popup up (?muse=ask, from Sprout's menu on the List). */
+  openAsk?: boolean;
+  /** A first visit to Events (?first=1): Muse curates her top events over the map. */
+  firstVisit?: boolean;
 }) {
   const student = loadDemoStudent();
   const { ranking, tiles, rest } = await forYouFeed(student, events, now, await loadInterestMemory(DEMO_USER_ID, now));
@@ -95,10 +101,12 @@ export async function MapHome({
       schedule={student.schedule}
       autoAsk={autoAsk}
       holdReveal={holdReveal}
+      openAsk={openAsk}
       // The alert path: the stop the class-ended alert promised leads the walk, and a friend
       // re-plan lands on the event the demo follows when there is one (lib/demo/story.ts).
       promisedStopId={autoPlan === "home" ? (nearestFreeBite(events, student.home, planAt ? new Date(planAt) : now)?.eventId ?? null) : null}
-      storyEventId={autoPlan === "home" ? (pickStoryEvent(events)?.id ?? null) : null}
+      storyEventId={autoPlan === "home" || firstVisit ? (pickStoryEvent(events)?.id ?? null) : null}
+      firstVisit={firstVisit && autoPlan === null && askPlan === null}
     />
   );
 }

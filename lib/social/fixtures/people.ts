@@ -55,7 +55,8 @@ export const EVERYONE: Person[] = [...PEOPLE, ...PERSONAS];
 export const FRIENDS: Record<string, string[]> = {
   "sample-student": ["maya", "leo", "priya", "sam", "lisa", "mina", "jonah", "iris", "diego", "hana", "ravi"],
   lisa: ["sample-student", "leo", "jade"],
-  user3: ["sample-student", "lisa", "ava"],
+  // Trish knows nobody in the demo: on the story event, Jolyn and Lisa are strangers open to company.
+  user3: ["ava"],
 };
 
 /** The first of these people named in what a student said or typed, whole words only, or null. The one person lookup. */

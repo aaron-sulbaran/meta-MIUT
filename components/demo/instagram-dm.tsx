@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DrawnAvatar, IG, IgIcons, StagedScreen } from "@/components/demo/instagram";
-import { MuseMark } from "@/components/ui/icons";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 import { Poster } from "@/components/ui/poster";
 import { CAMPUS_TIME_ZONE } from "@/lib/brand";
 import { CAST } from "@/lib/demo/beats";
@@ -135,7 +135,7 @@ export function InstagramDm({ to }: { to: string }) {
         {invite && (
           <div className="flex flex-col gap-[6px] motion-safe:animate-[staged-pop_260ms_ease-out]">
             <p className="ml-[34px] flex items-center gap-1 text-[11px]" style={{ color: IG.muted }}>
-              <MuseMark className="h-[12px] w-[12px] text-[#0866ff]" />
+              <MetaAiMark size={16} arrive />
               {/* No clock time: the invite is stamped in real time, the show runs on the demo's afternoon. */}
               Sent by {invite.from}&apos;s Muse
             </p>

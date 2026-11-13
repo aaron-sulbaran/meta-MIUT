@@ -16,7 +16,12 @@ export type StagedScreen =
   | "instagram-crosspost-prompt"
   | "live-activity"
   | "invite-message"
-  | "instagram-feed-prompt";
+  | "instagram-feed-prompt"
+  | "instagram-reels";
+
+// A message the stage posts into a phone still on the screen a beat continues from:
+// U1c asks Muse over the walk home; Trish's Reels beats move to the next reel or open the sheet.
+export type InFrameMessage = { type: "demo-ask"; line: string } | { type: "demo-reel"; reel: number; sheet?: boolean };
 
 // now is the run's clock: stamped when the first live beat opens, so every
 // screen (the flyer, the organizer's draft, the walk home) shows the same
@@ -53,7 +58,7 @@ export type Beat = {
   note?: string;
   // Continues inside the phone of beat `from` (when it is still on screen) by posting
   // `message` to it, instead of loading this beat's path. Any other way in loads the path.
-  inFrame?: { from: string; message: { type: "demo-ask"; line: string } };
+  inFrame?: { from: string; message: InFrameMessage };
   // Load this beat's screen hidden while the beat before it is on (same person),
   // so it is already at rest when the presenter moves on.
   prefetch?: boolean;
@@ -133,6 +138,10 @@ export const ACT_LABELS: Record<BeatAct, string> = {
 const whosGoingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.whosGoing(storyEventId) : null);
 const lisaJoinedPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaJoined(storyEventId, "sample-student") : null);
 const lisaLandingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaLanding(storyEventId, "sample-student") : null);
+const lisaStepPath =
+  (step: "account" | "ready" | "event") =>
+  ({ storyEventId }: BeatContext) =>
+    storyEventId ? HANDOFF.lisaStep(storyEventId, "sample-student", step) : null;
 
 export const BEATS: Beat[] = [
   // The opening follows Jolyn's script (hub sources/2026-11-13-jolyn-opening-pitch-script.md).
@@ -292,8 +301,8 @@ export const BEATS: Beat[] = [
     persona: "lisa",
     kind: "app",
     title: `${CAST.user2.name} isn't on Facebook`,
-    caption: "She has Instagram, so she already has a Meta account.",
-    note: "Lisa: no Facebook account. Tap Continue: her Instagram account is enough.",
+    caption: `Facebook opens on ${CAST.user1.name}'s invite. The title shows; the rest needs an account.`,
+    note: "Lisa: watch Facebook open. Read the title out loud: board game night, and free dumplings. But I'm not on Facebook. Tap Create Facebook account.",
     path: lisaLandingPath,
   },
   {
@@ -301,22 +310,90 @@ export const BEATS: Beat[] = [
     act: "lisa",
     persona: "lisa",
     kind: "app",
-    title: "She's in",
-    caption: `No form, no password. And ${CAST.user1.name} knows she's coming.`,
-    note: "Lisa: she is in and going, and Jolyn has been told.",
-    // Her landing already joined, so the beat rests on the event even if U2b was not tapped.
-    path: lisaJoinedPath,
+    title: "Her Meta account is already here",
+    caption: "She has Instagram, so she already has a Meta account.",
+    note: "Lisa: Meta already knows me from Instagram. Tap Continue.",
+    path: lisaStepPath("account"),
   },
   {
-    id: "U3a",
+    id: "U2d",
+    act: "lisa",
+    persona: "lisa",
+    kind: "app",
+    title: "Facebook account ready",
+    caption: "Her name and photo came over from Instagram. No form, no password.",
+    note: "Lisa: that's it, I have a Facebook account. Tap See the event.",
+    path: lisaStepPath("ready"),
+  },
+  {
+    id: "U2e",
+    act: "lisa",
+    persona: "lisa",
+    kind: "app",
+    title: "Now she sees it all",
+    caption: "The time, the place, who's going. She decides.",
+    note: "Lisa: now I can see when and where. Tap Join.",
+    path: lisaStepPath("event"),
+  },
+  {
+    id: "U2f",
+    act: "lisa",
+    persona: "lisa",
+    kind: "app",
+    title: "She's going",
+    caption: `${CAST.user1.name} knows she's coming. And she's open to meeting people.`,
+    note: "Lisa: I'm going, and Jolyn knows. Turn on Open to company: that hands over to Trish.",
+    // Her landing already joined, so the beat rests on the event even if the steps before were skipped.
+    path: lisaJoinedPath,
+  },
+  // Trish scrolls Reels on her own phone: each swipe is a beat, so the stage follows her
+  // reel by reel without reloading (inFrame). The prompt comes only on the third reel.
+  {
+    id: "U3a1",
     act: "user3",
     persona: "user3",
     kind: "staged",
-    staged: "instagram-feed-prompt",
-    title: "Scrolling Instagram",
-    caption: "A club she follows posted the same event.",
-    note: "Trish: scrolling Instagram, the same event shows up. Tap Open Facebook Events.",
-    path: () => "/demo/instagram/feed",
+    staged: "instagram-reels",
+    title: "Scrolling Reels",
+    caption: "Trish has a Facebook account. She just never opens it.",
+    note: "Trish: you're on Reels, like any night. Swipe up to the next one.",
+    path: () => HANDOFF.reels(1),
+  },
+  {
+    id: "U3a2",
+    act: "user3",
+    persona: "user3",
+    kind: "staged",
+    staged: "instagram-reels",
+    title: "Still scrolling",
+    caption: "Her friends' world lives here, not on Facebook.",
+    note: "Trish: keep it moving. Swipe up again.",
+    path: () => HANDOFF.reels(2),
+    inFrame: { from: "U3a1", message: { type: "demo-reel", reel: 2 } },
+  },
+  {
+    id: "U3a3",
+    act: "user3",
+    persona: "user3",
+    kind: "staged",
+    staged: "instagram-reels",
+    title: "A club she follows",
+    caption: "The reel keeps playing. A small prompt slides in.",
+    note: "Trish: the Board Game Club's reel. Wait for the pill above the audio line, then tap it.",
+    path: () => HANDOFF.reels(3),
+    inFrame: { from: "U3a2", message: { type: "demo-reel", reel: 3 } },
+  },
+  {
+    id: "U3a4",
+    act: "user3",
+    persona: "user3",
+    kind: "staged",
+    staged: "instagram-reels",
+    title: "Check this out on Facebook Events?",
+    caption: "One tap from a reel to the event, no new account.",
+    note: "Trish: read the sheet, then tap Open Facebook Events.",
+    path: () => HANDOFF.reels(3, true),
+    inFrame: { from: "U3a3", message: { type: "demo-reel", reel: 3, sheet: true } },
   },
   {
     id: "U3b",
@@ -324,9 +401,9 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "First time in Events",
-    caption: "Muse builds the feed from what she already follows.",
-    note: "Trish: first time in Events. Muse reads what she follows and builds her feed. Board Game Night is first.",
-    path: () => HANDOFF.curateAuto,
+    caption: "Facebook opens on the map of everything on campus. Muse picks hers from what she already follows.",
+    note: "Trish: Facebook opens on the Events map. Muse reads what she follows, live, and puts her top picks on the map. Tap Board Game Night + Free Dumplings.",
+    path: () => HANDOFF.firstEvents,
   },
   {
     id: "U3d",
@@ -334,8 +411,8 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "Who's going?",
-    caption: `${CAST.user1.name} and ${CAST.user2.name}. So she goes too.`,
-    note: "Trish: Jolyn and Lisa are going, and Muse suggests who to say hi to. She taps I'm going.",
+    caption: "She knows nobody going. Muse finds two people open to company and says hi for her.",
+    note: "Trish: none of her friends are going. Muse suggests Jolyn and Lisa from what they share. Tap Say hi to Jolyn and Lisa: Muse writes the hi, sends it, and they say yes.",
     path: whosGoingPath,
   },
   {

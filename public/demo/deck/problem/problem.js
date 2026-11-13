@@ -650,7 +650,7 @@
       meta: "2 PM · Stata Center lobby",
       tag: "Free food",
       /* The map's walk home: Muse's first stop. */
-      to: [1150, 682],
+      to: [1150, 652],
     },
   ];
   const ROW = { size: 380, top: 200 };

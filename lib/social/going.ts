@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import type { CampusEvent } from "@/lib/events/schema";
+import { STORY_ORGANIZER } from "@/lib/demo/story-data";
 import { eventTopics } from "@/lib/muse/candidates";
 import { EVERYONE, FRIENDS, OPEN_NOTES, PEOPLE, mutualFriends } from "@/lib/social/fixtures/people";
 import type { GoingPerson, WhoIsGoing } from "@/lib/social/types";
@@ -22,14 +23,23 @@ export type GoingEntry = { open: boolean; note?: string };
 /** How long a fixture student takes to accept a hi, so the demo shows it pending first. */
 export const ACCEPT_AFTER_MS = 4000;
 
-/** Hellos by key, with when they were sent. */
-type SocialState = { going: Map<string, Map<string, GoingEntry>>; hellos: Map<string, number> };
+/** Hellos by key, with when they were sent, and the line Muse wrote for each. */
+type SocialState = { going: Map<string, Map<string, GoingEntry>>; hellos: Map<string, number>; notes: Map<string, string> };
 
 const globalForSocial = globalThis as unknown as { __socialState?: SocialState };
 function state(): SocialState {
-  globalForSocial.__socialState ??= { going: new Map(), hellos: new Map() };
+  globalForSocial.__socialState ??= { going: new Map(), hellos: new Map(), notes: new Map() };
   return globalForSocial.__socialState;
 }
+
+/** The event the demo follows (lib/demo/story-data.ts): its going list is set for the ending. */
+function isStoryEvent(event: CampusEvent): boolean {
+  return event.organizer.handle.toLowerCase() === STORY_ORGANIZER.handle;
+}
+
+// The story's ending: Trish knows nobody going, and the people open to company are
+// Lisa (she turns it on in her act) and Jolyn, seeded here as going and open.
+const STORY_COMPANY: [string, GoingEntry][] = [["sample-student", { open: true, note: "Going after class, happy to share a table" }]];
 
 /** FNV-1a with a final mix, so similar ids (evt-test-a, evt-test-b) still roll differently. */
 function hash(text: string): number {
@@ -53,12 +63,15 @@ export function crowdAt(eventId: string): number {
  */
 function seedGoing(event: CampusEvent): Map<string, GoingEntry> {
   const topics = new Set(eventTopics(event));
-  const going = new Map<string, GoingEntry>();
+  const story = isStoryEvent(event);
+  const going = new Map<string, GoingEntry>(story ? STORY_COMPANY : []);
   for (const person of PEOPLE) {
     if (!person.interests.some((interest) => topics.has(interest))) continue;
+    // On the story event none of Trish's friends go, and the crowd is not looking for company.
+    if (story && FRIENDS.user3?.includes(person.id)) continue;
     const roll = hash(`${person.id}@${event.id}`);
     if (DEMO_FRIENDS.has(person.id) ? roll % 3 !== 0 : roll % 4 === 0) continue;
-    const open = roll % 3 !== 0;
+    const open = !story && roll % 3 !== 0;
     going.set(person.id, open ? { open, note: OPEN_NOTES[roll % OPEN_NOTES.length] } : { open });
   }
   return going;
@@ -129,34 +142,57 @@ export function whoIsGoing(event: CampusEvent, viewerId: string, viewerInterests
 
 export function setGoing(event: CampusEvent, viewerId: string, update: { going: boolean; open?: boolean; note?: string }) {
   const going = goingAt(event);
-  if (!update.going) going.delete(viewerId);
-  else going.set(viewerId, { open: update.open ?? false, ...(update.open && update.note ? { note: update.note } : {}) });
+  if (!update.going) {
+    going.delete(viewerId);
+    return;
+  }
+  // Marked going without a word on company (an accepted invite) keeps what they had chosen.
+  const before = going.get(viewerId);
+  const open = update.open ?? before?.open ?? false;
+  const note = update.note ?? (update.open === undefined ? before?.note : undefined);
+  going.set(viewerId, { open, ...(open && note ? { note } : {}) });
 }
 
 /**
  * The viewer says hi to a student who is open to company. Fixture students
  * opted in, so they say yes ACCEPT_AFTER_MS later and handles are swapped.
  */
-export function sayHello(event: CampusEvent, viewerId: string, toId: string, now = Date.now()): { error: string | null } {
+export function sayHello(event: CampusEvent, viewerId: string, toId: string, now = Date.now(), message?: string): { error: string | null } {
   const entry = goingAt(event).get(toId);
   if (!entry?.open) return { error: "They are not looking for company at this event" };
   const key = helloKey(event.id, viewerId, toId);
   if (!state().hellos.has(key)) state().hellos.set(key, now);
+  if (message) state().notes.set(key, message);
   return { error: null };
+}
+
+export type HelloReceived = { eventId: string; from: string; message: string | null; at: number };
+
+/** The hellos someone has been sent, newest first (their phone shows "Trish said hi"). */
+export function hellosTo(personId: string): HelloReceived[] {
+  return [...state().hellos.entries()]
+    .map(([key, at]) => ({ key, at, parts: key.split("|") }))
+    .filter(({ parts }) => parts[2] === personId)
+    .map(({ key, at, parts }) => ({ eventId: parts[0]!, from: parts[1]!, message: state().notes.get(key) ?? null, at }))
+    .sort((first, second) => second.at - first.at);
 }
 
 const EntriesSchema = z.array(z.tuple([z.string(), z.object({ open: z.boolean(), note: z.string().optional() })]));
 const goingName = (eventId: string) => `social-going:${eventId}`;
 const HELLOS = "social-hellos";
+// Starts with "social-hellos", so the demo reset clears it with the hellos.
+const HELLO_NOTES = "social-hellos-notes";
 
 /** Going lists for these events and accepted hellos, as last saved in the shared store (Redis). */
 export async function loadSocial(eventIds: string[]): Promise<void> {
-  const [hellos, ...lists] = await Promise.all([
+  const [notes, hellos, ...lists] = await Promise.all([
+    loadState(HELLO_NOTES, z.array(z.tuple([z.string(), z.string()]))),
     // Hellos saved before the pending step were plain keys, already accepted.
     loadState(HELLOS, z.array(z.union([z.string(), z.tuple([z.string(), z.number()])]))),
     ...eventIds.map((id) => loadState(goingName(id), EntriesSchema)),
   ]);
   if (hellos) state().hellos = new Map(hellos.map((hello) => (typeof hello === "string" ? [hello, 0] : hello)));
+  if (notes) state().notes = new Map(notes);
   eventIds.forEach((id, index) => {
     const entries = lists[index];
     if (entries) state().going.set(id, new Map(entries));
@@ -167,6 +203,7 @@ export async function saveSocial(event: CampusEvent): Promise<void> {
   await Promise.all([
     saveState(goingName(event.id), [...goingAt(event).entries()]),
     saveState(HELLOS, [...state().hellos.entries()]),
+    saveState(HELLO_NOTES, [...state().notes.entries()]),
   ]);
 }
 

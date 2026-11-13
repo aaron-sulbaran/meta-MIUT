@@ -48,7 +48,7 @@ const LABEL_ZOOM = 16.2;
 // The card strip's size. Everything that floats just above the strip (recenter,
 // the Undo toast, the map credit) is placed from these, so a taller card moves
 // them up with it instead of overlapping.
-const CARD_HEIGHT = 144;
+const CARD_HEIGHT = 126;
 const STRIP_BOTTOM = 10;
 function aboveStrip(gap: number): string {
   return `calc(var(--tabbar-height) + var(--tabbar-gap) + ${STRIP_BOTTOM + CARD_HEIGHT + gap}px)`;
@@ -491,7 +491,7 @@ function LogoTile({ card }: { card: MapCard }) {
   const tint = CATEGORY_TINTS[card.category];
   const showLogo = card.logoUrl !== null && !failed;
   return (
-    <div className="relative h-[72px] w-[72px] shrink-0" aria-hidden>
+    <div className="relative h-[60px] w-[60px] shrink-0" aria-hidden>
       {showLogo ? (
         // Logos arrive as remote links or small stored images, so a plain img
         // (not next/image) keeps both working without config.
@@ -501,11 +501,17 @@ function LogoTile({ card }: { card: MapCard }) {
           alt=""
           referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
-          className="h-full w-full rounded-[16px] border border-hairline bg-white object-contain p-[6px]"
+          // A generated logo (data URL) is its own colored circle, so it fills the
+          // tile; a real logo sits on white with a hairline edge (Lisa: less border).
+          className={
+            card.logoUrl?.startsWith("data:")
+              ? "h-full w-full rounded-full object-cover"
+              : "h-full w-full rounded-[14px] border border-hairline bg-white object-contain p-[3px]"
+          }
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-[16px] text-[19px] font-semibold tracking-[0.02em]"
+          className="flex h-full w-full items-center justify-center rounded-[14px] text-[17px] font-semibold tracking-[0.02em]"
           style={{ backgroundColor: tint.fill, color: tint.ink }}
         >
           {monogram(card.organizerName)}
@@ -559,6 +565,8 @@ export function EventsMap({
   holdReveal = false,
   promisedStopId = null,
   storyEventId = null,
+  openAsk = false,
+  firstVisit = false,
 }: {
   cards: MapCard[];
   studentSpot: Point;
@@ -582,6 +590,10 @@ export function EventsMap({
   promisedStopId?: string | null;
   /** The event the demo follows; a friend re-plan lands on it (flagged when Muse picked another). */
   storyEventId?: string | null;
+  /** Open with the Ask Muse popup up (?muse=ask, from Sprout's menu on the List). */
+  openAsk?: boolean;
+  /** A first visit to Events (?first=1): the Muse card opens over the map and curates her top events. */
+  firstVisit?: boolean;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -605,12 +617,14 @@ export function EventsMap({
   const [crawlStart, setCrawlStart] = useState<{ key: number; start: CrawlStart } | null>(() =>
     askPlan ? { key: 0, start: startFromAsk(askPlan, askEvents) } : autoPlan === "home" ? { key: 0, start: { kind: "home" } } : null,
   );
-  const [askOpen, setAskOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(openAsk);
   const [route, setRoute] = useState<Route | null>(null);
   // The "free bite" alert path (/?plan=home) is a conversation with Muse (muse-conversation.tsx),
   // not the Food Crawl sheet: Muse plans where you can see it, speaks, and the mic re-plans.
   const [conversation] = useState(autoPlan === "home");
   const [previewSpot, setPreviewSpot] = useState<FriendSpot | null>(null);
+  // The first-visit curate: Muse's picks, numbered on the map over every other event.
+  const [musePicks, setMusePicks] = useState<string[]>([]);
   // Open once, a beat after the first walk is drawn, so the room sees the plan change.
   const autoAskOpened = useRef(false);
   const hasRoute = route !== null;
@@ -833,6 +847,29 @@ export function EventsMap({
     );
   }, [mapReady, route]);
 
+  // Muse's first-visit picks: numbered pins on their events, every other event still on the
+  // map, framed with the student above the Muse card. Tapping one opens it.
+  useEffect(() => {
+    const map = mapRef.current;
+    const MarkerClass = markerClassRef.current;
+    if (!mapReady || !map || !MarkerClass || musePicks.length === 0 || route) return;
+    const placed = musePicks.flatMap((eventId, index) => {
+      const card = cards.find((item) => item.eventId === eventId);
+      if (!card) return [];
+      const element = routeMarkerElement(String(index + 1), false, "home", () => router.push(`/events/${encodeURIComponent(eventId)}`), card.title);
+      return [{ card, marker: new MarkerClass({ element, anchor: "bottom", offset: [0, -44] }).setLngLat([card.place.lng, card.place.lat]).addTo(map) }];
+    });
+    const points = [studentSpot, ...placed.map(({ card }) => card.place)];
+    map.fitBounds(
+      [
+        [Math.min(...points.map((point) => point.lng)), Math.min(...points.map((point) => point.lat))],
+        [Math.max(...points.map((point) => point.lng)), Math.max(...points.map((point) => point.lat))],
+      ],
+      { padding: { top: 150, bottom: 440, left: 50, right: 50 }, maxZoom: 16, duration: 700 },
+    );
+    return () => placed.forEach(({ marker }) => marker.remove());
+  }, [mapReady, musePicks, route, cards, studentSpot, router]);
+
   // A friend's spot while Muse plans toward them ("find something between you and Lisa").
   useEffect(() => {
     const map = mapRef.current;
@@ -1028,7 +1065,7 @@ export function EventsMap({
       </div>
 
 
-      {!crawlOpen && !askOpen && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
+      {!crawlOpen && !askOpen && !firstVisit && <MuseMenu onAsk={() => setAskOpen(true)} onCrawl={() => openCrawl(null)} />}
 
       {askOpen && <MapAsk events={askEvents} nowIso={nowIso} onPlan={planFromAsk} onClose={() => setAskOpen(false)} autoAsk={askLine?.line} />}
 
@@ -1061,6 +1098,22 @@ export function EventsMap({
           storyEventId={storyEventId}
           onRoute={setRoute}
           onPreviewSpot={setPreviewSpot}
+        />
+      )}
+
+      {firstVisit && !crawlOpen && (
+        <MuseConversation
+          studentSpot={studentSpot}
+          events={crawlEvents}
+          at={planAt}
+          holdReveal={holdReveal}
+          autoAsk={null}
+          promisedStopId={null}
+          storyEventId={storyEventId}
+          onRoute={setRoute}
+          onPreviewSpot={setPreviewSpot}
+          opening="curate"
+          onPicks={setMusePicks}
         />
       )}
 
@@ -1149,7 +1202,7 @@ export function EventsMap({
         {visibleCards.map((card) => (
           <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
             <article
-              className="relative flex items-center gap-[12px] rounded-[18px] bg-card p-[12px] pr-[30px] shadow-md"
+              className="relative flex items-center gap-[10px] rounded-[16px] bg-card px-[10px] py-[8px] pr-[28px] shadow-md"
               style={{ height: CARD_HEIGHT }}
             >
               <LogoTile card={card} />

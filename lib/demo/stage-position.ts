@@ -172,11 +172,12 @@ export async function moveStage(move: StageMove, now = new Date()): Promise<Stag
 }
 
 // A presenter's own phone (/demo/phone/<slug>): it moves the stage only on its
-// own beats (lib/demo/beat-context.ts decidePhoneMove), and says which beat it
+// own beats ("pass" from any of them skips to the next person's first beat), or "join" to start their own act once the act before theirs rests on
+// its last beat (lib/demo/beat-context.ts decidePhoneMove), and says which beat it
 // saw, so a repeated tap never moves the stage twice. The laptop and the remote
 // use moveStage, which always wins.
 export const PhoneMoveSchema = z.object({
-  action: z.enum(["next", "back"]),
+  action: z.enum(["next", "back", "join", "pass"]),
   from: z.enum(PHONE_CAST as [CastId, ...CastId[]]),
   at: z.number().int().min(0),
 });

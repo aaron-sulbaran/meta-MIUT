@@ -7,10 +7,10 @@ import {
   CalendarIcon,
   CloseIcon,
   MenuIcon,
-  MuseMark,
   PlusSquareIcon,
 } from "@/components/ui/icons";
 import { getFacebookHref } from "@/components/ui/header";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 import { ProfileAvatar } from "@/components/ui/tab-bar";
 
 type Item = {
@@ -19,6 +19,11 @@ type Item = {
   href: string;
   Icon: ComponentType<{ className?: string }>;
 };
+
+/** Meta AI's real mark, the AI indicator, sized so its petals read. */
+function MetaAiIcon({ className }: { className?: string }) {
+  return <MetaAiMark size={24} className={className} />;
+}
 
 const ITEMS: Item[] = [
   {
@@ -31,7 +36,7 @@ const ITEMS: Item[] = [
     label: "Ask Muse",
     detail: "Find free food and events",
     href: "/ask",
-    Icon: MuseMark,
+    Icon: MetaAiIcon,
   },
   {
     label: "Create an event",

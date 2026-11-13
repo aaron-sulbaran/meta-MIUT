@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { EventCard } from "@/components/events/event-card";
 import { useVoiceRecorder } from "@/components/ask/use-voice-recorder";
-import { CloseIcon, MuseMark } from "@/components/ui/icons";
+import { CloseIcon } from "@/components/ui/icons";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 import { updateAttendance } from "@/lib/attendance/client";
 import { EVENT_FULL_ERROR } from "@/lib/attendance/schema";
 import { getViewerId } from "@/lib/attendance/viewer";
@@ -424,7 +425,7 @@ export function AskBar({
 
   const formEl = (
       <form onSubmit={submit} className="flex items-center gap-2 rounded-full bg-wash py-[6px] pl-3 pr-[6px]">
-      <MuseMark className="h-5 w-5 shrink-0 text-primary" />
+      <MetaAiMark size={22} working={phase === "asking"} />
       <label htmlFor="ask-muse-bar" className="sr-only">
         Ask Muse about events
       </label>

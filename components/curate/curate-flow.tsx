@@ -5,7 +5,7 @@ import { handOff } from "@/lib/demo/staged";
 import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/demo/moments/brand-mark";
 import { SourceBadge } from "@/components/ui/card";
-import { MuseMark } from "@/components/ui/icons";
+import { MetaAiMark } from "@/components/ui/meta-ai-mark";
 import { Poster } from "@/components/ui/poster";
 import { USER3_CONNECTORS, type ConnectorSource } from "@/lib/curate/connectors";
 import type { CampusEvent } from "@/lib/events/schema";
@@ -100,8 +100,8 @@ export function CurateFlow({ auto = false }: { auto?: boolean }) {
     <div className="flex flex-col gap-[14px] px-[12px] pt-[12px] pb-[20px]">
       <style>{CURATE_CSS}</style>
       <section className="flex items-start gap-[10px]">
-        <span className={`flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary ${phase.kind === "reading" ? "curate-breathe" : ""}`}>
-          <MuseMark className="h-[22px] w-[22px]" />
+        <span className={`flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-primary-soft`}>
+          <MetaAiMark size={26} working={phase.kind === "reading"} />
         </span>
         <div className="min-w-0">
           <h1 className="font-display text-[22px] leading-[26px] font-bold">{done ? "Your event feed" : "Curate your event feed"}</h1>
@@ -214,7 +214,7 @@ export function CurateFlow({ auto = false }: { auto?: boolean }) {
                     <p className="mt-[2px] font-display text-title font-bold">{event.title}</p>
                     <p className="text-venue text-muted">{event.place.name}</p>
                     <p className="mt-[6px] flex items-start gap-[6px] text-venue text-link">
-                      <MuseMark className="mt-[1px] h-[14px] w-[14px] shrink-0" />
+                      <MetaAiMark size={16} className="mt-[1px]" />
                       <span>{reason}</span>
                     </p>
                   </div>
