@@ -5,28 +5,27 @@ import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine } from "@/lib/events/time";
 import { MoreForYou } from "@/components/events/more-for-you";
 import { loadDemoStudent } from "@/lib/muse/fixtures/student-context";
-import { personalizeEvents, soonestFirst } from "@/lib/muse/rank";
+import { compileCandidates } from "@/lib/muse/candidates";
+import { forYouOrder, personalizeEvents } from "@/lib/muse/rank";
 import { DEMO_USER_ID, loadInterestMemory } from "@/lib/muse/memory";
 import { friendsGoingLine, loadSocial, whoIsGoing } from "@/lib/social/going";
 import { demoViewer } from "@/lib/social/viewer";
 
 // Muse's top 3 for today (today's events only), as a sideways row of compact cards. Why each event
 // was picked stays inside the agent and is not shown. Who picked them
-// (Muse or the local fallback) is not shown either. Under it, every other event the
-// student is likely to care about.
+// (Muse or the local fallback) is not shown either. Under it, every other upcoming event,
+// the ones the student is likely to care about first.
 
 export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Date }) {
-  const ranking = await personalizeEvents(loadDemoStudent(), events, now, await loadInterestMemory(DEMO_USER_ID, now));
+  const student = loadDemoStudent();
+  const memory = await loadInterestMemory(DEMO_USER_ID, now);
+  const ranking = await personalizeEvents(student, events, now, memory);
   await loadSocial(ranking.data?.picks.map((pick) => pick.eventId) ?? []);
   const eventsById = new Map(events.map((event) => [event.id, event]));
   const viewer = demoViewer();
 
   const pickedIds = new Set(ranking.data?.picks.map((pick) => pick.eventId));
-  const more = soonestFirst(
-    ranking.data?.likely.filter((candidate) => !pickedIds.has(candidate.eventId)) ?? [],
-    events,
-    now,
-  );
+  const more = forYouOrder(compileCandidates(student, memory, events, now, "upcoming"), events, now, pickedIds);
 
   return (
     <>
@@ -62,7 +61,7 @@ export async function TopPicks({ events, now }: { events: CampusEvent[]; now: Da
           </ol>
         )}
       </section>
-      <MoreForYou likely={more} events={events} now={now} />
+      <MoreForYou events={more} nowIso={now.toISOString()} />
     </>
   );
 }

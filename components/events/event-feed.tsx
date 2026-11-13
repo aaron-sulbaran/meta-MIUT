@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ChipRow, FilterChip, LocationChip } from "@/components/ui/chips";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { EventCard } from "@/components/events/event-card";
+import { DismissButton, useDismissed } from "@/components/events/dismissed";
 import {
   EVENT_CHIPS,
   EVENT_CHIP_HEADINGS,
@@ -31,7 +32,9 @@ export function EventFeed({
 }) {
   const now = new Date(nowIso);
   const [chip, setChip] = useState<EventChip>("forYou");
-  const visible = eventsForChip(events, chip, now);
+  const { dismissed, dismiss } = useDismissed();
+  // Free has the X (Not for me), like For you; the time chips list everything.
+  const visible = eventsForChip(events, chip, now).filter((event) => chip !== "free" || !dismissed.has(event.id));
 
   // Ask Muse can switch the list ("show me what's free").
   useEffect(() => {
@@ -63,7 +66,16 @@ export function EventFeed({
               Nothing here yet. Try This week.
             </p>
           ) : (
-            visible.map((event) => <EventCard key={event.id} event={event} now={now} />)
+            visible.map((event) =>
+              chip === "free" ? (
+                <div key={event.id} className="relative">
+                  <EventCard event={event} now={now} />
+                  <DismissButton title={event.title} onDismiss={() => dismiss(event.id)} />
+                </div>
+              ) : (
+                <EventCard key={event.id} event={event} now={now} />
+              ),
+            )
           )}
         </div>
       </section>
