@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isStagedScreen } from "@/lib/demo/staged";
-import type { ComponentType } from "react";
+import { Fragment, type ComponentType } from "react";
 import {
   BellIcon,
   CalendarFilledIcon,
@@ -36,7 +36,7 @@ const EVENTS_PATHS = ["/events", "/map", "/ask"];
 const tab = (active: boolean) =>
   `flex h-[38.6px] items-center justify-center rounded-full ${active ? "bg-primary-soft text-primary" : "text-ink"}`;
 
-function InertTabIcon({ label, Icon, dot, count }: InertTab) {
+function InertTabIcon({ Icon, dot, count }: InertTab) {
   return (
     <span aria-hidden className="relative flex h-[39px] items-center justify-center text-ink">
       <span className="relative">
@@ -68,12 +68,15 @@ export function TabBar() {
         <Link href="/home" aria-label="Home" aria-current={onEvents ? undefined : "page"} className={tab(!onEvents)}>
           {onEvents ? <HomeIcon className="h-[23px] w-[23px]" /> : <HomeFilledIcon className="h-[23px] w-[23px]" />}
         </Link>
-        <InertTabIcon {...tabs[0]} />
-        <Link href="/" aria-label="Events" aria-current={onEvents ? "page" : undefined} className={tab(onEvents)}>
-          {onEvents ? <CalendarFilledIcon className="h-[23px] w-[23px]" /> : <CalendarIcon className="h-[23.5px] w-[23.5px]" />}
-        </Link>
-        {tabs.slice(1).map((item) => (
-          <InertTabIcon key={item.label} {...item} />
+        {tabs.map((item, index) => (
+          <Fragment key={item.label}>
+            <InertTabIcon {...item} />
+            {index === 0 && (
+              <Link href="/" aria-label="Events" aria-current={onEvents ? "page" : undefined} className={tab(onEvents)}>
+                {onEvents ? <CalendarFilledIcon className="h-[23px] w-[23px]" /> : <CalendarIcon className="h-[23.5px] w-[23.5px]" />}
+              </Link>
+            )}
+          </Fragment>
         ))}
         <span aria-hidden className="flex h-[39px] items-center justify-center">
           <ProfileAvatar size={25} ring />
