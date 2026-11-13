@@ -129,7 +129,7 @@ export function MuseMenu({ onAsk, onCrawl }: { onAsk: () => void; onCrawl: () =>
 
   const options = [
     { label: "Ask Muse", hint: "Type or say it", Icon: MuseMark, run: onAsk },
-    { label: "Food crawl", hint: "Plan your walk", Icon: RouteGlyph, run: onCrawl },
+    { label: "Food Crawl", hint: "Plan your walk", Icon: RouteGlyph, run: onCrawl },
   ];
 
   return (
