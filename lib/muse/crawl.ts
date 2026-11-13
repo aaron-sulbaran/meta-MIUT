@@ -226,11 +226,11 @@ async function readItinerary(input: CrawlInput, places: CrawlPlace[], now: Date)
   return runMuseJob({
     request: {
       system: [
-        "A student is planning a walk after class and told you where they are going.",
+        "A student is planning where to go after class and told you where they are going.",
         "List the places they will go, in order, using only names from the list. End with the last place they mention.",
         "Their messages come oldest first. When a later message changes the plan (a new end, a new friend's place), follow the latest one and drop places it replaces.",
         "Only add their original destination if they say they go back there. arriveBy is a 24-hour campus time like 19:00 if they say one, else null.",
-        'mode: "transit" if they say the T, subway, bus, or train; "drive" if they drive or take a car, Uber, or Lyft; "walk" if they want to walk; else null.',
+        'mode: only when they say how they will get there: "transit" for the T, subway, bus, or train; "drive" for driving, a car, Uber, or Lyft; "walk" if they say they want to walk. Otherwise null.',
         'Return JSON only: {"places":[{"name","arriveBy"}],"mode"}. Return an empty list if they name no place.',
       ].join(" "),
       prompt: `Now: ${campusClock(now.toISOString())}\nOriginal destination: ${input.toLabel ?? "home"}\nStudent said: ${input.note}\nPlaces: ${JSON.stringify(places.map((place) => place.name))}`,
@@ -367,7 +367,8 @@ export async function planCrawl(input: CrawlInput, events: CampusEvent[], now = 
 }
 
 // Muse's pitch names the stops it picked, in its order. When the walk keeps a different set or
-// order (a stop did not fit the time), Muse rewords the pitch and invite for the real walk.
+// order (a stop did not fit the time), or weaves in places the student named, Muse rewords the
+// pitch and invite for the real route.
 async function wordCrawl(
   input: CrawlInput,
   pick: CrawlPick,
@@ -376,7 +377,8 @@ async function wordCrawl(
   route: string,
 ): Promise<z.infer<typeof CrawlWordsSchema>> {
   const walked = stops.flatMap((stop) => (stop.eventId === null ? [] : [stop.eventId]));
-  if (walked.join() === pick.stops.map((stop) => stop.eventId).join()) return pick;
+  const namedPlaces = stops.some((stop) => stop.kind === "plan");
+  if (!namedPlaces && walked.join() === pick.stops.map((stop) => stop.eventId).join()) return pick;
   const kept = walked.flatMap((id) => {
     const event = byId.get(id);
     return event ? [event] : [];
