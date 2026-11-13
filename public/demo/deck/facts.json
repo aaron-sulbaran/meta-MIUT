@@ -84,7 +84,7 @@
     {
       "step": "muse-organizes",
       "text": "Events feed and the map with Muse's walk home",
-      "source": "Real captures of this app at 390 x 844: the List view (/?view=list) and the walk home (/?plan=home) on the 3:05 PM demo clock, seeded data, the feed's recorded answer (labeled) and the walk home answered live by Muse. Each flyer lands where its event really appears: Spring Hackathon in the Top 3, Intro to Bouldering in the list, Pizza Study Break as the walk's first stop."
+      "source": "Real captures of this app from the same capture pass as the recap (motion/opening/recap-pass.json): the List view and the walk home inside a 390 x 844 frame, live Muse, the server on the 3:05 PM demo clock. Each flyer lands where its event really appears there: Spring Hackathon and Intro to Bouldering in the Top 3, Pizza Study Break as the walk's first stop (planned 4.1 s)."
     },
     {
       "step": "events-reimagined",
@@ -101,7 +101,7 @@
     {
       "step": "discovery",
       "text": "Personalized AI discovery: the Events map and the List view with Top 3 for you today and More you might like",
-      "source": "Jolyn's motion script v2, Scene 6 (her labels read TOP 3 TODAY and MORE YOU MIGHT LIKE THIS WEEK; the screen uses the product's own labels so each callout matches the section it points at). Real captures of this app (/ and /?view=list) on a local production build with live Muse ranking, 2026-11-13 about 2 AM PT; to be retaken after the night's map changes."
+      "source": "Jolyn's motion script v2, Scene 6 (her labels read TOP 3 TODAY and MORE YOU MIGHT LIKE THIS WEEK; the screen uses the product's own labels so each callout matches the section it points at). Real captures of this app (/ and /?view=list) from the recap's capture pass: inside a 390 x 844 frame, live Muse ranking, the server on the 3:05 PM demo clock."
     },
     {
       "step": "less-work",
@@ -122,38 +122,38 @@
     },
     {
       "step": "moment-1",
-      "text": "Read the club's flyer; Muse Ember; about 2 seconds",
-      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Flyer read (/api/muse/extract with the Board Game Night flyer and caption): 1.9, 2.0, 2.1, 2.5 s and one 10.1 s outlier; screen stamps 2.3 and 2.5 s. Model: muse-ember-1.0 (lib/muse/client.ts). Screen: /organizer?handoff=story, captured live (Read in 2.5 s)."
+      "text": "Read the club's flyer; Muse Ember; 2.1 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. Flyer read, as Jing (/organizer?handoff=story; the page calls /api/muse/extract/events with the flyer): runs 2.8, 2.8, 1.7, 2.1, 1.7 s, median 2.1 s, shown with that run's screen (Read in 2.1 s). Model: muse-ember-1.0 (lib/muse/client.ts)."
     },
     {
       "step": "moment-2",
-      "text": "Planned her walk home; Muse Ember; about 5 seconds",
-      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Walk home (/api/muse/crawl): 3.9, 4.3, 4.3, 5.2 s and one 10.8 s; screen stamps 4.5, 7.1, 7.6, 11.1 s; median of all 5.2 s. Model: muse-ember-1.0. Screen: /?plan=home, captured live (planned 7.1 s)."
+      "text": "Planned her walk home; Muse Ember; 4.1 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. Walk home, as Jolyn (/?plan=home): runs 4.9, 3.3, 3.2, 4.4, 4.1 s, median 4.1 s, shown with that run's screen (planned 4.1 s). Model: muse-ember-1.0."
     },
     {
       "step": "moment-3",
-      "text": "Heard what she said; Muse Voice Transcribe; about 3 seconds",
-      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Transcription (/api/muse/transcribe with the spoken re-plan line, synthesized to a 16 kHz WAV): 2.6, 2.6, 2.6, 2.7, 2.9 s. Model: muse-voice-transcribe-1.0 (lib/muse/transcribe.ts). Screen: the stage's map after a heard message, words marked Said."
+      "text": "Heard what she said; Muse Voice Transcribe; 2.6 seconds",
+      "source": "Transcription has no time stamp on the stage's screen, so its time is the median of five live calls to /api/muse/transcribe with the spoken re-plan line as a 16 kHz WAV (2.7, 2.9, 2.6, 2.6, 2.6 s; motion/opening/timings-local.json, measured 2:13 AM PT). The screen is the stage's map after a heard message (from the same pass), her words marked Said and ringed. Model: muse-voice-transcribe-1.0 (lib/muse/transcribe.ts)."
     },
     {
       "step": "moment-4",
-      "text": "Re-planned, sent the invite; Muse Ember; about 2 seconds",
-      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Re-plan answer (/api/muse/ask with the scripted line): 1.3, 1.5, 1.8, 1.9, 2.6 s; screen stamps 2.6 and 2.2 s. Model: muse-ember-1.0. Screen: /?plan=home&auto=1, Muse moved her to Board Game Night + Free Dumplings itself (asked 2.2 s, Sent to Lisa)."
+      "text": "Re-planned, sent the invite; Muse Ember; 1.7 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. Re-plan, as Jolyn (/?plan=home&auto=1): runs 1.6, 2, 1.7, 1.7 s, median 1.7 s, shown with that run's screen (asked 1.7 s, Sent to Lisa). Model: muse-ember-1.0."
     },
     {
       "step": "moment-5",
-      "text": "Built her first feed; Muse Ember; about 4 seconds",
-      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Trish's first picks (/api/curate over the seeded sources): 2.2, 2.6, 3.5, 3.9, 4.5 s; screen stamps 4.8 and 2.6 s; median of all 3.5 s, shown as about 4. Model: muse-ember-1.0. Screen: /?first=1 as Trish inside a frame, as the stage shows it (Live from Muse, picked 2.6 s)."
+      "text": "Built her first feed; Muse Ember; 2.7 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. Trish's first picks (/?first=1, which calls /api/curate): runs 2.1, 3.6, 2.7 s, median 2.7 s, shown with that run's screen (picked 2.7 s). Model: muse-ember-1.0."
     },
     {
       "step": "moment-6",
-      "text": "Found people, wrote the hello; Muse Ember; about 2 seconds",
-      "source": "Measured by the deck builder on a local production build of main with the Muse key linked, 2026-11-13 between 2:15 and 3:10 AM PT: each moment's real endpoint called over HTTP (motion/opening/tools/measure.mjs and measure-people.mjs; raw runs in motion/opening/timings-local.json and timings-people.json), plus the app's own on-screen stamps in the captures. Shown as the median of the live runs, rounded; runs that fell back to a recorded answer would not count (none did). Who to go with (/api/social/events/[id]/muse as Trish): 1.5, 1.5, 1.7, 1.7, 1.9 s. The written hello (/api/social/hello, write once per person): 2.3 s over HTTP, and 1.0, 1.5, 1.4, 2.0 and 1.2 s on screen. Model: muse-ember-1.0. Screen: the story event page as Trish inside a frame, replaying the skit's state first (the story on the 3:05 PM demo clock; Lisa, invited by Jolyn, going and open to company): Muse suggests Jolyn and Lisa, writes the hello (Live, 1.2 s), and both say yes."
+      "text": "Found people, wrote the hello; Muse Ember; 1.7 seconds",
+      "source": "One capture pass by the deck builder on 2026-11-13 between 3:40 and 4:30 AM PT, against a local production build of main with the Muse key linked and the server clock set to the demo clock (3:05 PM ET; motion/opening/tools/demo-clock.cjs). Each run loads the real screen in a 390 x 844 frame as the stage does, as the right person, and reads the app's own time stamp (motion/opening/tools/recap-pass.mjs; every run in motion/opening/recap-pass.json). Steps the app keeps per run (re-plan, picks, hello) ran once per fresh server. The deck shows the median run's screen and that run's own number, so they cannot disagree. The skit's state replayed first (the story on the demo clock; Lisa, invited by Jolyn, going and open to company). Muse suggests Jolyn and Lisa, then writes Trish's hello: the hello's runs 1.6, 1.8, 1.7 s, median 1.7 s, shown with that run's screen (Written by Muse, Live, 1.7 s). Two calls in this moment: who to go with (/api/social/events/[id]/muse, 1.5 to 1.9 s over HTTP, motion/opening/timings-people.json) and the hello. Model: muse-ember-1.0."
     },
     {
       "step": "live-calls",
-      "text": "Six live calls to Meta's Muse models. A recorded answer always says so on screen.",
-      "source": "Every moment above ran against the live models in the measurements. The product labels any recorded fallback on screen (SourceBadge, Recorded labels), per AGENTS.md."
+      "text": "Every one a live call to Meta's Muse models. A recorded answer always says so on screen.",
+      "source": "Every moment above ran against the live models in this pass (seven calls across six moments; moment 6 is two). The product labels any recorded fallback on screen (SourceBadge, Recorded labels), per AGENTS.md."
     }
   ]
 }

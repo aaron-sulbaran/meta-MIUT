@@ -1,0 +1,410 @@
+{
+  "replan": {
+    "runs": [
+      {
+        "run": 1,
+        "seconds": 1.6,
+        "text": "Live from Muse \u00b7 asked 1.6 s",
+        "box": {
+          "x": 58,
+          "y": 558,
+          "width": 271.9999694824219,
+          "height": 15.99993896484375
+        },
+        "file": "replan-1.png",
+        "at": "2026-11-13T11:16:02.753Z"
+      },
+      {
+        "run": 2,
+        "seconds": 2,
+        "text": "Live from Muse \u00b7 asked 2.0 s",
+        "box": {
+          "x": 58,
+          "y": 599.9999389648438,
+          "width": 271.9999694824219,
+          "height": 16.00006103515625
+        },
+        "file": "replan-2.png",
+        "at": "2026-11-13T11:19:26.210Z"
+      },
+      {
+        "run": 3,
+        "seconds": 1.7,
+        "text": "Live from Muse \u00b7 asked 1.7 s",
+        "box": {
+          "x": 58,
+          "y": 599.9999389648438,
+          "width": 271.9999694824219,
+          "height": 16.00006103515625
+        },
+        "file": "replan-3.png",
+        "at": "2026-11-13T11:22:45.541Z"
+      },
+      {
+        "run": 4,
+        "seconds": 1.7,
+        "text": "Live from Muse \u00b7 asked 1.7 s",
+        "box": {
+          "x": 58,
+          "y": 599.9999389648438,
+          "width": 271.9999694824219,
+          "height": 16.00006103515625
+        },
+        "file": "replan-4.png",
+        "at": "2026-11-13T11:25:03.023Z"
+      }
+    ],
+    "median": 1.7,
+    "chosen": "replan-3.png",
+    "chosenBox": {
+      "x": 58,
+      "y": 599.9999389648438,
+      "width": 271.9999694824219,
+      "height": 16.00006103515625
+    }
+  },
+  "picks": {
+    "runs": [
+      {
+        "run": 1,
+        "seconds": 2.1,
+        "text": "Live from Muse \u00b7 picked 2.1 s",
+        "box": {
+          "x": 58,
+          "y": 488.9999694824219,
+          "width": 271.9999694824219,
+          "height": 16
+        },
+        "file": "picks-1.png",
+        "at": "2026-11-13T11:19:15.189Z"
+      },
+      {
+        "run": 2,
+        "seconds": 3.6,
+        "text": "Live from Muse \u00b7 picked 3.6 s",
+        "box": {
+          "x": 58,
+          "y": 488.9999694824219,
+          "width": 271.9999694824219,
+          "height": 16
+        },
+        "file": "picks-2.png",
+        "at": "2026-11-13T11:22:30.659Z"
+      },
+      {
+        "run": 3,
+        "seconds": 2.7,
+        "text": "Live from Muse \u00b7 picked 2.7 s",
+        "box": {
+          "x": 58,
+          "y": 488.9999694824219,
+          "width": 271.9999694824219,
+          "height": 16
+        },
+        "file": "picks-3.png",
+        "at": "2026-11-13T11:24:42.932Z"
+      }
+    ],
+    "median": 2.7,
+    "chosen": "picks-3.png",
+    "chosenBox": {
+      "x": 58,
+      "y": 488.9999694824219,
+      "width": 271.9999694824219,
+      "height": 16
+    }
+  },
+  "hello": {
+    "runs": [
+      {
+        "run": 1,
+        "seconds": 1.6,
+        "text": "Written by Muse \u00b7 Live, 1.6 s",
+        "box": {
+          "x": 65,
+          "y": 456.9999694824219,
+          "width": 299.9999694824219,
+          "height": 15.000030517578125
+        },
+        "file": "hello-1.png",
+        "at": "2026-11-13T11:19:41.551Z"
+      },
+      {
+        "run": 2,
+        "seconds": 1.8,
+        "text": "Written by Muse \u00b7 Live, 1.8 s",
+        "box": {
+          "x": 65,
+          "y": 465.9999694824219,
+          "width": 299.9999694824219,
+          "height": 15.000030517578125
+        },
+        "file": "hello-2.png",
+        "at": "2026-11-13T11:23:01.554Z"
+      },
+      {
+        "run": 3,
+        "seconds": 1.7,
+        "text": "Written by Muse \u00b7 Live, 1.7 s",
+        "box": {
+          "x": 65,
+          "y": 465.9999694824219,
+          "width": 299.9999694824219,
+          "height": 15.000030517578125
+        },
+        "file": "hello-3.png",
+        "at": "2026-11-13T11:25:24.878Z"
+      }
+    ],
+    "median": 1.7,
+    "chosen": "hello-3.png",
+    "chosenBox": {
+      "x": 65,
+      "y": 465.9999694824219,
+      "width": 299.9999694824219,
+      "height": 15.000030517578125
+    }
+  },
+  "heard": {
+    "runs": [
+      {
+        "run": 1,
+        "seconds": null,
+        "text": "Wait, actually I'm not going home, I was gonna hang out with Lisa. Can you find an event closer to both of us and send L",
+        "box": {
+          "x": 66.125,
+          "y": 386.9999694824219,
+          "width": 307.875,
+          "height": 82
+        },
+        "file": "heard-1.png",
+        "at": "2026-11-13T11:22:23.868Z"
+      }
+    ],
+    "median": null,
+    "chosen": "heard-1.png",
+    "chosenBox": {
+      "x": 66.125,
+      "y": 386.9999694824219,
+      "width": 307.875,
+      "height": 82
+    }
+  },
+  "flyer": {
+    "runs": [
+      {
+        "run": 1,
+        "seconds": 2.8,
+        "text": "Read in 2.8 s",
+        "box": {
+          "x": 76,
+          "y": 84.49999237060547,
+          "width": 72.82810974121094,
+          "height": 15.000007629394531
+        },
+        "file": "flyer-1.png",
+        "at": "2026-11-13T11:26:06.775Z"
+      },
+      {
+        "run": 2,
+        "seconds": 2.8,
+        "text": "Read in 2.8 s",
+        "box": {
+          "x": 76,
+          "y": 84.49999237060547,
+          "width": 72.82810974121094,
+          "height": 15.000007629394531
+        },
+        "file": "flyer-2.png",
+        "at": "2026-11-13T11:26:14.893Z"
+      },
+      {
+        "run": 3,
+        "seconds": 1.7,
+        "text": "Read in 1.7 s",
+        "box": {
+          "x": 76,
+          "y": 84.49999237060547,
+          "width": 70.20310974121094,
+          "height": 15.000007629394531
+        },
+        "file": "flyer-3.png",
+        "at": "2026-11-13T11:26:21.425Z"
+      },
+      {
+        "run": 4,
+        "seconds": 2.1,
+        "text": "Read in 2.1 s",
+        "box": {
+          "x": 76,
+          "y": 84.49999237060547,
+          "width": 70.71875,
+          "height": 15.000007629394531
+        },
+        "file": "flyer-4.png",
+        "at": "2026-11-13T11:26:28.472Z"
+      },
+      {
+        "run": 5,
+        "seconds": 1.7,
+        "text": "Read in 1.7 s",
+        "box": {
+          "x": 76,
+          "y": 84.49999237060547,
+          "width": 70.20310974121094,
+          "height": 15.000007629394531
+        },
+        "file": "flyer-5.png",
+        "at": "2026-11-13T11:26:35.013Z"
+      }
+    ],
+    "median": 2.1,
+    "chosen": "flyer-4.png",
+    "chosenBox": {
+      "x": 76,
+      "y": 84.49999237060547,
+      "width": 70.71875,
+      "height": 15.000007629394531
+    }
+  },
+  "walk": {
+    "runs": [
+      {
+        "run": 1,
+        "seconds": 4.9,
+        "text": "Live from Muse \u00b7 planned 4.9 s",
+        "box": {
+          "x": 58,
+          "y": 421.8124694824219,
+          "width": 271.9999694824219,
+          "height": 16.000030517578125
+        },
+        "file": "walk-1.png",
+        "at": "2026-11-13T11:30:24.821Z"
+      },
+      {
+        "run": 2,
+        "seconds": 3.3,
+        "text": "Live from Muse \u00b7 planned 3.3 s",
+        "box": {
+          "x": 58,
+          "y": 421.8124694824219,
+          "width": 271.9999694824219,
+          "height": 16.000030517578125
+        },
+        "file": "walk-2.png",
+        "at": "2026-11-13T11:30:33.712Z"
+      },
+      {
+        "run": 3,
+        "seconds": 3.2,
+        "text": "Live from Muse \u00b7 planned 3.2 s",
+        "box": {
+          "x": 58,
+          "y": 472,
+          "width": 271.9999694824219,
+          "height": 15.999969482421875
+        },
+        "file": "walk-3.png",
+        "at": "2026-11-13T11:30:42.444Z"
+      },
+      {
+        "run": 4,
+        "seconds": 4.4,
+        "text": "Live from Muse \u00b7 planned 4.4 s",
+        "box": {
+          "x": 58,
+          "y": 421.8124694824219,
+          "width": 271.9999694824219,
+          "height": 16.000030517578125
+        },
+        "file": "walk-4.png",
+        "at": "2026-11-13T11:30:52.185Z"
+      },
+      {
+        "run": 5,
+        "seconds": 4.1,
+        "text": "Live from Muse \u00b7 planned 4.1 s",
+        "box": {
+          "x": 58,
+          "y": 524,
+          "width": 271.9999694824219,
+          "height": 15.99993896484375
+        },
+        "file": "walk-5.png",
+        "at": "2026-11-13T11:31:01.448Z"
+      }
+    ],
+    "median": 4.1,
+    "chosen": "walk-5.png",
+    "chosenBox": {
+      "x": 58,
+      "y": 524,
+      "width": 271.9999694824219,
+      "height": 15.99993896484375
+    }
+  },
+  "list": {
+    "runs": [
+      {
+        "run": 1,
+        "seconds": null,
+        "text": "Top 3 for you today",
+        "box": {
+          "x": 11.999999046325684,
+          "y": 126,
+          "width": 154.03125095367432,
+          "height": 20
+        },
+        "file": "list-1.png",
+        "at": "2026-11-13T11:34:31.244Z"
+      },
+      {
+        "run": 2,
+        "seconds": null,
+        "text": "Top 3 for you today",
+        "box": {
+          "x": 11.999999046325684,
+          "y": 126,
+          "width": 154.03125095367432,
+          "height": 20
+        },
+        "file": "list-2.png",
+        "at": "2026-11-13T11:35:21.072Z"
+      }
+    ],
+    "median": null,
+    "chosen": "list-2.png",
+    "chosenBox": {
+      "x": 11.999999046325684,
+      "y": 126,
+      "width": 154.03125095367432,
+      "height": 20
+    }
+  },
+  "home": {
+    "runs": [
+      {
+        "run": 1,
+        "seconds": null,
+        "text": "For you",
+        "box": {
+          "x": 11.999999046325684,
+          "y": 63.999996185302734,
+          "width": 66.35937595367432,
+          "height": 26.999996185302734
+        },
+        "file": "home-1.png",
+        "at": "2026-11-13T11:34:42.058Z"
+      }
+    ],
+    "median": null,
+    "chosen": "home-1.png",
+    "chosenBox": {
+      "x": 11.999999046325684,
+      "y": 63.999996185302734,
+      "width": 66.35937595367432,
+      "height": 26.999996185302734
+    }
+  }
+}
