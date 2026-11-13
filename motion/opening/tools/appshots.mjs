@@ -110,6 +110,9 @@ const SHOTS = {
     await page.goto(base + '/events/' + encodeURIComponent(id) + '?auto=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await hideDev(page);
     await page.waitForTimeout(9000);
+    /* The stage hides the nearby-alert ask; outside it, close it with its own X. */
+    await page.getByRole('button', { name: /close|dismiss|not now/i }).last().click().catch(() => {});
+    await page.waitForTimeout(600);
     await shot('going-before');
     await page.getByRole('button', { name: /say hi/i }).first().click().catch(() => {});
     let last = 0;
