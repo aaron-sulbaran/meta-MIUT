@@ -57,6 +57,10 @@ pnpm spike:muse <flyer.jpg> ["caption"] [--models muse-spark-1.3,muse-wonder-1.0
 
 Runs one real image through the live API with the app's extract request, one line per model (status, latency, tokens, JSON clean or repaired, schema pass). Needs a key in `.env.local`.
 
+## Deploy
+
+Live at https://meta-miut.vercel.app (Vercel project `meta-miut`, framework Next.js, Node 24). Deploys are manual, never on push: `vercel deploy --prod` from a clean checkout of main that has no `.env*` file in it, so no local key is uploaded. Upstash Redis is connected to the project (`KV_REST_API_URL`, `KV_REST_API_TOKEN`), so the store is shared across instances; `DEMO_RESET_TOKEN` is set there. `MUSE_API_KEY` is added in Vercel by hand only; without it every Muse call on the live site is a recorded example, and screens should say so (`SourceBadge`).
+
 ## Map
 
 ```
