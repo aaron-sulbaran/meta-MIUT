@@ -158,7 +158,7 @@
         ctx.sfx(seg, "tap", { f: 1700, level: 0.1 }, 1.8);
       },
       idle(api) {
-        api.loop(["#m-ring", "#m-ring2"], { opacity: 0.45, duration: 1.3 });
+        api.loop(["#m-ring b", "#m-ring2 b"], { opacity: 0.45, duration: 1.3 });
       },
     },
   ];

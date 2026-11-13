@@ -46,6 +46,17 @@ if (opt('--step') != null) {
     times.push({ t, label: `${k} ${ids[k]} +${(t - m.start).toFixed(2)}s` });
   }
 }
+if (opt('--range') != null) {
+  const [a, b] = opt('--range').split('-').map(Number);
+  const n = Number(opt('--n', 4));
+  for (let k = a; k <= b; k++) {
+    const m = marks[k];
+    for (let j = 0; j < n; j++) {
+      const t = m.start + ((m.rest - m.start) * (j + 1)) / n;
+      times.push({ t, label: `${k} ${ids[k]} ${j + 1 === n ? 'rest' : '+' + (t - m.start).toFixed(2) + 's'}` });
+    }
+  }
+}
 if (opt('--at')) times.push(...opt('--at').split(',').map((s) => ({ t: Number(s), label: `t=${s}` })));
 await page.evaluate(() => {
   const l = document.createElement('div');

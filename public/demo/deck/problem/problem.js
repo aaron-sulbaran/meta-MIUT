@@ -724,7 +724,8 @@
         ctx.ft(seg, "#s5-q2", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, 0.8);
       },
       idle(api) {
-        api.loop("#s5-link", { opacity: 0.55, duration: 1.4 });
+        /* Idle loops only ever touch inner wrappers the timeline never animates. */
+        api.loop("#s5-link i", { opacity: 0.55, duration: 1.4 });
       },
     },
     {

@@ -225,10 +225,15 @@
   width: 96%;
   top: 17.6%;
   height: 25.6%;
+  opacity: 0;
+}
+
+.ring b {
+  position: absolute;
+  inset: 0;
   border-radius: 18px;
   border: 5px solid var(--blue);
   box-shadow: 0 0 24px rgba(8, 102, 255, 0.6);
-  opacity: 0;
 }
 
 .map-ring {

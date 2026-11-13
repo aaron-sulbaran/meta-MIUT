@@ -610,11 +610,16 @@
   top: 0;
   width: 120px;
   height: 8px;
+  transform-origin: 50% 50%;
+  opacity: 0;
+}
+
+.s5-link i {
+  position: absolute;
+  inset: 0;
   border-radius: 4px;
   background: var(--blue);
   box-shadow: 0 0 24px rgba(8, 102, 255, 0.8);
-  transform-origin: 50% 50%;
-  opacity: 0;
 }
 
 .s5-field {
