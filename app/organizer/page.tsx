@@ -7,8 +7,10 @@ import { knownPlacesFrom } from "@/lib/organizer/place";
 
 // Organizer side: a flyer photo or a spoken line to a published event in one tap.
 // Places, organizers, and titles come from the events already listed, so the screen
-// follows whichever campus the seed is set to.
-export default async function OrganizerPage() {
+// follows whichever campus the seed is set to. ?say= is a spoken line handed over
+// from Ask Muse; Muse drafts it right away.
+export default async function OrganizerPage({ searchParams }: { searchParams: Promise<{ say?: string | string[] }> }) {
+  const { say } = await searchParams;
   await connection();
   const events = await getEventStore().listEvents();
 
@@ -28,6 +30,7 @@ export default async function OrganizerPage() {
       organizers={organizers}
       eventTitles={Object.fromEntries(events.map((event) => [event.id, event.title]))}
       sampleCaption={SAMPLE_FLYER_CAPTION}
+      said={typeof say === "string" ? say.trim().slice(0, 1000) : ""}
     />
   );
 }
