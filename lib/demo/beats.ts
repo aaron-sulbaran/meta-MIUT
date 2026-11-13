@@ -133,6 +133,10 @@ export const ACT_LABELS: Record<BeatAct, string> = {
 const whosGoingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.whosGoing(storyEventId) : null);
 const lisaJoinedPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaJoined(storyEventId, "sample-student") : null);
 const lisaLandingPath = ({ storyEventId }: BeatContext) => (storyEventId ? HANDOFF.lisaLanding(storyEventId, "sample-student") : null);
+const lisaStepPath =
+  (step: "account" | "ready" | "event") =>
+  ({ storyEventId }: BeatContext) =>
+    storyEventId ? HANDOFF.lisaStep(storyEventId, "sample-student", step) : null;
 
 export const BEATS: Beat[] = [
   // The opening follows Jolyn's script (hub sources/2026-11-13-jolyn-opening-pitch-script.md).
@@ -292,8 +296,8 @@ export const BEATS: Beat[] = [
     persona: "lisa",
     kind: "app",
     title: `${CAST.user2.name} isn't on Facebook`,
-    caption: "She has Instagram, so she already has a Meta account.",
-    note: "Lisa: no Facebook account. Tap Continue: her Instagram account is enough.",
+    caption: `Facebook opens on ${CAST.user1.name}'s invite. The title shows; the rest needs an account.`,
+    note: "Lisa: watch Facebook open. Read the title out loud: board game night, and free dumplings. But I'm not on Facebook. Tap Create Facebook account.",
     path: lisaLandingPath,
   },
   {
@@ -301,10 +305,40 @@ export const BEATS: Beat[] = [
     act: "lisa",
     persona: "lisa",
     kind: "app",
-    title: "She's in",
-    caption: `No form, no password. And ${CAST.user1.name} knows she's coming.`,
-    note: "Lisa: she is in and going, and Jolyn has been told.",
-    // Her landing already joined, so the beat rests on the event even if U2b was not tapped.
+    title: "Her Meta account is already here",
+    caption: "She has Instagram, so she already has a Meta account.",
+    note: "Lisa: Meta already knows me from Instagram. Tap Continue.",
+    path: lisaStepPath("account"),
+  },
+  {
+    id: "U2d",
+    act: "lisa",
+    persona: "lisa",
+    kind: "app",
+    title: "Facebook account ready",
+    caption: "Her name and photo came over from Instagram. No form, no password.",
+    note: "Lisa: that's it, I have a Facebook account. Tap See the event.",
+    path: lisaStepPath("ready"),
+  },
+  {
+    id: "U2e",
+    act: "lisa",
+    persona: "lisa",
+    kind: "app",
+    title: "Now she sees it all",
+    caption: "The time, the place, who's going. She decides.",
+    note: "Lisa: now I can see when and where. Tap Join.",
+    path: lisaStepPath("event"),
+  },
+  {
+    id: "U2f",
+    act: "lisa",
+    persona: "lisa",
+    kind: "app",
+    title: "She's going",
+    caption: `${CAST.user1.name} knows she's coming. And she's open to meeting people.`,
+    note: "Lisa: I'm going, and Jolyn knows. Turn on Open to company: that hands over to Trish.",
+    // Her landing already joined, so the beat rests on the event even if the steps before were skipped.
     path: lisaJoinedPath,
   },
   {
