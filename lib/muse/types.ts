@@ -16,7 +16,7 @@ export type AskReply = {
   learnedTopics: string[];
   // Where a "plan my night" hand-off starts and ends, set by the server.
   // note is what the student said, so the crawl keeps the places and times they named.
-  plan: { from: Point; to: Point; note: string } | null;
+  plan: { from: Point; to: Point; note: string; eventId: string | null } | null;
 };
 
 /** The window event the Ask bar sends to switch the Events feed list. */

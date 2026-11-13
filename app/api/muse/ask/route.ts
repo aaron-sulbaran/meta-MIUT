@@ -42,8 +42,7 @@ export async function POST(request: Request) {
       await saveSignals(DEMO_USER_ID, [{ kind: "comment", at, topics: result.data.learnedTopics, text: `Asked Muse: ${body.data.question}` }], now);
     }
   }
-  const plan = result.data.actions.some((action) => action.type === "plan_night")
-    ? { from: origin(student), to: student.home, note: body.data.question.slice(0, 300) }
-    : null;
+  const walk = result.data.actions.find((action) => action.type === "plan_night");
+  const plan = walk ? { from: origin(student), to: student.home, note: body.data.question.slice(0, 300), eventId: walk.eventId } : null;
   return Response.json({ ...result, data: { ...result.data, plan } });
 }

@@ -118,8 +118,8 @@ export function AskBar({
   nowIso: string;
   /** An example question; the box then reads Ask Muse, like "...". */
   placeholder?: string;
-  /** The text box sits at the bottom of the screen under the conversation (the Ask Muse page). */
-  docked?: boolean;
+  /** The text box sits under the conversation: at the bottom of the screen (the Ask Muse page) or of a scrolling panel (the map popup). */
+  docked?: false | "screen" | "panel";
   /** When set, plan_night goes to the host (the map draws the route) instead of a list here; invite is set when the student also asked to invite a friend. */
   onPlan?: (plan: AskPlan, question: string, options: { invite: boolean }) => void;
 }) {
@@ -457,10 +457,10 @@ export function AskBar({
             </ol>
           </div>
         )}
-        <div ref={endRef} className="scroll-mb-[calc(var(--tabbar-height)+var(--tabbar-gap)+72px)]" />
+        <div ref={endRef} className={docked === "panel" ? "scroll-mb-[64px]" : "scroll-mb-[calc(var(--tabbar-height)+var(--tabbar-gap)+72px)]"} />
       </div>
       {docked && (
-        <div className="sticky bottom-[calc(var(--tabbar-height)+var(--tabbar-gap)+8px)] mt-2 bg-page pb-1 pt-1">
+        <div className={`sticky mt-2 pb-1 pt-1 ${docked === "panel" ? "bottom-0 bg-card" : "bottom-[calc(var(--tabbar-height)+var(--tabbar-gap)+8px)] bg-page"}`}>
           {statusEl}
           {formEl}
         </div>

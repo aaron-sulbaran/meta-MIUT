@@ -10,7 +10,7 @@ export default async function AskPage() {
   return (
     <>
       <SubPageHeader title="Ask Muse" backHref="/" backLabel="Back to Events" />
-      <AskBar events={events} nowIso={now.toISOString()} docked />
+      <AskBar events={events} nowIso={now.toISOString()} docked="screen" />
     </>
   );
 }

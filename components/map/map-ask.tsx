@@ -39,7 +39,7 @@ export function MapAsk({
         </button>
       </div>
       <div className="min-h-0 overflow-y-auto pb-3 [&>section]:px-3">
-        <AskBar events={events} nowIso={nowIso} placeholder="I'm meeting Lisa, find free food on the way" onPlan={onPlan} />
+        <AskBar events={events} nowIso={nowIso} docked="panel" onPlan={onPlan} />
       </div>
     </div>
   );

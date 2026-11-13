@@ -688,24 +688,9 @@ export function EventsMap({
   // meeting Lisa instead") ends the walk where they are, so the stops sit
   // between the two of them; otherwise the walk goes home.
   const planFromAsk = useCallback(
-    (_plan: AskPlan, question: string, options: { invite: boolean }) => {
-      const friend = friendNamedIn(question);
-      openCrawl(
-        friend
-          ? {
-              kind: "friend",
-              to: friend,
-              label: friendLabel(friend),
-              note: question,
-              friendName: friend.name,
-              friendId: friend.id,
-              // "...and send her the invite": Muse's invite goes to her phone once the walk is planned.
-              sendInvite: options.invite,
-            }
-          : { kind: "home", note: question },
-      );
-    },
-    [openCrawl],
+    (plan: AskPlan, question: string, options: { invite: boolean }) =>
+      openCrawl(startFromAsk({ note: question, toEventId: plan.eventId, invite: options.invite }, askEvents)),
+    [openCrawl, askEvents],
   );
 
   const recenter = useCallback(() => {
