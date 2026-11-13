@@ -322,7 +322,11 @@ async function wordCrawl(
     const event = byId.get(id);
     return event ? [event] : [];
   });
-  const fallback = () => crawlFixture(kept, input);
+  // The demo story's walk keeps its own invite in the recorded words too.
+  const fallback = () => {
+    const generic = crawlFixture(kept, input);
+    return storyCrawlFixture(generic, kept, input) ?? generic;
+  };
   const result = await runMuseJob({
     request: {
       system: [

@@ -9,6 +9,7 @@ import { SectionSlides } from "@/components/demo/section-slides";
 import { StageProgress } from "@/components/demo/stage-progress";
 import { StagedScreenView } from "@/components/demo/staged-screen";
 import { BEATS, STORY_DUE_AFTER, castLine, castOf, deckPath, filmFiles, type Beat, type CastId } from "@/lib/demo/beats";
+import { beatCast, beatScreen, inFrameMessage } from "@/lib/demo/beat-context";
 import { demoClock } from "@/lib/demo/clock";
 import { phoneChromeFor } from "@/lib/demo/phone-chrome";
 import { startStagePoll, type StagePoll } from "@/lib/demo/stage-poll";
@@ -40,7 +41,9 @@ const TOKEN_KEY = "demo-reset-token";
 type StageMessage = { type: "goto"; index: number } | { type: "reset" } | { type: "deck-step"; beatId: string; step: number };
 // Where a move came from: this window, another window on this browser, or the store (a phone remote).
 type MoveSource = "local" | "channel" | "remote";
-type StagePosition = { index: number; seq: number };
+// The shared stage record: where the show is, a deck's step, and what the presenter's phone heard.
+type StageSignal = { from: string; kind: "listening" | "said"; on?: boolean; text?: string; at: string };
+type StagePosition = { index: number; seq: number; deck?: { name: string; step: number; steps?: number } | null; signal?: StageSignal | null };
 
 const POSITION_URL = "/api/demo/stage";
 
@@ -66,6 +69,15 @@ async function writePosition(index: number): Promise<StagePosition | null> {
   } catch {
     return null;
   }
+}
+
+/** Tells the shared record which deck step is on screen, so a phone remote shows its note. */
+function writeDeckStep(at: number, name: string, step: number, steps: number | undefined) {
+  void fetch(POSITION_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action: "deck", at, name, step, ...(steps ? { steps } : {}) }),
+  }).catch(() => {});
 }
 
 function setPersonaCookie(persona: PersonaId | null) {
@@ -173,6 +185,8 @@ export function Stage() {
   const [enteredBack, setEnteredBack] = useState(false);
   // The phone's newest screen, for a beat that continues inside it.
   const lastFrameRef = useRef<HTMLIFrameElement | null>(null);
+  // The newest phone signal already passed into the stage's phone.
+  const lastSignalRef = useRef<string | null>(null);
   const zRef = useRef(0);
   // Screens loaded ahead that have finished loading, by path.
   const [loadedAhead, setLoadedAhead] = useState<string[]>([]);
@@ -203,7 +217,7 @@ export function Stage() {
       cancelled = true;
     };
   }, [storyDue, storyEventId]);
-  const beatSrc = beat.path ? beat.path({ storyEventId, now: runStartedAt }) : null;
+  const beatSrc = beatScreen(beat, { storyEventId, now: runStartedAt });
 
   const showPersonCard = useCallback((id: CastId | null) => {
     personCardRef.current = id;
@@ -269,6 +283,14 @@ export function Stage() {
           lastSeqRef.current = position.seq;
           if (position.index !== indexRef.current) goTo(position.index, "remote");
         }
+        // What the presenter's own phone heard on their beat, mirrored into the stage's phone.
+        const signal = position?.signal;
+        if (!stopped && signal && signal.at !== lastSignalRef.current && position.index === indexRef.current && beatCast(BEATS[indexRef.current]) === signal.from) {
+          lastSignalRef.current = signal.at;
+          const phone = lastFrameRef.current?.contentWindow;
+          if (signal.kind === "listening") phone?.postMessage({ source: "demo-stage", type: "listening", on: signal.on === true }, window.location.origin);
+          if (signal.kind === "said" && signal.text) phone?.postMessage({ source: "demo-stage", type: "heard", text: signal.text }, window.location.origin);
+        }
         return indexRef.current;
       });
     });
@@ -302,11 +324,10 @@ export function Stage() {
     if (!beatSrc) return;
     if (personaChanged || locationRef.current !== beatSrc) {
       // Continue inside the phone already on screen when this beat follows on from it.
-      const from = beat.inFrame ? BEATS.find((candidate) => candidate.id === beat.inFrame?.from) : undefined;
-      const fromSrc = from?.path?.({ storyEventId, now: runStartedAt }) ?? null;
+      const message = inFrameMessage(beat, locationRef.current, { storyEventId, now: runStartedAt });
       const phone = lastFrameRef.current?.contentWindow;
-      if (!personaChanged && beat.inFrame && fromSrc && locationRef.current === fromSrc && phone) {
-        phone.postMessage(beat.inFrame.message, window.location.origin);
+      if (!personaChanged && message && phone) {
+        phone.postMessage(message, window.location.origin);
         locationRef.current = beatSrc;
         return;
       }
@@ -525,7 +546,10 @@ export function Stage() {
           controls={filmRef}
           onEnd={deckEnd}
           onStart={deckStart}
-          onStep={(step) => channelRef.current?.postMessage({ type: "deck-step", beatId: beat.id, step } satisfies StageMessage)}
+          onStep={(step, steps) => {
+            channelRef.current?.postMessage({ type: "deck-step", beatId: beat.id, step } satisfies StageMessage);
+            if (beat.deck) writeDeckStep(index, beat.deck, step, steps);
+          }}
         />}
       {playFilm && film && filmCues && <FilmPlayer key={film.video} src={film.video} cues={filmCues} controls={filmRef} />}
 

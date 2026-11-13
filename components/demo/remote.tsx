@@ -12,7 +12,8 @@ import { startStagePoll } from "@/lib/demo/stage-poll";
 // cue. The laptop never depends on it: if this phone loses the network, the
 // laptop's keys still run the show.
 
-type Position = { index: number; seq: number };
+// deck: the step the stage's deck reported, for that step's note.
+type Position = { index: number; seq: number; deck?: { name: string; step: number } | null };
 
 const POSITION_URL = "/api/demo/stage";
 
@@ -103,7 +104,7 @@ export function StageRemote() {
             )}
             <h1 className="font-display text-root-title leading-[31px] font-bold">{beat.title}</h1>
             <p className="text-body text-muted">{beat.caption}</p>
-            <PresenterNotes beat={beat} />
+            <PresenterNotes beat={beat} deckStep={position?.deck && position.deck.name === beat.deck ? position.deck.step : null} />
             <p className="mt-[10px] text-venue text-muted">{upNext ? `Next: ${upNext.title}` : "Last beat"}</p>
           </>
         ) : (
