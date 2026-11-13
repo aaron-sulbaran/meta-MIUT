@@ -281,8 +281,8 @@ export function CloseIcon({ className }: IconProps) {
 /** A waving hand, for Say hi: fingers together, thumb out, two motion arcs. */
 export function WaveIcon({ className }: IconProps) {
   return (
-    <svg {...line} strokeWidth={1.5} className={className}>
-      <g transform="translate(12.6 12.4) rotate(-38) scale(0.88) translate(-13.8 -12.8)">
+    <svg {...line} strokeWidth={1.6} className={className}>
+      <g transform="translate(12.4 12.4) rotate(-38) scale(0.95) translate(-13.8 -12.8)">
         <path d="M5.5 15V8a1.25 1.25 0 0 1 2.5 0V6a1.25 1.25 0 0 1 2.5 0v-.5a1.25 1.25 0 0 1 2.5 0v1a1.25 1.25 0 0 1 2.5 0v7.5l3.7-6.4a1.45 1.45 0 0 1 2.55 1.4L18 17.2A6.2 6.2 0 0 1 12.3 21h-1.3a5.5 5.5 0 0 1-5.5-5.5Z" />
         <path d="M8 8v5M10.5 6v6.5M13 6.5v6" />
       </g>

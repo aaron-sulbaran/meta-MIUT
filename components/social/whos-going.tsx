@@ -298,9 +298,9 @@ export function WhosGoing({
                             onClick={() => void sayHi(person.id)}
                             aria-label={`Say hi to ${person.name}`}
                             title="Say hi"
-                            className={buttonClass("secondary", "w-[35px] shrink-0 rounded-full px-0")}
+                            className={buttonClass("secondary", "h-[42px] w-[42px] shrink-0 rounded-full px-0")}
                           >
-                            <WaveIcon className="h-[23px] w-[23px]" />
+                            <WaveIcon className="h-[32px] w-[32px]" />
                           </button>
                         )}
                       </li>
