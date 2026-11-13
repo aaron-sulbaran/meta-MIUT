@@ -57,6 +57,9 @@ export type Beat = {
   // Load this beat's screen hidden while the beat before it is on (same person),
   // so it is already at rest when the presenter moves on.
   prefetch?: boolean;
+  // The screen loaded ahead, when it differs from `path`: it plans hidden and shows its
+  // work only when the stage posts {source: "demo-stage", type: "reveal"} as it appears.
+  prefetchPath?: (context: BeatContext) => string | null;
 };
 
 export type FilmName = "problem" | "muse" | "build";
@@ -256,8 +259,9 @@ export const BEATS: Beat[] = [
     caption: "The best free stop on her walk home, before she asks.",
     note: "Jolyn: the walk home is already mapped. Point at the free stop on the way.",
     path: ({ now }) => HANDOFF.walkHome(now.toISOString()),
-    // Planned while the lock screen is up, so the walk is already drawn ("before she asks").
+    // Planned while the lock screen is up; Muse's reveal plays when the beat appears, not hidden.
     prefetch: true,
+    prefetchPath: ({ now }) => HANDOFF.walkHomeHeld(now.toISOString()),
   },
   {
     id: "U1c",
