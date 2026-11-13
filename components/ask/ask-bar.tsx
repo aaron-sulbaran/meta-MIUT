@@ -9,7 +9,6 @@ import { CloseIcon, MuseMark } from "@/components/ui/icons";
 import { updateAttendance } from "@/lib/attendance/client";
 import { EVENT_FULL_ERROR } from "@/lib/attendance/schema";
 import { getViewerId } from "@/lib/attendance/viewer";
-import { friendNamedIn } from "@/lib/map/friend-spots";
 import { EVERYONE, personNamedIn } from "@/lib/social/fixtures/people";
 import type { CampusEvent } from "@/lib/events/schema";
 import { FEED_FILTER_EVENT, type AskAction, type AskReply, type MuseRouteResponse } from "@/lib/muse/types";
@@ -56,11 +55,6 @@ function humanlikeVoice(): SpeechSynthesisVoice | null {
 }
 
 /** Spoken like talk, not a reading: no arrows or symbols, short pauses at dashes. */
-/** The request says where the walk ends: an event, a friend sharing their spot, or home. */
-function walkEndsIn(question: string, eventId: string | null): boolean {
-  return eventId !== null || friendNamedIn(question) !== null || /\b(home|dorm|my room|maseeh)\b/i.test(question);
-}
-
 export function forSpeech(text: string): string {
   return text
     .replace(/[→•✓]/g, "")
@@ -244,10 +238,9 @@ export function AskBar({
             onPlan(reply.plan, question, { invite });
             return { note: invite ? "Planning it on the map, then sending the invite" : "Planning it on the map" };
           }
-          // From the Ask Muse page, go straight to the Food Crawl planner: with the walk planned
-          // when the request says where it ends, else on its "where does the walk end" step.
+          // From the Ask Muse page, go straight to the walk on the map (it ends at home unless the request says otherwise).
           keepConversation();
-          router.push(walkEndsIn(question, id) ? link.href : "/?plan=crawl");
+          router.push(link.href);
           return { note: "Opening the Food Crawl" };
         }
       }
