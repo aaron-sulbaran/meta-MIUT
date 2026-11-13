@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { ComponentType, ReactNode } from "react";
 import { EventShareAction } from "@/components/events/event-actions";
+import { EventCommentsSection } from "@/components/social/event-comments";
 import { WhosGoing } from "@/components/social/whos-going";
 import { posterKicker } from "@/components/events/event-card";
 import { SubPageHeader } from "@/components/ui/header";
@@ -10,6 +11,7 @@ import { Poster } from "@/components/ui/poster";
 import { getAttendanceStore } from "@/lib/attendance/store";
 import { getEventStore } from "@/lib/events/store";
 import { formatDateLine, formatEventTime } from "@/lib/events/time";
+import { eventComments, loadComments } from "@/lib/social/comments";
 import { loadSocial, whoIsGoing } from "@/lib/social/going";
 import { currentViewer } from "@/lib/social/viewer";
 
@@ -27,7 +29,7 @@ export default async function EventPage({
   if (!event) notFound();
   const now = new Date();
   const viewer = await currentViewer();
-  await loadSocial([event.id]);
+  await Promise.all([loadSocial([event.id]), loadComments(event.id)]);
   const who = whoIsGoing(event, viewer.id, viewer.interests);
   const rsvp = event.access.kind === "rsvp";
   // Seats left on an RSVP event with a limit, from the attendance store (t-vp0w).
@@ -81,6 +83,10 @@ export default async function EventPage({
         </ul>
         {event.description && <p className="mt-[14px] text-body">{event.description}</p>}
       </section>
+
+      <Divider />
+
+      <EventCommentsSection initial={eventComments(event, viewer.id, now)} />
     </>
   );
 }
