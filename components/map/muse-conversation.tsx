@@ -43,8 +43,9 @@ import type { AskReply, MuseRouteResponse } from "@/lib/muse/types";
 //
 // Stage contract (only when framed by the /demo stage or a phone wrapper):
 //   screen to parent: {source: "demo-screen", type: "listening", on}, {source: "demo-screen", type: "said", text},
+//                     {source: "demo-screen", type: "failed", text} (hearing failed; the line shown),
 //                     and {source: "demo-screen", type: "pass"} (the Sent chip passes the show to the friend)
-//   parent to screen: {source: "demo-stage", type: "heard", text}, {type: "listening", on}, {type: "reveal"},
+//   parent to screen: {source: "demo-stage", type: "heard", text}, {type: "listening", on}, {type: "failed", text}, {type: "reveal"},
 //                     and the older {type: "demo-ask", line} (typed).
 
 type Source = "muse" | "fixture";
@@ -991,6 +992,20 @@ export function MuseConversation({
     postToParent({ type: "listening", on: recorder.recording });
   }, [recorder.recording]);
 
+  // A blocked or missing microphone says so, with Type beside the mic.
+  useEffect(() => {
+    if (!recorder.error) return;
+    // The recorder reports a blocked mic only through its state; this turns it into Muse's line once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPhase({ kind: "failed", line: "Microphone is blocked. Tap Type to ask instead.", retry: null });
+  }, [recorder.error]);
+
+  // Hearing failed: tell the stage, so the projector shows the same line and never sits on Listening.
+  const failedLine = phase.kind === "failed" ? phase.line : null;
+  useEffect(() => {
+    if (failedLine) postToParent({ type: "failed", text: failedLine });
+  }, [failedLine]);
+
   const working = phase.kind === "working" || phase.kind === "transcribing";
 
   const toggleMic = useCallback(() => {
@@ -1036,6 +1051,14 @@ export function MuseConversation({
       ) {
         setMirrorListening(false);
         void askUnlessKept(data.text, "voice", true);
+      } else if (
+        data.source === "demo-stage" &&
+        data.type === "failed" &&
+        typeof data.text === "string"
+      ) {
+        // The presenter's phone could not hear her: show what it shows.
+        setMirrorListening(false);
+        if (!busyRef.current && data.text) setPhase({ kind: "failed", line: data.text, retry: null });
       } else if (data.type === "demo-ask" && typeof data.line === "string") {
         void askUnlessKept(data.line, "typed");
       }
