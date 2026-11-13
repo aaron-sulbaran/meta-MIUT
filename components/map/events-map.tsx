@@ -959,7 +959,7 @@ export function EventsMap({
         onClick={recenter}
         aria-label="Recenter on my location"
         className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-card text-ink shadow-md active:scale-95"
-        style={{ bottom: aboveStrip(12), display: crawlOpen ? "none" : undefined }}
+        style={{ bottom: aboveStrip(36), display: crawlOpen ? "none" : undefined }}
       >
         <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden fill="none" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="7" />
