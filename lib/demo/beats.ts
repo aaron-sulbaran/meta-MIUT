@@ -411,8 +411,8 @@ export const BEATS: Beat[] = [
     persona: "user3",
     kind: "app",
     title: "Who's going?",
-    caption: `${CAST.user1.name} and ${CAST.user2.name}. So she goes too.`,
-    note: "Trish: Jolyn and Lisa are going, and Muse suggests who to say hi to. She taps I'm going.",
+    caption: "She knows nobody going. Muse finds two people open to company and says hi for her.",
+    note: "Trish: none of her friends are going. Muse suggests Jolyn and Lisa from what they share. Tap Say hi to Jolyn and Lisa: Muse writes the hi, sends it, and they say yes.",
     path: whosGoingPath,
   },
   {
