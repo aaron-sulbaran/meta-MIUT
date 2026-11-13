@@ -122,6 +122,41 @@ const SHOTS = {
       await shot(`going-${ms}`);
     }
   },
+  /* Trish's screens the way the stage shows them: inside a frame (no nearby-alert ask there). */
+  async firstFramed(page) {
+    await asTrish(page);
+    const html = `<!doctype html><html><body style="margin:0"><iframe id="f" src="${base}/?first=1" style="border:0;width:390px;height:844px"></iframe></body></html>`;
+    await page.route(base + '/__host', (route) => route.fulfill({ contentType: 'text/html', body: html }));
+    await page.goto(base + '/__host', { waitUntil: 'domcontentloaded' });
+    let last = 0;
+    for (const ms of [8000, 12000, 18000]) {
+      await page.waitForTimeout(ms - last);
+      last = ms;
+      await page.locator('#f').screenshot({ path: shotPath(`firstf-${ms}`) });
+    }
+  },
+  async goingFramed(page) {
+    /* The skit's state when Trish arrives: the story made on the demo clock, and Lisa,
+       invited by Jolyn, going and open to company (her act before Trish's). */
+    await fetch(base + '/organizer?state=posted&at=' + encodeURIComponent(AT));
+    const id = await storyId(page);
+    const asLisa = { 'content-type': 'application/json', cookie: 'demo-persona=lisa' };
+    await fetch(`${base}/api/invite/${encodeURIComponent(id)}/accept`, { method: 'POST', headers: asLisa, body: JSON.stringify({ from: 'sample-student' }) });
+    await fetch(`${base}/api/social/events/${encodeURIComponent(id)}`, { method: 'POST', headers: asLisa, body: JSON.stringify({ going: true, open: true }) });
+    await asTrish(page);
+    const html = `<!doctype html><html><body style="margin:0"><iframe id="f" src="${base}/events/${encodeURIComponent(id)}?auto=1" style="border:0;width:390px;height:844px"></iframe></body></html>`;
+    await page.route(base + '/__host', (route) => route.fulfill({ contentType: 'text/html', body: html }));
+    await page.goto(base + '/__host', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(10000);
+    await page.locator('#f').screenshot({ path: shotPath('goingf-before') });
+    await page.frameLocator('#f').getByRole('button', { name: /say hi to jolyn and lisa/i }).first().click().catch((e) => console.log('no say hi', e.message.split('\n')[0]));
+    let last = 0;
+    for (const ms of [2500, 6000, 10000]) {
+      await page.waitForTimeout(ms - last);
+      last = ms;
+      await page.locator('#f').screenshot({ path: shotPath(`goingf-${ms}`) });
+    }
+  },
   async whosgoing(page, shot) {
     const story = await (await page.request.get(base + '/api/demo/story?at=' + encodeURIComponent(AT))).json().catch(() => null);
     const id = story?.data?.id ?? story?.data?.event?.id;
