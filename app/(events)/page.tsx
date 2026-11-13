@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { AskBar } from "@/components/ask/ask-bar";
 import { EventFeed } from "@/components/events/event-feed";
 import { TopPicks, TopPicksSkeleton } from "@/components/events/top-picks";
 import { MapHome, MapHomeSkeleton } from "@/components/map/map-home";
@@ -8,9 +9,10 @@ import { HeaderAction, SubPageHeader } from "@/components/ui/header";
 import { PlusSquareIcon, SearchIcon } from "@/components/ui/icons";
 import { CAMPUS_NAME } from "@/lib/brand";
 import { getEventStore } from "@/lib/events/store";
+import { RECORDED_QUESTION } from "@/lib/muse/fixtures/ask";
 
-// The Events tab opens on the heatmap (lisa, t-94t4). The feed is one tap
-// away as List (?view=list) and is unchanged.
+// The Events tab opens on the map (lisa, t-94t4). The feed is one tap away as
+// List (?view=list), with the Ask Muse bar on top (jing, t-ovhb).
 export default async function EventsTabPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   await connection();
   const view = (await searchParams).view === "list" ? "list" : "map";
@@ -40,6 +42,7 @@ export default async function EventsTabPage({ searchParams }: { searchParams: Pr
       ) : (
         <>
           <ViewToggle view="list" />
+          <AskBar events={events} nowIso={now.toISOString()} placeholder={RECORDED_QUESTION} />
       <EventFeed
         events={events}
         nowIso={now.toISOString()}
