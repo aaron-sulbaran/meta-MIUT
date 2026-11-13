@@ -40,10 +40,46 @@ function MicIcon({ className }: { className?: string }) {
   );
 }
 
+// Meta Model API has no text to speech (Muse Voice Transcribe is speech to
+// text only), so Muse speaks with the most humanlike voice the browser has:
+// the neural ones (Edge "Natural", Chrome "Google", Safari "Premium") first.
+const HUMANLIKE = [/natural|neural/i, /premium|enhanced|siri/i, /google us english/i, /\b(ava|aria|jenny|samantha|zoe|allison)\b/i, /google/i];
+
+function humanlikeVoice(): SpeechSynthesisVoice | null {
+  const english = window.speechSynthesis.getVoices().filter((voice) => voice.lang.toLowerCase().startsWith("en"));
+  for (const pattern of HUMANLIKE) {
+    const match = english.find((voice) => pattern.test(voice.name) && voice.lang.toLowerCase() === "en-us") ?? english.find((voice) => pattern.test(voice.name));
+    if (match) return match;
+  }
+  return english.find((voice) => voice.lang.toLowerCase() === "en-us") ?? english[0] ?? null;
+}
+
+/** Spoken like talk, not a reading: no arrows or symbols, short pauses at dashes. */
+export function forSpeech(text: string): string {
+  return text
+    .replace(/[→•✓]/g, "")
+    .replace(/\s[—–-]\s/g, ", ")
+    .replace(/&/g, " and ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+if (typeof window !== "undefined" && "speechSynthesis" in window) {
+  // Chrome loads its voices late; asking once starts the load.
+  window.speechSynthesis.getVoices();
+}
+
 function speak(text: string, then?: () => void) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return then?.();
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
+  const utterance = new SpeechSynthesisUtterance(forSpeech(text));
+  const voice = humanlikeVoice();
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  }
+  utterance.rate = 1.05;
+  utterance.pitch = 1;
   utterance.onend = () => then?.();
   utterance.onerror = () => then?.();
   window.speechSynthesis.speak(utterance);
