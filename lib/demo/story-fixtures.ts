@@ -6,6 +6,8 @@ import type { CampusEvent } from "@/lib/events/schema";
 import type { AskOutput } from "@/lib/muse/ask";
 import type { CrawlInput, CrawlPick } from "@/lib/muse/crawl";
 import type { ExtractOutput } from "@/lib/muse/extract";
+import { EVERYONE } from "@/lib/social/fixtures/people";
+import { sharedLine, type WhoIsGoing } from "@/lib/social/types";
 
 // Recorded answers for the demo's own story, used only when Muse falls back on
 // the demo path (the story's flyer, the re-plan to Lisa). They tell the same
@@ -134,3 +136,31 @@ export function storyCrawlFixture(generic: CrawlPick, candidates: CampusEvent[],
 export function storyCaptionNow(): string {
   return storyCaption(demoClock());
 }
+
+type CompanyPick = { line: string; people: { id: string; why: string }[] };
+
+/**
+ * The story's ending: a viewer with no friends going is offered exactly the people the
+ * page lists as open to company there (Jolyn, and Lisa once she joined; lib/social/going.ts).
+ * A live answer that leaves one out, or whose line names anyone else, gets a line and
+ * picks built from that list, keeping Muse's reasons where it gave them. Other events,
+ * and viewers with friends going, pass through.
+ */
+export function withStoryCompany<Pick extends CompanyPick>(pick: Pick, event: CampusEvent, who: WhoIsGoing): Pick {
+  if (event.organizer.handle.toLowerCase() !== STORY_ORGANIZER.handle) return pick;
+  if (who.friends.length > 0 || who.openToCompany.length === 0) return pick;
+  const company = who.openToCompany;
+  const ids = new Set(company.map((person) => person.id));
+  const pickedIds = new Set(pick.people.map((person) => person.id));
+  const sameIds = pickedIds.size === ids.size && [...pickedIds].every((id) => ids.has(id));
+  const strangers = EVERYONE.filter((person) => !ids.has(person.id) && names(pick.line, person.name));
+  const everyoneNamed = company.every((person) => names(pick.line, person.name));
+  if (sameIds && strangers.length === 0 && everyoneNamed) return pick;
+  const why = new Map(pick.people.map((person) => [person.id, person.why]));
+  const people = company.map((person) => ({ id: person.id, why: why.get(person.id) ?? sharedLine(person.shared) }));
+  const list = company.map((person) => person.name);
+  const joined = list.length <= 1 ? (list[0] ?? "") : `${list.slice(0, -1).join(", ")} and ${list.at(-1)}`;
+  const line = `${joined} ${company.length > 1 ? "are" : "is"} going and looking for company. Say hi!`;
+  return { ...pick, line, people };
+}
+

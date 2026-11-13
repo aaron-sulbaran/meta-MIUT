@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { withStoryCompany } from "@/lib/demo/story-fixtures";
 import { getEventStore } from "@/lib/events/store";
 import { whoToGoWith } from "@/lib/social/muse-going";
 import { loadSocial, whoIsGoing } from "@/lib/social/going";
@@ -21,5 +22,6 @@ export async function POST(_request: NextRequest, context: RouteContext<"/api/so
     ReturnType<typeof whoToGoWith>
   >;
   if (result.error !== null) return Response.json(result, { status: 502 });
-  return Response.json({ ...result, data: { ...result.data, who } });
+  // The story's ending names exactly the people the page lists, even from a cached answer.
+  return Response.json({ ...result, data: { ...withStoryCompany(result.data, event, who), who } });
 }
