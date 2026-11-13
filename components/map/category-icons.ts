@@ -1,9 +1,9 @@
 import type { Category } from "@/lib/map/category";
 
-// Event markers are round photo bubbles: the organizer's flyer in a white ring,
-// with a small line icon badge for what the event is. When there is no flyer
-// (or it fails to load) the bubble shows the event's initials on a soft tint
-// for its kind of event. Icons are SVG strings because map markers are plain
+// Event markers are round bubbles: the organizer's logo in a white ring, with
+// a small line icon badge for what the event is. When there is no logo (or it
+// fails to load) the bubble shows the organizer's monogram on a soft tint for
+// the kind of event. Icons are SVG strings because map markers are plain
 // DOM owned by MapLibre, not React. 24 by 24, drawn with currentColor.
 
 const line = (body: string) =>
@@ -75,9 +75,21 @@ const SMALL_WORDS = new Set(["a", "an", "the", "and", "of", "to", "for", "at", "
 /** Two letters for a bubble with no flyer: "Intro to bouldering night" gives "IB". */
 export function initials(title: string): string {
   const words = title
+    .replace(/['’]/g, "")
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)
     .filter((word) => word && !SMALL_WORDS.has(word.toLowerCase()));
   const letters = words.slice(0, 2).map((word) => word[0]!.toUpperCase());
   return letters.join("") || "?";
+}
+
+/**
+ * A club or business monogram for a bubble with no logo. A short all-caps
+ * first word is kept as is ("HSA at MIT" gives "HSA", "MIT Sloan" gives
+ * "MIT"); otherwise the first letters of the first two real words.
+ */
+export function monogram(name: string): string {
+  const first = name.trim().split(/\s+/)[0]?.replace(/[^\p{L}\p{N}]/gu, "") ?? "";
+  if (first.length >= 2 && first.length <= 4 && first === first.toUpperCase() && /\p{L}/u.test(first)) return first;
+  return initials(name);
 }

@@ -1,11 +1,12 @@
 import type { CampusEvent, RankedPick } from "@/lib/events/schema";
 import { distanceMeters } from "@/lib/geo";
 
-// Heat for the map: how strongly each event should glow for this student.
-// Muse's picks lead (first pick hottest). Other events glow by how likely the
-// student is to care, from the interest-memory scores in personalizeEvents
-// (lib/muse/rank.ts). Without those scores a simple fallback (free, food, now,
-// close) keeps the map from going dark. Pure, so the client and tests share it.
+// How much each event matters to this student, used to order the map's cards
+// and size its bubbles. Muse's picks lead (first pick highest). Other events
+// weigh by how likely the student is to care, from the interest-memory scores
+// in personalizeEvents (lib/muse/rank.ts). Without those scores a simple
+// fallback (free, food, now, close) still orders them. Pure, so the client and
+// tests share it. (The map used to draw this as a heatmap; the weights stay.)
 
 export type HeatPoint = {
   eventId: string;

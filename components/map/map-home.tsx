@@ -1,4 +1,4 @@
-import { EventsHeatmap, type MapCard, type MapChip } from "@/components/map/events-heatmap";
+import { EventsMap, type MapCard, type MapChip } from "@/components/map/events-map";
 import { loadSeedStudent } from "@/lib/events/seed";
 import type { CampusEvent } from "@/lib/events/schema";
 import { formatDateLine, isInWindow } from "@/lib/events/time";
@@ -7,8 +7,14 @@ import { heatPoints } from "@/lib/map/heat";
 import { personalizeEvents } from "@/lib/muse/rank";
 
 // Server half of the map home: asks Muse for this student's picks (with their
-// interest memory, see personalizeEvents), turns picks and likely scores into
-// heat, and hands plain data to the client map.
+// interest memory, see personalizeEvents), orders the events by them, and
+// hands plain data to the client map.
+
+// The organizer's logo, once the event contract carries one (organizer.logoUrl).
+function organizerLogo(event: CampusEvent): string | null {
+  const logo = (event.organizer as { logoUrl?: unknown }).logoUrl;
+  return typeof logo === "string" && logo.length > 0 ? logo : null;
+}
 
 function mapChips(event: CampusEvent, now: Date): MapChip[] {
   const chips: MapChip[] = [];
@@ -36,7 +42,8 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
         dateLine: formatDateLine(event, now),
         free: event.free,
         category: eventCategory(event),
-        imagePath: event.source.imagePath ?? null,
+        organizerName: event.organizer.name,
+        logoUrl: organizerLogo(event),
         chips: mapChips(event, now),
         weight: point.weight,
         pickRank: point.pickRank,
@@ -45,7 +52,7 @@ export async function MapHome({ events, now }: { events: CampusEvent[]; now: Dat
     ];
   });
 
-  return <EventsHeatmap cards={cards} studentSpot={student.home} museLive={ranking.source === "muse"} />;
+  return <EventsMap cards={cards} studentSpot={student.home} />;
 }
 
 export function MapHomeSkeleton() {

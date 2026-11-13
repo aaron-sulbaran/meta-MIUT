@@ -3,26 +3,25 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Map as MapLibreMap, GeoJSONSource, Marker } from "maplibre-gl";
+import type { Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, initials } from "@/components/map/category-icons";
-import { CloseIcon, MapPinIcon, MuseMark } from "@/components/ui/icons";
+import { CATEGORY_ICONS, CATEGORY_LABELS, CATEGORY_TINTS, monogram } from "@/components/map/category-icons";
+import { CloseIcon, MapPinIcon } from "@/components/ui/icons";
 import { walkMinutes } from "@/lib/geo";
 import type { Category } from "@/lib/map/category";
 
-// Full-screen heatmap for the Events tab. Hotspots are where Muse's picks for
-// this student are (lib/map/heat.ts). Each event sits on the map as a round
-// bubble with the organizer's flyer (initials on a tint when there is none) and
-// a small icon badge for what it is (lib/map/category.ts); the selected event
-// shows its name in a small pill underneath. For the
-// demo the student stands at a fixed campus spot (their profile's home), never
-// live GPS, so the map looks right wherever we present from.
+// Full-screen map for the Events tab: a clean, quiet base map with each event
+// as a round bubble showing the organizer's logo (the club, association or
+// business), or their monogram on a soft tint until a logo is set, plus a
+// small icon badge for what the event is (lib/map/category.ts). Muse's picks
+// (lib/map/heat.ts orders them) get a slightly larger bubble with a thin warm
+// ring. The selected event shows its name in a small pill. For the demo the
+// student stands at a fixed campus spot (their profile's home), never live GPS.
 // Chips along the top filter the map and cards. A swipeable strip of cards
 // sits at the bottom: swiping flies the map to that event, tapping a bubble
-// scrolls the strip to its card. X hides an event ("Not for me") and cools its
-// hotspot, and after the Undo window Muse learns from it. Directions opens
-// walking directions in the phone's maps app.
-// Tiles: OpenFreeMap "liberty" (OpenStreetMap data, no key), softened on load.
+// scrolls the strip to its card. X hides an event ("Not for me") and, after
+// the Undo window, Muse learns from it. Directions opens walking directions.
+// Tiles: OpenFreeMap "liberty" (OpenStreetMap data, no key), restyled on load.
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 // Starting view before the map frames the student and their picks.
@@ -52,7 +51,9 @@ export type MapCard = {
   dateLine: string;
   free: boolean;
   category: Category;
-  imagePath: string | null;
+  organizerName: string;
+  /** The organizer's logo image, when the event data has one. */
+  logoUrl: string | null;
   chips: MapChip[];
   weight: number;
   pickRank: number | null;
@@ -63,17 +64,6 @@ function scrollStripTo(strip: HTMLElement | null, eventId: string) {
   const card = strip?.querySelector<HTMLElement>(`[data-event-id="${CSS.escape(eventId)}"]`);
   if (!strip || !card) return;
   strip.scrollTo({ left: card.offsetLeft - 12, behavior: "smooth" });
-}
-
-function toFeatureCollection(cards: MapCard[]) {
-  return {
-    type: "FeatureCollection" as const,
-    features: cards.map((card) => ({
-      type: "Feature" as const,
-      properties: { eventId: card.eventId, weight: card.weight },
-      geometry: { type: "Point" as const, coordinates: [card.place.lng, card.place.lat] },
-    })),
-  };
 }
 
 function directionsUrl(from: Point, to: Point): string {
@@ -109,7 +99,7 @@ function writeDismissed(ids: string[]) {
 }
 
 // Soften the base map toward the references: quiet buildings, no shop and
-// transit icons, no 3D, so the bubbles and heat carry the color.
+// transit icons, no 3D, so the bubbles carry the color.
 const BASE = {
   land: "#f2f2f2",
   building: "#e8e8e8",
@@ -126,7 +116,7 @@ const HIDDEN_FILLS = new Set(["road_area_pattern", "landcover_sand", "landcover_
 
 // Restyle the base map after the reference: flat light grey land, white
 // roads, soft blue water, a hint of green, quiet grey labels, nothing else.
-// The bubbles and heat carry all the color.
+// The bubbles carry all the color.
 function softenBaseMap(map: MapLibreMap) {
   const set = (id: string, property: string, value: string | number) => {
     try {
@@ -180,20 +170,20 @@ function frameStudent(map: MapLibreMap, studentSpot: Point, cards: MapCard[], an
       [studentSpot.lng - dLng, studentSpot.lat - dLat],
       [studentSpot.lng + dLng, studentSpot.lat + dLat],
     ],
-    { padding: { top: 110, bottom: 200, left: 36, right: 36 }, maxZoom: 16, duration: animate ? 700 : 0 },
+    { padding: { top: 70, bottom: 230, left: 36, right: 36 }, maxZoom: 16, duration: animate ? 700 : 0 },
   );
 }
 
-// The bubble's fallback when there is no flyer or it fails to load: the
-// event's initials on a soft tint for its kind of event.
+// The bubble's fallback when there is no logo or it fails to load: the
+// organizer's monogram on a soft tint for the kind of event.
 function fillWithInitials(target: HTMLElement, card: MapCard, size: number) {
   const tint = CATEGORY_TINTS[card.category];
   target.replaceChildren();
-  target.textContent = initials(card.title);
+  target.textContent = monogram(card.organizerName);
   Object.assign(target.style, {
     background: tint.fill,
     color: tint.ink,
-    font: `600 ${Math.round(size * 0.34)}px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif`,
+    font: `600 ${Math.round(size * 0.3)}px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif`,
     letterSpacing: "0.02em",
   });
 }
@@ -208,7 +198,7 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
 
   const button = document.createElement("button");
   button.type = "button";
-  button.setAttribute("aria-label", `${CATEGORY_LABELS[card.category]}: ${card.title}`);
+  button.setAttribute("aria-label", `${CATEGORY_LABELS[card.category]}: ${card.title}, by ${card.organizerName}`);
   Object.assign(button.style, {
     display: "flex",
     flexDirection: "column",
@@ -222,7 +212,7 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
     transition: "transform 160ms ease",
   });
 
-  // The bubble: flyer photo in a white ring. Muse's picks get a thin warm
+  // The bubble: the organizer's logo in a white ring. Muse's picks get a thin warm
   // outer ring so they read as recommended without shouting.
   const bubble = document.createElement("span");
   Object.assign(bubble.style, { position: "relative", display: "block", width: `${size}px`, height: `${size}px` });
@@ -238,15 +228,16 @@ function markerElement(card: MapCard, onPick: (eventId: string) => void): HTMLDi
     border: `${pick ? 3 : 2.5}px solid #ffffff`,
     boxShadow: pick ? "0 0 0 2px #e8603c, 0 2px 6px rgba(0,0,0,0.25)" : "0 1px 5px rgba(0,0,0,0.25)",
     boxSizing: "border-box",
-    background: "#e8e8e8",
+    background: "#ffffff",
   });
-  if (card.imagePath) {
+  if (card.logoUrl) {
     const image = document.createElement("img");
     image.alt = "";
     image.decoding = "async";
     image.referrerPolicy = "no-referrer";
-    image.src = card.imagePath;
-    Object.assign(image.style, { width: "100%", height: "100%", objectFit: "cover", display: "block" });
+    image.src = card.logoUrl;
+    // Logos are usually square marks: contain them on white with a little air.
+    Object.assign(image.style, { width: "100%", height: "100%", objectFit: "contain", padding: "3px", boxSizing: "border-box", display: "block" });
     image.addEventListener("error", () => fillWithInitials(photo, card, size), { once: true });
     photo.appendChild(image);
   } else {
@@ -313,31 +304,31 @@ function setLabelsForZoom(markers: Map<string, { element: HTMLElement }>, zoom: 
   }
 }
 
-// The card's picture: the same flyer (or initials) and icon badge as the
+// The card's picture: the same logo (or monogram) and icon badge as the
 // bubble on the map, as a rounded square.
-function FlyerTile({ card }: { card: MapCard }) {
+function LogoTile({ card }: { card: MapCard }) {
   const [failed, setFailed] = useState(false);
   const tint = CATEGORY_TINTS[card.category];
-  const showPhoto = card.imagePath !== null && !failed;
+  const showLogo = card.logoUrl !== null && !failed;
   return (
-    <div className="relative h-[64px] w-[64px] shrink-0" aria-hidden>
-      {showPhoto ? (
-        // Flyers arrive as remote poster links or small stored images, so a
-        // plain img (not next/image) keeps both working without config.
+    <div className="relative h-[72px] w-[72px] shrink-0" aria-hidden>
+      {showLogo ? (
+        // Logos arrive as remote links or small stored images, so a plain img
+        // (not next/image) keeps both working without config.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={card.imagePath ?? undefined}
+          src={card.logoUrl ?? undefined}
           alt=""
           referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
-          className="h-full w-full rounded-[14px] object-cover"
+          className="h-full w-full rounded-[16px] border border-hairline bg-white object-contain p-[6px]"
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-[14px] text-[20px] font-semibold tracking-[0.02em]"
+          className="flex h-full w-full items-center justify-center rounded-[16px] text-[19px] font-semibold tracking-[0.02em]"
           style={{ backgroundColor: tint.fill, color: tint.ink }}
         >
-          {initials(card.title)}
+          {monogram(card.organizerName)}
         </div>
       )}
       <span
@@ -349,15 +340,7 @@ function FlyerTile({ card }: { card: MapCard }) {
   );
 }
 
-export function EventsHeatmap({
-  cards,
-  studentSpot,
-  museLive,
-}: {
-  cards: MapCard[];
-  studentSpot: Point;
-  museLive: boolean;
-}) {
+export function EventsMap({ cards, studentSpot }: { cards: MapCard[]; studentSpot: Point }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLOListElement>(null);
@@ -410,7 +393,7 @@ export function EventsHeatmap({
         map.touchZoomRotate.disableRotation();
         // Lift the map credit above the card strip and tab bar so it stays visible.
         const corner = container.querySelector<HTMLElement>(".maplibregl-ctrl-bottom-right");
-        if (corner) corner.style.bottom = "calc(var(--tabbar-height) + var(--tabbar-gap) + 160px)";
+        if (corner) corner.style.bottom = "calc(var(--tabbar-height) + var(--tabbar-gap) + 196px)";
         mapRef.current = map;
 
         const dot = document.createElement("div");
@@ -435,36 +418,6 @@ export function EventsHeatmap({
           container.querySelector(".maplibregl-compact-show")?.classList.remove("maplibregl-compact-show");
           softenBaseMap(map);
           frameStudent(map, studentSpot, cards, false);
-          map.addSource("events", { type: "geojson", data: toFeatureCollection([]) });
-          map.addLayer({
-            id: "events-heat",
-            type: "heatmap",
-            source: "events",
-            paint: {
-              "heatmap-weight": ["get", "weight"],
-              "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 12, 1.6, 15, 2.4, 17, 3],
-              "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 12, 26, 14.5, 62, 17, 115],
-              "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0.85, 18, 0.65],
-              // Warm ramp so it stands out from the blue water and green parks.
-              "heatmap-color": [
-                "interpolate",
-                ["linear"],
-                ["heatmap-density"],
-                0,
-                "rgba(255,214,90,0)",
-                0.15,
-                "rgba(255,214,90,0.4)",
-                0.4,
-                "rgba(255,165,50,0.6)",
-                0.65,
-                "rgba(246,104,44,0.74)",
-                0.85,
-                "rgba(230,57,70,0.82)",
-                1,
-                "rgba(200,20,90,0.9)",
-              ],
-            },
-          });
           setMapReady(true);
         });
       })
@@ -481,12 +434,11 @@ export function EventsHeatmap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Heat and bubbles follow the visible cards.
+  // Bubbles follow the visible cards.
   useEffect(() => {
     const map = mapRef.current;
     const MarkerClass = markerClassRef.current;
     if (!mapReady || !map || !MarkerClass) return;
-    (map.getSource("events") as GeoJSONSource | undefined)?.setData(toFeatureCollection(visibleCards));
 
     const markers = markersRef.current;
     const keep = new Set(visibleCards.map((card) => card.eventId));
@@ -521,7 +473,7 @@ export function EventsHeatmap({
 
   // Muse learns from Not for me (POST /api/muse/learn, kind "dismissed"), but
   // only once the Undo window has passed, since a dismissal cannot be unlearned.
-  // Then the page refreshes so the heat reflects what Muse now knows.
+  // Then the page refreshes so the picks reflect what Muse now knows.
   const learnTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   useEffect(() => {
     const timers = learnTimers.current;
@@ -622,17 +574,13 @@ export function EventsHeatmap({
         ))}
       </div>
 
-      <p className="pointer-events-none absolute left-3 top-[52px] z-10 flex items-center gap-[5px] rounded-full bg-card/95 px-[10px] py-[5px] text-[12px] font-semibold text-muted shadow-sm">
-        <MuseMark className="h-[12px] w-[12px] text-primary" />
-        {museLive ? "Heat shows Muse's picks for you" : "Recorded picks while Muse is offline"}
-      </p>
 
       <button
         type="button"
         onClick={recenter}
         aria-label="Recenter on my location"
         className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-card text-ink shadow-md active:scale-95"
-        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 110px)" }}
+        style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 144px)" }}
       >
         <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden fill="none" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="7" />
@@ -645,7 +593,7 @@ export function EventsHeatmap({
         <div
           role="status"
           className="absolute left-3 z-10 flex items-center gap-3 rounded-full bg-ink px-[14px] py-[8px] text-meta font-semibold text-white shadow-md"
-          style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 116px)" }}
+          style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 150px)" }}
         >
           <span className="max-w-[170px] truncate">Hidden: {lastDismissed.title}</span>
           <button type="button" onClick={undoDismiss} className="text-primary-soft underline">
@@ -673,15 +621,15 @@ export function EventsHeatmap({
         style={{ bottom: "calc(var(--tabbar-height) + var(--tabbar-gap) + 10px)" }}
       >
         {visibleCards.map((card) => (
-          <li key={card.eventId} data-event-id={card.eventId} className="w-[310px] shrink-0 snap-start">
+          <li key={card.eventId} data-event-id={card.eventId} className="w-[320px] shrink-0 snap-start">
             <article
-              className={`relative flex h-[96px] items-center gap-[10px] rounded-[18px] border-[1.5px] bg-card p-[10px] pr-[30px] shadow-md transition-colors ${
+              className={`relative flex h-[128px] items-center gap-[12px] rounded-[18px] border-[1.5px] bg-card p-[12px] pr-[30px] shadow-md transition-colors ${
                 currentActive === card.eventId ? "border-[#ff7a45]" : "border-transparent"
               }`}
             >
-              <FlyerTile card={card} />
+              <LogoTile card={card} />
               <div className="min-w-0 flex-1">
-                <h3 className="truncate font-display text-label font-bold">
+                <h3 className="line-clamp-2 font-display text-label font-bold">
                   <Link href={`/events/${card.eventId}`} className="after:absolute after:inset-0">
                     {card.title}
                   </Link>
@@ -700,9 +648,9 @@ export function EventsHeatmap({
                     Directions
                   </a>
                 </p>
-                {/* Every card has the same four lines, so they are all one size. The
-                    last line is the place: personalization reasons stay inside the
-                    agent, as on the Top 3 and alerts (d-fwq6). */}
+                {/* Every card is one size and tall enough for a two-line title, the
+                    time, walk and Directions, and the place. Personalization reasons
+                    stay inside the agent, as on the Top 3 and alerts (d-fwq6). */}
                 <p className="mt-[4px] flex items-center gap-[5px] text-[12px] font-semibold leading-[15px] text-muted">
                   <MapPinIcon className="h-[12px] w-[12px] shrink-0" />
                   <span className="truncate">{card.place.name}</span>

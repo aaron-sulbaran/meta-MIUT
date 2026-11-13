@@ -83,8 +83,8 @@ lib/attendance/      Interested and RSVP: schema.ts and client.ts (client safe),
 lib/store/redis.ts   minimal Upstash Redis REST client (fetch, no SDK)
 lib/muse/            client.ts, job.ts, extract.ts, rank.ts, ask.ts, fixtures/
 lib/geo.ts           distance and walking minutes
-lib/map/heat.ts      heat weights for the map: Muse picks hottest, then free, food, now, close
-lib/map/category.ts  guesses an event's kind (pizza, film, climb...) from its words; components/map/category-icons.ts draws its badge
+lib/map/heat.ts      event weights that order the map cards: Muse picks first, then interest scores
+lib/map/category.ts  guesses an event's kind (pizza, film, climb...) from its words; components/map/category-icons.ts draws its badge and the organizer monogram
 data/seed/           placeholder events and student profile
 ```
 
